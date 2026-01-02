@@ -147,3 +147,4 @@ dist/
 
 # Roo Code
 .roo/
+/log/ezbookkeeping.log

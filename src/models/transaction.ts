@@ -226,11 +226,11 @@ export class Transaction implements TransactionInfoResponse {
         this._displayDayOfWeek = displayDayOfWeek;
     }
 
-    public toCreateRequest(clientSessionId: string, actualTime?: number): TransactionCreateRequest {
+    public toCreateRequest(clientSessionId: string): TransactionCreateRequest {
         return {
             type: this.type,
             categoryId: this.getCategoryId(),
-            time: actualTime ? actualTime : this.time,
+            time: this.time,
             utcOffset: this.utcOffset,
             sourceAccountId: this.sourceAccountId,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
@@ -245,7 +245,7 @@ export class Transaction implements TransactionInfoResponse {
         };
     }
 
-    public toModifyRequest(actualTime?: number): TransactionModifyRequest {
+    public toModifyRequest(): TransactionModifyRequest {
         let categoryId = this.getCategoryId();
 
         if (this.type === TransactionType.ModifyBalance) {
@@ -255,7 +255,7 @@ export class Transaction implements TransactionInfoResponse {
         return {
             id: this.id,
             categoryId: categoryId,
-            time: actualTime ? actualTime : this.time,
+            time: this.time,
             utcOffset: this.utcOffset,
             sourceAccountId: this.sourceAccountId,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
@@ -595,6 +595,11 @@ export interface TransactionListInMonthByPageRequest {
     readonly tagFilter: string;
     readonly amountFilter: string;
     readonly keyword: string;
+}
+
+export interface TransactionAllListRequest {
+    readonly startTime: number;
+    readonly endTime: number;
 }
 
 export interface TransactionReconciliationStatementRequest {
@@ -946,6 +951,27 @@ export interface TransactionAssetTrendsAnalysisDataAmount extends Record<string,
     readonly month: number;
     readonly day: number;
     readonly totalAmount: number;
+}
+
+export interface TransactionInsightDataItem extends TransactionInfoResponse {
+    readonly id: string;
+    readonly time: number;
+    readonly utcOffset: number;
+    readonly type: number;
+    readonly primaryCategory: TransactionCategoryInfoResponse;
+    readonly primaryCategoryName: string;
+    readonly secondaryCategory: TransactionCategoryInfoResponse;
+    readonly secondaryCategoryName: string;
+    readonly sourceAccount: AccountInfoResponse;
+    readonly sourceAccountName: string;
+    readonly destinationAccount?: AccountInfoResponse;
+    readonly destinationAccountName?: string;
+    readonly sourceAmount: number;
+    readonly destinationAmount: number;
+    readonly hideAmount: boolean;
+    readonly tags: TransactionTagInfoResponse[];
+    readonly comment: string;
+    readonly geoLocation?: TransactionGeoLocationResponse;
 }
 
 export type TransactionAmountsResponse = PartialRecord<TransactionAmountsRequestType, TransactionAmountsResponseItem>;

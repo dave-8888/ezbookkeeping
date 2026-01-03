@@ -135,6 +135,8 @@ i.icon.la, i.icon.las, i.icon.lab {
 }
 
 .ios .popover-inner {
+    touch-action: inherit;
+
     > :not(.list) {
         display: none;
     }
@@ -222,10 +224,6 @@ i.icon.la, i.icon.las, i.icon.lab {
 
 .lang-popover-menu .popover-inner {
     max-height: 350px;
-
-    > .list {
-        overflow-y: auto;
-    }
 }
 
 .lang-popover-menu .popover-inner .item-title {
@@ -440,7 +438,8 @@ html[dir="rtl"] i.icon.icon-with-direction {
     font-weight: bold;
 }
 
-.list > ul > li.item-in-multiple-selection > .item-content > .item-inner > .item-title {
+.list > ul > li.item-in-multiple-selection > .item-content > .item-inner > .item-title,
+.list > ul > li.item-in-multiple-selection > .item-link > .item-content > .item-inner > .item-title {
     font-weight: bold;
 }
 
@@ -619,6 +618,14 @@ html[dir="rtl"] .icon.las .badge.right-bottom-icon {
     margin-top: -8px;
     border-radius: 3px;
     background: #666
+}
+
+.toolbar-with-swipe-handler > .toolbar-inner {
+    > div.left,
+    > div.right,
+    > form.searchbar {
+        margin-top: var(--f7-typography-margin) !important;
+    }
 }
 
 /** list-item-with-multi-item for framework7 **/

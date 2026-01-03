@@ -1,9 +1,12 @@
 <template>
     <f7-sheet ref="sheet" swipe-to-close swipe-handler=".swipe-handler"
               style="height: auto" :opened="show" @sheet:open="onSheetOpen" @sheet:closed="onSheetClosed">
-        <f7-toolbar>
+        <f7-toolbar class="toolbar-with-swipe-handler">
             <div class="swipe-handler"></div>
-            <f7-searchbar ref="searchbar" class="margin-top" custom-searchs
+            <div class="left">
+                <f7-link sheet-close icon-f7="xmark"></f7-link>
+            </div>
+            <f7-searchbar ref="searchbar" custom-searchs
                           :value="filterContent"
                           :placeholder="filterPlaceholder"
                           :disable-button="false"
@@ -16,7 +19,7 @@
             <f7-list class="no-margin-top no-margin-bottom" v-if="!filteredItems || !filteredItems.length">
                 <f7-list-item :title="filterNoItemsText"></f7-list-item>
             </f7-list>
-            <f7-treeview>
+            <f7-treeview class="tree-view-selection-treeview">
                 <f7-treeview-item item-toggle
                                   :opened="isPrimaryItemHasSecondaryValue(item)"
                                   :label="ti((primaryTitleField ? item[primaryTitleField] : item) as string, !!primaryTitleI18n)"
@@ -51,7 +54,8 @@ import type { Sheet, Searchbar } from 'framework7/types';
 import { useI18n } from '@/locales/helpers.ts';
 import { type TwoLevelItemSelectionBaseProps, useTwoLevelItemSelectionBase } from '@/components/base/TwoLevelItemSelectionBase.ts';
 
-import { type Framework7Dom, scrollToSelectedItem, scrollSheetToTop } from '@/lib/ui/mobile.ts';
+import { scrollToSelectedItem } from '@/lib/ui/common.ts';
+import { type Framework7Dom, scrollSheetToTop } from '@/lib/ui/mobile.ts';
 
 interface MobileTwoLevelItemSelectionBaseProps extends TwoLevelItemSelectionBaseProps {
     show: boolean;
@@ -134,7 +138,7 @@ function onSearchBarFocus(): void {
 
 function onSheetOpen(event: { $el: Framework7Dom }): void {
     currentValue.value = props.modelValue;
-    scrollToSelectedItem(event.$el, '.page-content', '.treeview-item .treeview-item-selected');
+    scrollToSelectedItem(event.$el[0], '.sheet-modal-inner', '.page-content', '.treeview-item > .treeview-item-selected');
 }
 
 function onSheetClosed(): void {
@@ -162,7 +166,11 @@ function onSheetClosed(): void {
 @media (max-height: 629px) {
     .tree-view-selection-large-sheet,
     .tree-view-selection-huge-sheet {
-        height: 360px;
+        height: 320px;
     }
+}
+
+.tree-view-selection-treeview {
+    position: relative;
 }
 </style>

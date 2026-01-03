@@ -266,7 +266,7 @@
                                                             </v-list-item>
 
                                                             <v-list-group :key="category.id" v-for="category in categories">
-                                                                <template #activator="{ props }" v-if="!category.hidden || query.categoryIds === category.id || (allCategories[query.categoryIds] && allCategories[query.categoryIds]!.parentId === category.id)">
+                                                                <template #activator="{ props }" v-if="!category.hidden || queryAllFilterCategoryIds[category.id] || allCategories[query.categoryIds]?.parentId === category.id || hasSubCategoryInQuery(category)">
                                                                     <v-divider />
                                                                     <v-list-item class="text-sm" density="compact"
                                                                                  :class="getCategoryListItemCheckedClass(category, queryAllFilterCategoryIds)"
@@ -296,12 +296,12 @@
 
                                                                 <template :key="subCategory.id"
                                                                           v-for="subCategory in category.subCategories">
-                                                                    <v-divider v-if="!subCategory.hidden || query.categoryIds === subCategory.id" />
+                                                                    <v-divider v-if="!subCategory.hidden || queryAllFilterCategoryIds[subCategory.id]" />
                                                                     <v-list-item class="text-sm" density="compact"
                                                                                  :value="subCategory.id"
                                                                                  :class="{ 'list-item-selected': query.categoryIds === subCategory.id, 'item-in-multiple-selection': queryAllFilterCategoryIdsCount > 1 && queryAllFilterCategoryIds[subCategory.id] }"
                                                                                  :append-icon="(query.categoryIds === subCategory.id ? mdiCheck : undefined)"
-                                                                                 v-if="!subCategory.hidden || query.categoryIds === subCategory.id">
+                                                                                 v-if="!subCategory.hidden || queryAllFilterCategoryIds[subCategory.id]">
                                                                         <v-list-item-title class="cursor-pointer"
                                                                                            @click="changeCategoryFilter(subCategory.id)">
                                                                             <div class="d-flex align-center">
@@ -407,12 +407,12 @@
                                                         </v-list-item>
                                                         <template :key="account.id"
                                                                   v-for="account in allAccounts">
-                                                            <v-divider v-if="(!account.hidden && (!allAccountsMap[account.parentId] || !allAccountsMap[account.parentId]!.hidden)) || query.accountIds === account.id" />
+                                                            <v-divider v-if="(!account.hidden && (!allAccountsMap[account.parentId] || !allAccountsMap[account.parentId]!.hidden)) || queryAllFilterAccountIds[account.id]" />
                                                             <v-list-item class="text-sm" density="compact"
                                                                          :value="account.id"
                                                                          :class="{ 'list-item-selected': query.accountIds === account.id, 'item-in-multiple-selection': queryAllFilterAccountIdsCount > 1 && queryAllFilterAccountIds[account.id] }"
                                                                          :append-icon="(query.accountIds === account.id ? mdiCheck : undefined)"
-                                                                         v-if="(!account.hidden && (!allAccountsMap[account.parentId] || !allAccountsMap[account.parentId]!.hidden)) || query.accountIds === account.id">
+                                                                         v-if="(!account.hidden && (!allAccountsMap[account.parentId] || !allAccountsMap[account.parentId]!.hidden)) || queryAllFilterAccountIds[account.id]">
                                                                 <v-list-item-title class="cursor-pointer"
                                                                                    @click="changeAccountFilter(account.id)">
                                                                     <div class="d-flex align-center">
@@ -534,8 +534,8 @@
                                                 <td class="transaction-table-column-time">
                                                     <div class="d-flex flex-column">
                                                         <span>{{ getDisplayTime(transaction) }}</span>
-                                                        <span class="text-caption" v-if="transaction.utcOffset !== currentTimezoneOffsetMinutes">{{ getDisplayTimezone(transaction) }}</span>
-                                                        <v-tooltip activator="parent" v-if="transaction.utcOffset !== currentTimezoneOffsetMinutes">{{ getDisplayTimeInDefaultTimezone(transaction) }}</v-tooltip>
+                                                        <span class="text-caption" v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimezone(transaction) }}</span>
+                                                        <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimeInDefaultTimezone(transaction) }}</v-tooltip>
                                                     </div>
                                                 </td>
                                                 <td class="transaction-table-column-category">
@@ -691,8 +691,6 @@ import {
 import {
     getCurrentUnixTime,
     parseDateTimeFromUnixTime,
-    getBrowserTimezoneOffsetMinutes,
-    getActualUnixTimeForStore,
     getDayFirstUnixTimeBySpecifiedUnixTime,
     getYearMonthFirstUnixTime,
     getYearMonthLastUnixTime,
@@ -711,8 +709,7 @@ import {
     transactionTypeToCategoryType
 } from '@/lib/category.ts';
 import { isDataExportingEnabled, isDataImportingEnabled, isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
-import { startDownloadFile } from '@/lib/ui/common.ts';
-import { scrollToSelectedItem } from '@/lib/ui/desktop.ts';
+import { scrollToSelectedItem, startDownloadFile } from '@/lib/ui/common.ts';
 import logger from '@/lib/logger.ts';
 
 import {
@@ -776,7 +773,6 @@ const {
     customMinDatetime,
     customMaxDatetime,
     currentCalendarDate,
-    currentTimezoneOffsetMinutes,
     firstDayOfWeek,
     fiscalYearStart,
     defaultCurrency,
@@ -809,6 +805,8 @@ const {
     transactionCalendarMinDate,
     transactionCalendarMaxDate,
     currentMonthTransactionData,
+    hasSubCategoryInQuery,
+    isSameAsDefaultTimezoneOffsetMinutes,
     canAddTransaction,
     getDisplayTime,
     getDisplayLongDate,
@@ -1234,7 +1232,7 @@ function changePageType(type: number): void {
 function changeDateFilter(dateRange: TimeRangeAndDateType | number | null): void {
     if (dateRange === DateRange.Custom.type || (isObject(dateRange) && dateRange.dateType === DateRange.Custom.type && !dateRange.minTime && !dateRange.maxTime)) { // Custom
         if (!query.value.minTime || !query.value.maxTime) {
-            customMaxDatetime.value = getActualUnixTimeForStore(getCurrentUnixTime(), currentTimezoneOffsetMinutes.value, getBrowserTimezoneOffsetMinutes());
+            customMaxDatetime.value = getCurrentUnixTime();
             customMinDatetime.value = getDayFirstUnixTimeBySpecifiedUnixTime(customMaxDatetime.value);
         } else {
             customMaxDatetime.value = query.value.maxTime;
@@ -1695,7 +1693,7 @@ function scrollTagMenuToSelectedItem(opened: boolean): void {
 
 function scrollMenuToSelectedItem(menu: VMenu | null): void {
     nextTick(() => {
-        scrollToSelectedItem(menu?.contentEl, 'div.v-list', 'div.v-list-item.list-item-selected');
+        scrollToSelectedItem(menu?.contentEl, 'div.v-list', 'div.v-list', 'div.v-list-item.list-item-selected');
     });
 }
 
@@ -1763,9 +1761,21 @@ init(props);
     line-height: 1rem;
 }
 
-
 .transaction-list-datetime-range .transaction-list-datetime-range-text {
     color: rgba(var(--v-theme-on-background), var(--v-medium-emphasis-opacity)) !important;
+}
+
+.v-table.transaction-table > .v-table__wrapper > table {
+    th:not(:last-child),
+    td:not(:last-child) {
+        width: auto !important;
+        white-space: nowrap;
+    }
+
+    th:last-child,
+    td:last-child {
+        width: 100% !important;
+    }
 }
 
 .v-table.transaction-table .transaction-list-row-date > td {
@@ -1773,32 +1783,23 @@ init(props);
 }
 
 .transaction-table .transaction-table-column-time {
-    width: 110px;
-    white-space: nowrap;
+    min-width: 110px;
 }
 
 .transaction-table .transaction-table-column-category {
-    width: 140px;
-    white-space: nowrap;
+    min-width: 140px;
 }
 
 .transaction-table .transaction-table-column-amount {
-    width: 120px;
-    white-space: nowrap;
+    min-width: 120px;
 }
 
 .transaction-table .transaction-table-column-account {
-    width: 160px;
-    white-space: nowrap;
+    min-width: 160px;
 }
 
 .transaction-table .transaction-table-column-tags {
-    width: 90px;
-    max-width: 300px;
-}
-
-.transaction-table-column-description {
-    max-width: 300px;
+    min-width: 90px;
 }
 
 .transaction-table .transaction-table-column-category .v-btn,

@@ -14,51 +14,47 @@
         </f7-navbar>
 
         <f7-popover class="chart-data-type-popover-menu"
-                    v-model:opened="showChartDataTypePopover"
                     @popover:open="scrollPopoverToSelectedItem">
             <f7-list dividers>
-                <f7-list-group>
-                    <f7-list-item group-title>
-                        <small>{{ tt('Categorical Analysis') }}</small>
-                    </f7-list-item>
-                    <f7-list-item :title="tt(dataType.name)"
-                                  :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.chartDataType === dataType.type }"
-                                  :key="dataType.type"
-                                  v-for="dataType in ChartDataType.values(StatisticsAnalysisType.CategoricalAnalysis)"
-                                  @click="setChartDataType(StatisticsAnalysisType.CategoricalAnalysis, dataType.type)">
-                        <template #after>
-                            <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.chartDataType === dataType.type"></f7-icon>
-                        </template>
-                    </f7-list-item>
-                </f7-list-group>
-                <f7-list-group>
-                    <f7-list-item group-title>
-                        <small>{{ tt('Trend Analysis') }}</small>
-                    </f7-list-item>
-                    <f7-list-item :title="tt(dataType.name)"
-                                  :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.TrendAnalysis && query.chartDataType === dataType.type }"
-                                  :key="dataType.type"
-                                  v-for="dataType in ChartDataType.values(StatisticsAnalysisType.TrendAnalysis)"
-                                  @click="setChartDataType(StatisticsAnalysisType.TrendAnalysis, dataType.type)">
-                        <template #after>
-                            <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.TrendAnalysis && query.chartDataType === dataType.type"></f7-icon>
-                        </template>
-                    </f7-list-item>
-                </f7-list-group>
-                <f7-list-group>
-                    <f7-list-item group-title>
-                        <small>{{ tt('Asset Trends') }}</small>
-                    </f7-list-item>
-                    <f7-list-item :title="tt(dataType.name)"
-                                  :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.AssetTrends && query.chartDataType === dataType.type }"
-                                  :key="dataType.type"
-                                  v-for="dataType in ChartDataType.values(StatisticsAnalysisType.AssetTrends)"
-                                  @click="setChartDataType(StatisticsAnalysisType.AssetTrends, dataType.type)">
-                        <template #after>
-                            <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.AssetTrends && query.chartDataType === dataType.type"></f7-icon>
-                        </template>
-                    </f7-list-item>
-                </f7-list-group>
+                <f7-list-item group-title>
+                    <small>{{ tt('Categorical Analysis') }}</small>
+                </f7-list-item>
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="tt(dataType.name)"
+                              :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.chartDataType === dataType.type }"
+                              :key="dataType.type"
+                              v-for="dataType in ChartDataType.values(StatisticsAnalysisType.CategoricalAnalysis)"
+                              @click="setChartDataType(StatisticsAnalysisType.CategoricalAnalysis, dataType.type)">
+                    <template #after>
+                        <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.chartDataType === dataType.type"></f7-icon>
+                    </template>
+                </f7-list-item>
+                <f7-list-item group-title>
+                    <small>{{ tt('Trend Analysis') }}</small>
+                </f7-list-item>
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="tt(dataType.name)"
+                              :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.TrendAnalysis && query.chartDataType === dataType.type }"
+                              :key="dataType.type"
+                              v-for="dataType in ChartDataType.values(StatisticsAnalysisType.TrendAnalysis)"
+                              @click="setChartDataType(StatisticsAnalysisType.TrendAnalysis, dataType.type)">
+                    <template #after>
+                        <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.TrendAnalysis && query.chartDataType === dataType.type"></f7-icon>
+                    </template>
+                </f7-list-item>
+                <f7-list-item group-title>
+                    <small>{{ tt('Asset Trends') }}</small>
+                </f7-list-item>
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="tt(dataType.name)"
+                              :class="{ 'list-item-selected': analysisType === StatisticsAnalysisType.AssetTrends && query.chartDataType === dataType.type }"
+                              :key="dataType.type"
+                              v-for="dataType in ChartDataType.values(StatisticsAnalysisType.AssetTrends)"
+                              @click="setChartDataType(StatisticsAnalysisType.AssetTrends, dataType.type)">
+                    <template #after>
+                        <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="analysisType === StatisticsAnalysisType.AssetTrends && query.chartDataType === dataType.type"></f7-icon>
+                    </template>
+                </f7-list-item>
             </f7-list>
         </f7-popover>
 
@@ -90,6 +86,7 @@
                     :show-center-text="true"
                     :show-selected-item-info="true"
                     :enable-click-item="true"
+                    :amount-value="true"
                     :default-currency="defaultCurrency"
                     class="statistics-pie-chart"
                     name-field="name"
@@ -278,10 +275,10 @@
             </f7-card-content>
         </f7-card>
 
-        <f7-popover class="sorting-type-popover-menu"
-                    v-model:opened="showSortingTypePopover">
+        <f7-popover class="sorting-type-popover-menu">
             <f7-list dividers>
-                <f7-list-item :title="sortingType.displayName"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="sortingType.displayName"
                               :class="{ 'list-item-selected': query.sortingType === sortingType.type }"
                               :key="sortingType.type"
                               v-for="sortingType in allSortingTypes"
@@ -318,10 +315,10 @@
         </f7-toolbar>
 
         <f7-popover class="date-popover-menu"
-                    v-model:opened="showDatePopover"
                     @popover:open="scrollPopoverToSelectedItem">
             <f7-list dividers>
-                <f7-list-item :title="dateRange.displayName"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="dateRange.displayName"
                               :class="{ 'list-item-selected': queryDateType === dateRange.type }"
                               :key="dateRange.type"
                               v-for="dateRange in allDateRanges"
@@ -342,10 +339,10 @@
         </f7-popover>
 
         <f7-popover class="date-aggregation-popover-menu"
-                    v-model:opened="showDateAggregationPopover"
                     @popover:open="scrollPopoverToSelectedItem">
             <f7-list dividers v-if="analysisType === StatisticsAnalysisType.TrendAnalysis">
-                <f7-list-item :title="aggregationType.displayName"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="aggregationType.displayName"
                               :class="{ 'list-item-selected': trendDateAggregationType === aggregationType.type }"
                               :key="aggregationType.type"
                               v-for="aggregationType in allTrendAnalysisDateAggregationTypes"
@@ -356,7 +353,8 @@
                 </f7-list-item>
             </f7-list>
             <f7-list dividers v-else-if="analysisType === StatisticsAnalysisType.AssetTrends">
-                <f7-list-item :title="aggregationType.displayName"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="aggregationType.displayName"
                               :class="{ 'list-item-selected': assetTrendsDateAggregationType === aggregationType.type }"
                               :key="aggregationType.type"
                               v-for="aggregationType in allAssetTrendsDateAggregationTypes"
@@ -434,7 +432,8 @@ import {
     getDateTypeByDateRange,
     getDateRangeByDateType
 } from '@/lib/datetime.ts';
-import { type Framework7Dom, useI18nUIComponents, scrollToSelectedItem } from '@/lib/ui/mobile.ts';
+import { scrollToSelectedItem } from '@/lib/ui/common.ts';
+import { type Framework7Dom, useI18nUIComponents } from '@/lib/ui/mobile.ts';
 
 const props = defineProps<{
     f7router: Router.Router;
@@ -496,10 +495,6 @@ const statisticsStore = useStatisticsStore();
 
 const loadingError = ref<unknown | null>(null);
 const reloading = ref<boolean>(false);
-const showChartDataTypePopover = ref<boolean>(false);
-const showSortingTypePopover = ref<boolean>(false);
-const showDatePopover = ref<boolean>(false);
-const showDateAggregationPopover = ref<boolean>(false);
 const showCustomDateRangeSheet = ref<boolean>(false);
 const showCustomMonthRangeSheet = ref<boolean>(false);
 const showMoreActionSheet = ref<boolean>(false);
@@ -674,8 +669,6 @@ function setChartDataType(type: number, chartDataType: number): void {
         chartDataType: chartDataType
     });
 
-    showChartDataTypePopover.value = false;
-
     if (analysisTypeChanged) {
         reload();
     }
@@ -683,32 +676,26 @@ function setChartDataType(type: number, chartDataType: number): void {
 
 function setSortingType(type: number): void {
     if (type < ChartSortingType.Amount.type || type > ChartSortingType.Name.type) {
-        showSortingTypePopover.value = false;
         return;
     }
 
     statisticsStore.updateTransactionStatisticsFilter({
         sortingType: type
     });
-
-    showSortingTypePopover.value = false;
 }
 
 function setTrendDateAggregationType(type: number): void {
     trendDateAggregationType.value = type;
-    showDateAggregationPopover.value = false;
 }
 
 function setAssetTrendsDateAggregationType(type: number): void {
     assetTrendsDateAggregationType.value = type;
-    showDateAggregationPopover.value = false;
 }
 
 function setDateFilter(dateType: number): void {
     if (analysisType.value === StatisticsAnalysisType.CategoricalAnalysis) {
         if (dateType === DateRange.Custom.type) { // Custom
             showCustomDateRangeSheet.value = true;
-            showDatePopover.value = false;
             return;
         } else if (query.value.categoricalChartDateType === dateType) {
             return;
@@ -716,7 +703,6 @@ function setDateFilter(dateType: number): void {
     } else if (analysisType.value === StatisticsAnalysisType.TrendAnalysis) {
         if (dateType === DateRange.Custom.type) { // Custom
             showCustomMonthRangeSheet.value = true;
-            showDatePopover.value = false;
             return;
         } else if (query.value.trendChartDateType === dateType) {
             return;
@@ -724,7 +710,6 @@ function setDateFilter(dateType: number): void {
     } else if (analysisType.value === StatisticsAnalysisType.AssetTrends) {
         if (dateType === DateRange.Custom.type) { // Custom
             showCustomDateRangeSheet.value = true;
-            showDatePopover.value = false;
             return;
         } else if (query.value.assetTrendsChartDateType === dateType) {
             return;
@@ -758,8 +743,6 @@ function setDateFilter(dateType: number): void {
             assetTrendsChartEndTime: dateRange.maxTime
         });
     }
-
-    showDatePopover.value = false;
 
     if (changed) {
         reload();
@@ -897,7 +880,7 @@ function settings(): void {
 }
 
 function scrollPopoverToSelectedItem(event: { $el: Framework7Dom }): void {
-    scrollToSelectedItem(event.$el, '.popover-inner', 'li.list-item-selected');
+    scrollToSelectedItem(event.$el[0], '.popover-inner', '.popover-inner', 'li.list-item-selected');
 }
 
 function onClickPieChartItem(item: Record<string, unknown>): void {
@@ -962,9 +945,6 @@ init();
 
 .chart-data-type-popover-menu .popover-inner {
     max-height: 440px;
-
-    > .list {
-        overflow-y: auto;
-    }
+    overflow-y: auto;
 }
 </style>

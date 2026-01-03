@@ -2,19 +2,11 @@
     <f7-sheet ref="sheet" swipe-to-close swipe-handler=".swipe-handler"
               style="height: auto" :opened="show"
               @sheet:open="onSheetOpen" @sheet:closed="onSheetClosed">
-        <f7-toolbar>
+        <f7-toolbar class="toolbar-with-swipe-handler">
             <div class="swipe-handler"></div>
             <div class="left">
                 <f7-link sheet-close icon-f7="xmark"></f7-link>
             </div>
-            <div class="right">
-                <f7-button round fill icon-f7="checkmark_alt" @click="save"
-                           v-if="allTags && allTags.length && !noAvailableTag"></f7-button>
-                <f7-link icon-f7="plus" :class="{'disabled': newTag}" @click="addNewTag"
-                         v-if="!allTags || !allTags.length || noAvailableTag"></f7-link>
-            </div>
-        </f7-toolbar>
-        <f7-page-content :class="heightClass">
             <f7-searchbar ref="searchbar" custom-searchs
                           :value="filterContent"
                           :placeholder="tt('Find tag')"
@@ -23,6 +15,14 @@
                           @input="filterContent = $event.target.value"
                           @focus="onSearchBarFocus">
             </f7-searchbar>
+            <div class="right">
+                <f7-button round fill icon-f7="checkmark_alt" @click="save"
+                           v-if="allTags && allTags.length && !noAvailableTag"></f7-button>
+                <f7-link icon-f7="plus" :class="{'disabled': newTag}" @click="addNewTag"
+                         v-if="!allTags || !allTags.length || noAvailableTag"></f7-link>
+            </div>
+        </f7-toolbar>
+        <f7-page-content :class="'margin-top ' + heightClass">
             <f7-list class="no-margin-top no-margin-bottom" v-if="(!allTags || !allTags.length || noAvailableTag) && !newTag">
                 <f7-list-item :title="tt('No available tag')"></f7-list-item>
             </f7-list>
@@ -94,7 +94,8 @@ import { useI18nUIComponents, showLoading, hideLoading } from '@/lib/ui/mobile.t
 import { TransactionTag } from '@/models/transaction_tag.ts';
 import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
 
-import { type Framework7Dom, scrollToSelectedItem, scrollSheetToTop } from '@/lib/ui/mobile.ts';
+import { scrollToSelectedItem } from '@/lib/ui/common.ts';
+import { type Framework7Dom, scrollSheetToTop } from '@/lib/ui/mobile.ts';
 
 const props = defineProps<{
     modelValue: string[];
@@ -229,7 +230,7 @@ function onSearchBarFocus(): void {
 function onSheetOpen(event: { $el: Framework7Dom }): void {
     selectedItemIds.value = Array.from(props.modelValue);
     newTag.value = null;
-    scrollToSelectedItem(event.$el, '.page-content', 'li.list-item-selected');
+    scrollToSelectedItem(event.$el[0], '.sheet-modal-inner', '.page-content', 'li.list-item-selected');
 }
 
 function onSheetClosed(): void {
@@ -257,7 +258,7 @@ function onSheetClosed(): void {
 @media (max-height: 629px) {
     .tag-selection-large-sheet,
     .tag-selection-huge-sheet {
-        height: 360px;
+        height: 320px;
     }
 }
 

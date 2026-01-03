@@ -97,18 +97,18 @@
                 class="list-item-with-header-and-title list-item-title-hide-overflow"
                 key="expenseCategorySelection"
                 link="#" no-chevron
-                :class="{ 'disabled': !hasAvailableExpenseCategories, 'readonly': mode === TransactionEditPageMode.View }"
+                :class="{ 'disabled': !hasVisibleExpenseCategories, 'readonly': mode === TransactionEditPageMode.View }"
                 :header="tt('Category')"
                 @click="showCategorySheet = true"
                 v-if="transaction.type === TransactionType.Expense"
             >
                 <template #title>
-                    <div class="list-item-custom-title" v-if="hasAvailableExpenseCategories">
+                    <div class="list-item-custom-title" v-if="hasVisibleExpenseCategories">
                         <span>{{ getTransactionPrimaryCategoryName(transaction.expenseCategoryId, allCategories[CategoryType.Expense]) }}</span>
                         <f7-icon class="category-separate-icon icon-with-direction" f7="chevron_right"></f7-icon>
                         <span>{{ getTransactionSecondaryCategoryName(transaction.expenseCategoryId, allCategories[CategoryType.Expense]) }}</span>
                     </div>
-                    <div class="list-item-custom-title" v-else-if="!hasAvailableExpenseCategories">
+                    <div class="list-item-custom-title" v-else-if="!hasVisibleExpenseCategories">
                         <span>{{ tt('None') }}</span>
                     </div>
                 </template>
@@ -129,18 +129,18 @@
                 class="list-item-with-header-and-title list-item-title-hide-overflow"
                 key="incomeCategorySelection"
                 link="#" no-chevron
-                :class="{ 'disabled': !hasAvailableIncomeCategories, 'readonly': mode === TransactionEditPageMode.View }"
+                :class="{ 'disabled': !hasVisibleIncomeCategories, 'readonly': mode === TransactionEditPageMode.View }"
                 :header="tt('Category')"
                 @click="showCategorySheet = true"
                 v-if="transaction.type === TransactionType.Income"
             >
                 <template #title>
-                    <div class="list-item-custom-title" v-if="hasAvailableIncomeCategories">
+                    <div class="list-item-custom-title" v-if="hasVisibleIncomeCategories">
                         <span>{{ getTransactionPrimaryCategoryName(transaction.incomeCategoryId, allCategories[CategoryType.Income]) }}</span>
                         <f7-icon class="category-separate-icon icon-with-direction" f7="chevron_right"></f7-icon>
                         <span>{{ getTransactionSecondaryCategoryName(transaction.incomeCategoryId, allCategories[CategoryType.Income]) }}</span>
                     </div>
-                    <div class="list-item-custom-title" v-else-if="!hasAvailableIncomeCategories">
+                    <div class="list-item-custom-title" v-else-if="!hasVisibleIncomeCategories">
                         <span>{{ tt('None') }}</span>
                     </div>
                 </template>
@@ -161,18 +161,18 @@
                 class="list-item-with-header-and-title list-item-title-hide-overflow"
                 key="transferCategorySelection"
                 link="#" no-chevron
-                :class="{ 'disabled': !hasAvailableTransferCategories, 'readonly': mode === TransactionEditPageMode.View }"
+                :class="{ 'disabled': !hasVisibleTransferCategories, 'readonly': mode === TransactionEditPageMode.View }"
                 :header="tt('Category')"
                 @click="showCategorySheet = true"
                 v-if="transaction.type === TransactionType.Transfer"
             >
                 <template #title>
-                    <div class="list-item-custom-title" v-if="hasAvailableTransferCategories">
+                    <div class="list-item-custom-title" v-if="hasVisibleTransferCategories">
                         <span>{{ getTransactionPrimaryCategoryName(transaction.transferCategoryId, allCategories[CategoryType.Transfer]) }}</span>
                         <f7-icon class="category-separate-icon icon-with-direction" f7="chevron_right"></f7-icon>
                         <span>{{ getTransactionSecondaryCategoryName(transaction.transferCategoryId, allCategories[CategoryType.Transfer]) }}</span>
                     </div>
-                    <div class="list-item-custom-title" v-else-if="!hasAvailableTransferCategories">
+                    <div class="list-item-custom-title" v-else-if="!hasVisibleTransferCategories">
                         <span>{{ tt('None') }}</span>
                     </div>
                 </template>
@@ -251,8 +251,10 @@
                     </div>
                 </template>
                 <date-time-selection-sheet :init-mode="transactionDateTimeSheetMode"
+                                           :timezone-utc-offset="transaction.utcOffset"
+                                           :model-value="transaction.time"
                                            v-model:show="showTransactionDateTimeSheet"
-                                           v-model="transaction.time">
+                                           @update:model-value="updateTransactionTime">
                 </date-time-selection-sheet>
             </f7-list-item>
 
@@ -323,8 +325,9 @@
                                            :filter-placeholder="tt('Timezone')"
                                            :filter-no-items-text="tt('No results')"
                                            :items="allTimezones"
+                                           :model-value="transaction.timeZone"
                                            v-model:show="showTimezonePopup"
-                                           v-model="transaction.timeZone">
+                                           @update:model-value="updateTransactionTimezone">
                 </list-item-selection-popup>
             </f7-list-item>
 
@@ -512,10 +515,9 @@ import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_p
 import { Transaction } from '@/models/transaction.ts';
 
 import {
-    getActualUnixTimeForStore,
-    getBrowserTimezoneOffsetMinutes,
     getTimezoneOffset,
-    getTimezoneOffsetMinutes
+    getTimezoneOffsetMinutes,
+    parseDateTimeFromUnixTimeWithTimezoneOffset
 } from '@/lib/datetime.ts';
 import { formatCoordinate } from '@/lib/coordinate.ts';
 import { generateRandomUUID } from '@/lib/misc.ts';
@@ -536,8 +538,8 @@ const {
     tt,
     getMultiMonthdayShortNames,
     getMultiWeekdayLongNames,
-    formatUnixTimeToLongDate,
-    formatUnixTimeToLongTime,
+    formatDateTimeToLongDate,
+    formatDateTimeToLongTime,
     formatGregorianTextualYearMonthDayToLongDate,
     parseAmountFromLocalizedNumerals
 } = useI18n();
@@ -571,9 +573,9 @@ const {
     allTags,
     allTagsMap,
     firstVisibleAccountId,
-    hasAvailableExpenseCategories,
-    hasAvailableIncomeCategories,
-    hasAvailableTransferCategories,
+    hasVisibleExpenseCategories,
+    hasVisibleIncomeCategories,
+    hasVisibleTransferCategories,
     canAddTransactionPicture,
     title,
     saveButtonTitle,
@@ -589,6 +591,8 @@ const {
     geoLocationStatusInfo,
     inputEmptyProblemMessage,
     inputIsEmpty,
+    updateTransactionTime,
+    updateTransactionTimezone,
     swapTransactionData,
     getDisplayAmount,
     getTransactionPictureUrl
@@ -655,19 +659,23 @@ const destinationAmountClass = computed<Record<string, boolean>>(() => {
 
 const transactionDisplayDate = computed<string>(() => {
     if (mode.value !== TransactionEditPageMode.View || !showTimeInDefaultTimezone.value) {
-        return formatUnixTimeToLongDate(getActualUnixTimeForStore(transaction.value.time, getTimezoneOffsetMinutes(), getBrowserTimezoneOffsetMinutes()));
+        const dateTime = parseDateTimeFromUnixTimeWithTimezoneOffset(transaction.value.time, transaction.value.utcOffset);
+        return formatDateTimeToLongDate(dateTime);
     }
 
-    return formatUnixTimeToLongDate(getActualUnixTimeForStore(transaction.value.time, transaction.value.utcOffset, getBrowserTimezoneOffsetMinutes()));
+    const dateTime = parseDateTimeFromUnixTimeWithTimezoneOffset(transaction.value.time, getTimezoneOffsetMinutes(transaction.value.time));
+    return formatDateTimeToLongDate(dateTime);
 });
 
 const transactionDisplayTime = computed<string>(() => {
     if (mode.value !== TransactionEditPageMode.View || !showTimeInDefaultTimezone.value) {
-        return formatUnixTimeToLongTime(getActualUnixTimeForStore(transaction.value.time, getTimezoneOffsetMinutes(), getBrowserTimezoneOffsetMinutes()));
+        const dateTime = parseDateTimeFromUnixTimeWithTimezoneOffset(transaction.value.time, transaction.value.utcOffset);
+        return formatDateTimeToLongTime(dateTime);
     }
 
-    const utcOffset = numeralSystem.value.replaceWesternArabicDigitsToLocalizedDigits(getTimezoneOffset(settingsStore.appSettings.timeZone));
-    return `${formatUnixTimeToLongTime(getActualUnixTimeForStore(transaction.value.time, transaction.value.utcOffset, getBrowserTimezoneOffsetMinutes()))} (UTC${utcOffset})`;
+    const dateTime = parseDateTimeFromUnixTimeWithTimezoneOffset(transaction.value.time, getTimezoneOffsetMinutes(transaction.value.time));
+    const utcOffset = numeralSystem.value.replaceWesternArabicDigitsToLocalizedDigits(getTimezoneOffset(transaction.value.time));
+    return `${formatDateTimeToLongTime(dateTime)} (UTC${utcOffset})`;
 });
 
 const transactionDisplayTimezoneName = computed<string>(() => {
@@ -949,7 +957,6 @@ function init(): void {
                 tagIds: query['tagIds'],
                 comment: query['comment']
             },
-            pageTypeAndMode.type === TransactionEditPageType.Transaction && (mode.value === TransactionEditPageMode.Edit || mode.value === TransactionEditPageMode.View),
             pageTypeAndMode.type === TransactionEditPageType.Transaction && (mode.value === TransactionEditPageMode.Edit || mode.value === TransactionEditPageMode.View)
         );
 

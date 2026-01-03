@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 import { type unitOfTime } from 'moment/moment';
+import 'moment-timezone/moment-timezone-utils';
 
 import jalaali, { type JalaaliDateObject } from 'jalaali-js';
 
@@ -69,7 +70,31 @@ interface DateTimeFormatResult {
     hasNumeral?: boolean;
 }
 
-type DateTimeTokenFormatFunction = (d: MomentDateTime, options: DateTimeFormatOptions) => DateTimeFormatResult
+type DateTimeTokenFormatFunction = (d: MomentDateTime, options: DateTimeFormatOptions) => DateTimeFormatResult;
+
+const westernmostTimezoneUtcOffset: number = -720; // Etc/GMT+12 (UTC-12:00)
+const easternmostTimezoneUtcOffset: number = 840; // Pacific/Kiritimati (UTC+14:00)
+
+function getFixedTimezoneName(utcOffset: number): string {
+    return `Fixed/Timezone${utcOffset}`;
+}
+
+(function initFixedTimezone(): void {
+    for (let utcOffset = westernmostTimezoneUtcOffset; utcOffset <= easternmostTimezoneUtcOffset; utcOffset += 15) {
+        const timezoneName = getFixedTimezoneName(utcOffset);
+
+        if (moment.tz.zone(timezoneName)) {
+            continue;
+        }
+
+        moment.tz.add(moment.tz.pack({
+            name: timezoneName,
+            abbrs: [`FIX${utcOffset}`],
+            offsets: [-utcOffset],
+            untils: [0]
+        }));
+    }
+})();
 
 class MomentDateTime implements DateTime {
     private static readonly tokenFormatFuncs: Record<string, DateTimeTokenFormatFunction> = {
@@ -501,24 +526,29 @@ export function getUtcOffsetByUtcOffsetMinutes(utcOffsetMinutes: number): string
     }
 }
 
-export function getTimezoneOffset(timezone?: string): string {
-    return getUtcOffsetByUtcOffsetMinutes(getTimezoneOffsetMinutes(timezone));
+export function getTimezoneOffset(unixTime: number, timezone?: string): string {
+    return getUtcOffsetByUtcOffsetMinutes(getTimezoneOffsetMinutes(unixTime, timezone));
 }
 
-export function getTimezoneOffsetMinutes(timezone?: string): number {
+export function getTimezoneOffsetMinutes(unixTime: number, timezone?: string): number {
     if (timezone) {
-        return moment().tz(timezone).utcOffset();
+        return moment.unix(unixTime).tz(timezone).utcOffset();
     } else {
-        return moment().utcOffset();
+        return moment.unix(unixTime).utcOffset();
     }
 }
 
-export function getBrowserTimezoneOffset(): string {
-    return getUtcOffsetByUtcOffsetMinutes(getBrowserTimezoneOffsetMinutes());
+export function getBrowserTimezoneOffset(unixTime: number): string {
+    return getUtcOffsetByUtcOffsetMinutes(getBrowserTimezoneOffsetMinutes(unixTime));
 }
 
-export function getBrowserTimezoneOffsetMinutes(): number {
-    return -new Date().getTimezoneOffset();
+export function getBrowserTimezoneOffsetMinutes(unixTime: number): number {
+    const date = getLocalDatetimeFromUnixTime(getSameDateTimeWithBrowserTimezone(parseDateTimeFromUnixTime(unixTime)).getUnixTime());
+    return -date.getTimezoneOffset();
+}
+
+export function getBrowserTimezoneName(): string {
+    return new Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 export function getLocalDatetimeFromUnixTime(unixTime: number): Date {
@@ -529,12 +559,46 @@ export function getUnixTimeFromLocalDatetime(datetime: Date): number {
     return Math.floor(datetime.getTime() / 1000);
 }
 
-export function getActualUnixTimeForStore(unixTime: number, utcOffset: number, currentUtcOffset: number): number {
-    return unixTime - (utcOffset - currentUtcOffset) * 60;
+export function getSameDateTimeWithCurrentTimezone(dateTime: DateTime): DateTime {
+    const newDateTime = moment().set({
+        year: dateTime.getGregorianCalendarYear(),
+        month: dateTime.getGregorianCalendarMonth() - 1,
+        date: dateTime.getGregorianCalendarDay(),
+        hour: dateTime.getHour(),
+        minute: dateTime.getMinute(),
+        second: dateTime.getSecond(),
+        millisecond: 0
+    });
+
+    return MomentDateTime.of(newDateTime);
 }
 
-export function getDummyUnixTimeForLocalUsage(unixTime: number, utcOffset: number, currentUtcOffset: number): number {
-    return unixTime + (utcOffset - currentUtcOffset) * 60;
+export function getSameDateTimeWithBrowserTimezone(dateTime: DateTime): DateTime {
+    const newDateTime = moment().tz(getBrowserTimezoneName()).set({
+        year: dateTime.getGregorianCalendarYear(),
+        month: dateTime.getGregorianCalendarMonth() - 1,
+        date: dateTime.getGregorianCalendarDay(),
+        hour: dateTime.getHour(),
+        minute: dateTime.getMinute(),
+        second: dateTime.getSecond(),
+        millisecond: 0,
+    });
+
+    return MomentDateTime.of(newDateTime);
+}
+
+export function getSameDateTimeWithTimezoneOffset(dateTime: DateTime, utcOffset: number): DateTime {
+    const newDateTime = moment().tz(getFixedTimezoneName(utcOffset)).set({
+        year: dateTime.getGregorianCalendarYear(),
+        month: dateTime.getGregorianCalendarMonth() - 1,
+        date: dateTime.getGregorianCalendarDay(),
+        hour: dateTime.getHour(),
+        minute: dateTime.getMinute(),
+        second: dateTime.getSecond(),
+        millisecond: 0
+    });
+
+    return MomentDateTime.of(newDateTime);
 }
 
 export function getCurrentDateTime(): DateTime {
@@ -550,16 +614,16 @@ export function getYearMonthDayDateTime(year: number, month: number, day: number
     return MomentDateTime.of(date);
 }
 
-export function parseDateTimeFromUnixTime(unixTime: number, utcOffset?: number, currentUtcOffset?: number): DateTime {
-    if (isNumber(utcOffset)) {
-        if (!isNumber(currentUtcOffset)) {
-            currentUtcOffset = getTimezoneOffsetMinutes();
-        }
-
-        unixTime = getDummyUnixTimeForLocalUsage(unixTime, utcOffset, currentUtcOffset);
-    }
-
+export function parseDateTimeFromUnixTime(unixTime: number): DateTime {
     return MomentDateTime.of(moment.unix(unixTime));
+}
+
+export function parseDateTimeFromUnixTimeWithBrowserTimezone(unixTime: number): DateTime {
+    return MomentDateTime.of(moment.unix(unixTime).tz(getBrowserTimezoneName()));
+}
+
+export function parseDateTimeFromUnixTimeWithTimezoneOffset(unixTime: number, utcOffset: number): DateTime {
+    return MomentDateTime.of(moment.unix(unixTime).tz(getFixedTimezoneName(utcOffset)));
 }
 
 export function parseDateTimeFromKnownDateTimeFormat(dateTime: string, format: KnownDateTimeFormat): DateTime | undefined {
@@ -582,8 +646,12 @@ export function parseDateTimeFromString(dateTime: string, format: string): DateT
     return MomentDateTime.of(m);
 }
 
-export function formatUnixTime(unixTime: number, format: string, options: DateTimeFormatOptions, utcOffset?: number, currentUtcOffset?: number): string {
-    return parseDateTimeFromUnixTime(unixTime, utcOffset, currentUtcOffset).format(format, options);
+export function formatDateTime(dateTime: DateTime, format: string, options: DateTimeFormatOptions): string {
+    return dateTime.format(format, options);
+}
+
+export function formatUnixTime(unixTime: number, format: string, options: DateTimeFormatOptions): string {
+    return parseDateTimeFromUnixTime(unixTime).format(format, options);
 }
 
 export function formatCurrentTime(format: string, options: DateTimeFormatOptions): string {
@@ -736,41 +804,87 @@ export function getThisYearLastUnixTime(): number {
     return moment.unix(getThisYearFirstUnixTime()).add(1, 'years').subtract(1, 'seconds').unix();
 }
 
-export function getYearFirstUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    const date = moment.unix(unixTime).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-    return date.subtract(date.dayOfYear() - 1, 'days').unix();
+export function getYearFirstUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).subtract(date.dayOfYear() - 1, 'days').unix();
 }
 
-export function getYearLastUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    return moment.unix(getYearFirstUnixTimeBySpecifiedUnixTime(unixTime)).add(1, 'years').subtract(1, 'seconds').unix();
+export function getYearLastUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(getYearFirstUnixTimeBySpecifiedUnixTime(unixTime, utcOffset));
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.add(1, 'years').subtract(1, 'seconds').unix();
 }
 
-export function getQuarterFirstUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    const date = moment.unix(unixTime).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+export function getQuarterFirstUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    date = date.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
     const month = date.month();
     const quarterStartMonth = Math.floor(month / 3) * 3;
     return date.set({ month: quarterStartMonth, date: 1 }).unix();
 }
 
-export function getQuarterLastUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    return moment.unix(getQuarterFirstUnixTimeBySpecifiedUnixTime(unixTime)).add(3, 'months').subtract(1, 'seconds').unix();
+export function getQuarterLastUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(getQuarterFirstUnixTimeBySpecifiedUnixTime(unixTime, utcOffset));
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.add(3, 'months').subtract(1, 'seconds').unix();
 }
 
-export function getMonthFirstUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    const date = moment.unix(unixTime).set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-    return date.subtract(date.date() - 1, 'days').unix();
+export function getMonthFirstUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).subtract(date.date() - 1, 'days').unix();
 }
 
-export function getMonthLastUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    return moment.unix(getMonthFirstUnixTimeBySpecifiedUnixTime(unixTime)).add(1, 'months').subtract(1, 'seconds').unix();
+export function getMonthLastUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(getMonthFirstUnixTimeBySpecifiedUnixTime(unixTime, utcOffset));
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.add(1, 'months').subtract(1, 'seconds').unix();
 }
 
-export function getDayFirstUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    return moment.unix(unixTime).set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).unix();
+export function getDayFirstUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).unix();
 }
 
-export function getDayLastUnixTimeBySpecifiedUnixTime(unixTime: number): number {
-    return moment.unix(unixTime).set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).add(1, 'days').subtract(1, 'seconds').unix();
+export function getDayLastUnixTimeBySpecifiedUnixTime(unixTime: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.set({ hour: 0, minute: 0, second: 0, millisecond: 0 }).add(1, 'days').subtract(1, 'seconds').unix();
 }
 
 export function getYearFirstUnixTime(year: number): number {
@@ -1418,8 +1532,12 @@ export function isDateRangeMatchOneMonth(minTime: number, maxTime: number): bool
     return isDateRangeMatchFullMonths(minTime, maxTime);
 }
 
-export function getFiscalYearFromUnixTime(unixTime: number, fiscalYearStartValue: number): number {
-    const date = moment.unix(unixTime);
+export function getFiscalYearFromUnixTime(unixTime: number, fiscalYearStartValue: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
 
     // For January 1 fiscal year start, fiscal year matches calendar year
     if (fiscalYearStartValue === FiscalYearStart.JanuaryFirstDay.value) {
@@ -1449,12 +1567,22 @@ export function getFiscalYearFromUnixTime(unixTime: number, fiscalYearStartValue
     return year + 1;
 }
 
-export function getFiscalYearStartUnixTime(unixTime: number, fiscalYearStartValue: number): number {
-    const date = moment.unix(unixTime);
+export function getFiscalYearStartUnixTime(unixTime: number, fiscalYearStartValue: number, utcOffset?: number): number {
+    let date = moment.unix(unixTime);
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
 
     // For January 1 fiscal year start, fiscal year start time is always January 1 in the input calendar year
     if (fiscalYearStartValue === FiscalYearStart.JanuaryFirstDay.value) {
-        return moment().year(date.year()).month(0).date(1).hour(0).minute(0).second(0).millisecond(0).unix();
+        let finalDate = moment();
+
+        if (isNumber(utcOffset)) {
+            finalDate = finalDate.tz(getFixedTimezoneName(utcOffset));
+        }
+
+        return finalDate.year(date.year()).month(0).date(1).hour(0).minute(0).second(0).millisecond(0).unix();
     }
 
     let fiscalYearStart = FiscalYearStart.valueOf(fiscalYearStartValue);
@@ -1477,7 +1605,13 @@ export function getFiscalYearStartUnixTime(unixTime: number, fiscalYearStartValu
         startYear = year;
     }
 
-    return moment().set({
+    let finalDate = moment();
+
+    if (isNumber(utcOffset)) {
+        finalDate = finalDate.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return finalDate.set({
         year: startYear,
         month: fiscalYearStart.month - 1, // 0-index
         date: fiscalYearStart.day,
@@ -1488,21 +1622,26 @@ export function getFiscalYearStartUnixTime(unixTime: number, fiscalYearStartValu
     }).unix();
 }
 
-export function getFiscalYearEndUnixTime(unixTime: number, fiscalYearStart: number): number {
-    const fiscalYearStartTime = moment.unix(getFiscalYearStartUnixTime(unixTime, fiscalYearStart));
-    return fiscalYearStartTime.add(1, 'years').subtract(1, 'seconds').unix();
+export function getFiscalYearEndUnixTime(unixTime: number, fiscalYearStart: number, utcOffset?: number): number {
+    let date = moment.unix(getFiscalYearStartUnixTime(unixTime, fiscalYearStart));
+
+    if (isNumber(utcOffset)) {
+        date = date.tz(getFixedTimezoneName(utcOffset));
+    }
+
+    return date.add(1, 'years').subtract(1, 'seconds').unix();
 }
 
-export function getCurrentFiscalYear(fiscalYearStart: number): number {
+export function getCurrentFiscalYear(fiscalYearStart: number, utcOffset?: number): number {
     const date = moment();
-    return getFiscalYearFromUnixTime(date.unix(), fiscalYearStart);
+    return getFiscalYearFromUnixTime(date.unix(), fiscalYearStart, utcOffset);
 }
 
-export function getFiscalYearTimeRangeFromUnixTime(unixTime: number, fiscalYearStart: number): FiscalYearUnixTime {
-    const start = getFiscalYearStartUnixTime(unixTime, fiscalYearStart);
-    const end = getFiscalYearEndUnixTime(unixTime, fiscalYearStart);
+export function getFiscalYearTimeRangeFromUnixTime(unixTime: number, fiscalYearStart: number, utcOffset?: number): FiscalYearUnixTime {
+    const start = getFiscalYearStartUnixTime(unixTime, fiscalYearStart, utcOffset);
+    const end = getFiscalYearEndUnixTime(unixTime, fiscalYearStart, utcOffset);
     return {
-        year: getFiscalYearFromUnixTime(unixTime, fiscalYearStart),
+        year: getFiscalYearFromUnixTime(unixTime, fiscalYearStart, utcOffset),
         minUnixTime: start,
         maxUnixTime: end,
     };

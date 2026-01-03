@@ -81,7 +81,7 @@
         <template #item.time="{ item }">
             <span>{{ getDisplayDateTime(item) }}</span>
             <v-chip class="ms-1" variant="flat" color="grey" size="x-small"
-                    v-if="item.utcOffset !== currentTimezoneOffsetMinutes">{{ getDisplayTimezone(item) }}</v-chip>
+                    v-if="!isSameAsDefaultTimezoneOffsetMinutes(item)">{{ getDisplayTimezone(item) }}</v-chip>
         </template>
         <template #item.type="{ value }">
             <v-chip label color="secondary" variant="outlined" size="x-small" v-if="value === TransactionType.ModifyBalance">{{ tt('Modify Balance') }}</v-chip>
@@ -113,7 +113,7 @@
                                    secondary-key-field="id" secondary-value-field="id" secondary-title-field="name"
                                    secondary-icon-field="icon" secondary-icon-type="category" secondary-color-field="color"
                                    secondary-hidden-field="hidden"
-                                   :disabled="!!disabled || !hasAvailableExpenseCategories"
+                                   :disabled="!!disabled || !hasVisibleExpenseCategories"
                                    :enable-filter="true" :filter-placeholder="tt('Find category')" :filter-no-items-text="tt('No available category')"
                                    :show-selection-primary-text="true"
                                    :custom-selection-primary-text="getTransactionPrimaryCategoryName(item.categoryId, allCategories[CategoryType.Expense])"
@@ -131,7 +131,7 @@
                                    secondary-key-field="id" secondary-value-field="id" secondary-title-field="name"
                                    secondary-icon-field="icon" secondary-icon-type="category" secondary-color-field="color"
                                    secondary-hidden-field="hidden"
-                                   :disabled="!!disabled || !hasAvailableIncomeCategories"
+                                   :disabled="!!disabled || !hasVisibleIncomeCategories"
                                    :enable-filter="true" :filter-placeholder="tt('Find category')" :filter-no-items-text="tt('No available category')"
                                    :show-selection-primary-text="true"
                                    :custom-selection-primary-text="getTransactionPrimaryCategoryName(item.categoryId, allCategories[CategoryType.Income])"
@@ -149,7 +149,7 @@
                                    secondary-key-field="id" secondary-value-field="id" secondary-title-field="name"
                                    secondary-icon-field="icon" secondary-icon-type="category" secondary-color-field="color"
                                    secondary-hidden-field="hidden"
-                                   :disabled="!!disabled || !hasAvailableTransferCategories"
+                                   :disabled="!!disabled || !hasVisibleTransferCategories"
                                    :enable-filter="true" :filter-placeholder="tt('Find category')" :filter-no-items-text="tt('No available category')"
                                    :show-selection-primary-text="true"
                                    :custom-selection-primary-text="getTransactionPrimaryCategoryName(item.categoryId, allCategories[CategoryType.Transfer])"
@@ -328,14 +328,14 @@
     </v-data-table>
 
     <v-dialog width="640" v-model="showCustomAmountFilterDialog">
-        <v-card class="pa-2 pa-sm-4 pa-md-4">
+        <v-card class="pa-sm-1 pa-md-2">
             <template #title>
-                <div class="d-flex align-center justify-center">
+                <div class="d-flex align-center">
                     <h4 class="text-h4">{{ tt('Filter Amount') }}</h4>
                 </div>
             </template>
-            <v-card-text class="mb-md-4 w-100 d-flex justify-center">
-                <div class="ms-2 me-2 d-flex flex-column justify-center" v-if="currentAmountFilterType">
+            <v-card-text class="w-100 d-flex justify-center">
+                <div class="me-2 d-flex flex-column justify-center" v-if="currentAmountFilterType">
                     {{ tt(currentAmountFilterType.name) }}
                 </div>
                 <amount-input :currency="defaultCurrency"
@@ -347,8 +347,8 @@
                               v-model="currentAmountFilterValue2"
                               v-if="currentAmountFilterType && currentAmountFilterType.paramCount === 2"/>
             </v-card-text>
-            <v-card-text class="overflow-y-visible">
-                <div class="w-100 d-flex justify-center gap-4">
+            <v-card-text>
+                <div class="w-100 d-flex justify-center flex-wrap mt-sm-1 mt-md-2 gap-4">
                     <v-btn @click="showCustomAmountFilterDialog = false; filters.amount = currentAmountFilterType?.toTextualFilter(currentAmountFilterValue1, currentAmountFilterValue2) ?? null">{{ tt('OK') }}</v-btn>
                     <v-btn color="secondary" variant="tonal" @click="showCustomAmountFilterDialog = false">{{ tt('Cancel') }}</v-btn>
                 </div>
@@ -357,13 +357,13 @@
     </v-dialog>
 
     <v-dialog width="640" v-model="showCustomDescriptionDialog">
-        <v-card class="pa-2 pa-sm-4 pa-md-4">
+        <v-card class="pa-sm-1 pa-md-2">
             <template #title>
-                <div class="d-flex align-center justify-center">
+                <div class="d-flex align-center">
                     <h4 class="text-h4">{{ tt('Filter Description') }}</h4>
                 </div>
             </template>
-            <v-card-text class="mb-md-4 w-100 d-flex justify-center">
+            <v-card-text class="w-100 d-flex justify-center">
                 <v-text-field
                     type="text"
                     persistent-placeholder
@@ -372,8 +372,8 @@
                     v-model="currentDescriptionFilterValue"
                 />
             </v-card-text>
-            <v-card-text class="overflow-y-visible">
-                <div class="w-100 d-flex justify-center gap-4">
+            <v-card-text>
+                <div class="w-100 d-flex justify-center flex-wrap mt-sm-1 mt-md-2 gap-4">
                     <v-btn :disabled="!currentDescriptionFilterValue" @click="showCustomDescriptionDialog = false; filters.description = currentDescriptionFilterValue">{{ tt('OK') }}</v-btn>
                     <v-btn color="secondary" variant="tonal" @click="showCustomDescriptionDialog = false; currentDescriptionFilterValue = ''">{{ tt('Cancel') }}</v-btn>
                 </div>
@@ -427,7 +427,9 @@ import {
 } from '@/lib/common.ts';
 import {
     getUtcOffsetByUtcOffsetMinutes,
-    getTimezoneOffsetMinutes
+    getTimezoneOffsetMinutes,
+    parseDateTimeFromUnixTime,
+    parseDateTimeFromUnixTimeWithTimezoneOffset
 } from '@/lib/datetime.ts';
 import { formatCoordinate } from '@/lib/coordinate.ts';
 import {
@@ -449,9 +451,9 @@ import {
     mdiPencilOutline,
     mdiAlertOutline,
     mdiPound,
-    mdiFindReplace,
+    mdiTextBoxEditOutline,
     mdiShapePlusOutline,
-    mdiTransfer,
+    mdiPencilBoxMultipleOutline,
     mdiNumericPositive1,
     mdiNumericNegative1
 } from '@mdi/js';
@@ -495,7 +497,7 @@ const props = defineProps<{
 const {
     tt,
     getCurrentNumeralSystemType,
-    formatUnixTimeToLongDateTime,
+    formatDateTimeToLongDateTime,
     formatAmountToLocalizedNumeralsWithCurrency,
     getCategorizedAccountsWithDisplayBalance
 } = useI18n();
@@ -536,7 +538,6 @@ const currentDescriptionFilterValue = ref<string | null>(null);
 
 const numeralSystem = computed<NumeralSystem>(() => getCurrentNumeralSystemType());
 const showAccountBalance = computed<boolean>(() => settingsStore.appSettings.showAccountBalance);
-const currentTimezoneOffsetMinutes = computed<number>(() => getTimezoneOffsetMinutes(settingsStore.appSettings.timeZone));
 
 const defaultCurrency = computed<string>(() => userStore.currentUserDefaultCurrency);
 const coordinateDisplayType = computed<number>(() => userStore.currentUserCoordinateDisplayType);
@@ -551,9 +552,9 @@ const allCategoriesMap = computed<Record<string, TransactionCategory>>(() => tra
 const allTags = computed<TransactionTag[]>(() => transactionTagsStore.allTransactionTags);
 const allTagsMap = computed<Record<string, TransactionTag>>(() => transactionTagsStore.allTransactionTagsMap);
 
-const hasAvailableExpenseCategories = computed<boolean>(() => transactionCategoriesStore.hasAvailableExpenseCategories);
-const hasAvailableIncomeCategories = computed<boolean>(() => transactionCategoriesStore.hasAvailableIncomeCategories);
-const hasAvailableTransferCategories = computed<boolean>(() => transactionCategoriesStore.hasAvailableTransferCategories);
+const hasVisibleExpenseCategories = computed<boolean>(() => transactionCategoriesStore.hasVisibleExpenseCategories);
+const hasVisibleIncomeCategories = computed<boolean>(() => transactionCategoriesStore.hasVisibleIncomeCategories);
+const hasVisibleTransferCategories = computed<boolean>(() => transactionCategoriesStore.hasVisibleTransferCategories);
 
 const isEditing = computed<boolean>(() => !!editingTransaction.value);
 const canImport = computed<boolean>(() => selectedImportTransactionCount.value > 0 && selectedInvalidTransactionCount.value < 1);
@@ -749,84 +750,84 @@ const filterMenus = computed<ImportTransactionCheckDataMenuGroup[]>(() => [
 
 const toolMenus = computed<ImportTransactionCheckDataMenu[]>(() => [
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
+        title: tt('Batch Replace Categories / Accounts / Tags'),
+        disabled: isEditing.value,
+        onClick: showReplaceAllTypesDialog
+    },
+    {
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Expense Categories'),
         disabled: isEditing.value || selectedExpenseTransactionCount.value < 1,
+        divider: true,
         onClick: () => showBatchReplaceDialog('expenseCategory')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Income Categories'),
         disabled: isEditing.value || selectedIncomeTransactionCount.value < 1,
         onClick: () => showBatchReplaceDialog('incomeCategory')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Transfer Categories'),
         disabled: isEditing.value || selectedTransferTransactionCount.value < 1,
         onClick: () => showBatchReplaceDialog('transferCategory')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Accounts'),
         disabled: isEditing.value || selectedImportTransactionCount.value < 1,
         onClick: () => showBatchReplaceDialog('account')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Destination Accounts'),
         disabled: isEditing.value || selectedTransferTransactionCount.value < 1,
         onClick: () => showBatchReplaceDialog('destinationAccount')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Replace Selected Transaction Tags'),
         disabled: isEditing.value || selectedImportTransactionCount.value < 1,
         onClick: () => showBatchReplaceDialog('tag', allOriginalTransactionTagNames.value)
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Batch Add Transaction Tags'),
         disabled: isEditing.value || selectedImportTransactionCount.value < 1,
         onClick: () => showBatchAddDialog('tag')
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Replace Invalid Expense Categories'),
         disabled: isEditing.value || !allInvalidExpenseCategoryNames.value || allInvalidExpenseCategoryNames.value.length < 1,
         divider: true,
         onClick: () => showReplaceInvalidItemDialog('expenseCategory', allInvalidExpenseCategoryNames.value)
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Replace Invalid Income Categories'),
         disabled: isEditing.value || !allInvalidIncomeCategoryNames.value || allInvalidIncomeCategoryNames.value.length < 1,
         onClick: () => showReplaceInvalidItemDialog('incomeCategory', allInvalidIncomeCategoryNames.value)
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Replace Invalid Transfer Categories'),
         disabled: isEditing.value || !allInvalidTransferCategoryNames.value || allInvalidTransferCategoryNames.value.length < 1,
         onClick: () => showReplaceInvalidItemDialog('transferCategory', allInvalidTransferCategoryNames.value)
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Replace Invalid Accounts'),
         disabled: isEditing.value || !allInvalidAccountNames.value || allInvalidAccountNames.value.length < 1,
         onClick: () => showReplaceInvalidItemDialog('account', allInvalidAccountNames.value)
     },
     {
-        prependIcon: mdiFindReplace,
+        prependIcon: mdiTextBoxEditOutline,
         title: tt('Replace Invalid Transaction Tags'),
         disabled: isEditing.value || !allInvalidTransactionTagNames.value || allInvalidTransactionTagNames.value.length < 1,
         onClick: () => showReplaceInvalidItemDialog('tag', allInvalidTransactionTagNames.value)
-    },
-    {
-        prependIcon: mdiFindReplace,
-        title: tt('Batch Replace Categories / Accounts / Tags'),
-        disabled: isEditing.value,
-        divider: true,
-        onClick: showReplaceAllTypesDialog
     },
     {
         prependIcon: mdiShapePlusOutline,
@@ -854,38 +855,38 @@ const toolMenus = computed<ImportTransactionCheckDataMenu[]>(() => [
         onClick: () => showBatchCreateInvalidItemDialog('tag', allInvalidTransactionTagNames.value)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Expense Transaction to Income Transaction'),
         disabled: isEditing.value || selectedExpenseTransactionCount.value < 1,
         divider: true,
         onClick: () => convertTransactionType(TransactionType.Expense, TransactionType.Income)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Expense Transaction to Transfer Transaction'),
         disabled: isEditing.value || selectedExpenseTransactionCount.value < 1,
         onClick: () => convertTransactionType(TransactionType.Expense, TransactionType.Transfer)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Income Transaction to Expense Transaction'),
         disabled: isEditing.value || selectedIncomeTransactionCount.value < 1,
         onClick: () => convertTransactionType(TransactionType.Income, TransactionType.Expense)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Income Transaction to Transfer Transaction'),
         disabled: isEditing.value || selectedIncomeTransactionCount.value < 1,
         onClick: () => convertTransactionType(TransactionType.Income, TransactionType.Transfer)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Transfer Transaction to Expense Transaction'),
         disabled: isEditing.value || selectedTransferTransactionCount.value < 1,
         onClick: () => convertTransactionType(TransactionType.Transfer, TransactionType.Expense)
     },
     {
-        prependIcon: mdiTransfer,
+        prependIcon: mdiPencilBoxMultipleOutline,
         title: tt('Batch Convert Transfer Transaction to Income Transaction'),
         disabled: isEditing.value || selectedTransferTransactionCount.value < 1,
         onClick: () => convertTransactionType(TransactionType.Transfer, TransactionType.Income)
@@ -909,15 +910,15 @@ const importTransactionsTableHeight = computed<number | undefined>(() => {
     if (countPerPage.value <= 10 || !props.importTransactions || props.importTransactions.length <= 10) {
         return undefined;
     } else {
-        return 400;
+        return 380;
     }
 });
 
 const importTransactionHeaders = computed<object[]>(() => {
     return [
         { value: 'valid', sortable: true, nowrap: true, width: 35 },
-        { value: 'time', title: tt('Transaction Time'), sortable: true, nowrap: true, maxWidth: 280 },
-        { value: 'type', title: tt('Type'), sortable: true, nowrap: true, maxWidth: 140 },
+        { value: 'time', title: tt('Transaction Time'), sortable: true, nowrap: true },
+        { value: 'type', title: tt('Type'), sortable: true, nowrap: true },
         { value: 'actualCategoryName', title: tt('Category'), sortable: true, nowrap: true },
         { value: 'sourceAmount', title: tt('Amount'), sortable: true, nowrap: true },
         { value: 'actualSourceAccountName', title: tt('Account'), sortable: true, nowrap: true },
@@ -1129,8 +1130,8 @@ const displayFilterCustomDateRange = computed<string>(() => {
         return '';
     }
 
-    const minDisplayTime = formatUnixTimeToLongDateTime(filters.value.minDatetime);
-    const maxDisplayTime = formatUnixTimeToLongDateTime(filters.value.maxDatetime);
+    const minDisplayTime = formatDateTimeToLongDateTime(parseDateTimeFromUnixTime(filters.value.minDatetime));
+    const maxDisplayTime = formatDateTimeToLongDateTime(parseDateTimeFromUnixTime(filters.value.maxDatetime));
 
     return `${minDisplayTime} - ${maxDisplayTime}`
 });
@@ -1272,7 +1273,12 @@ function isTagValid(tagIds: string[], tagIndex: number): boolean {
 }
 
 function getDisplayDateTime(transaction: ImportTransaction): string {
-    return formatUnixTimeToLongDateTime(transaction.time, transaction.utcOffset, currentTimezoneOffsetMinutes.value);
+    const dateTime = parseDateTimeFromUnixTimeWithTimezoneOffset(transaction.time, transaction.utcOffset)
+    return formatDateTimeToLongDateTime(dateTime);
+}
+
+function isSameAsDefaultTimezoneOffsetMinutes(transaction: ImportTransaction): boolean {
+    return transaction.utcOffset === getTimezoneOffsetMinutes(transaction.time);
 }
 
 function getDisplayTimezone(transaction: ImportTransaction): string {

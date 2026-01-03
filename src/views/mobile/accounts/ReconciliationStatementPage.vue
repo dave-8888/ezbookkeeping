@@ -16,19 +16,20 @@
             </f7-nav-right>
         </f7-navbar>
 
-        <f7-popover class="display-mode-popover-menu"
-                    v-model:opened="showDisplayModePopover">
+        <f7-popover class="display-mode-popover-menu">
             <f7-list dividers>
-                <f7-list-item :title="tt('Transaction List')"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="tt('Transaction List')"
                               :class="{ 'list-item-selected': !showAccountBalanceTrendsCharts }"
-                              @click="showAccountBalanceTrendsCharts = false; showDisplayModePopover = false">
+                              @click="showAccountBalanceTrendsCharts = false">
                     <template #after>
                         <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="!showAccountBalanceTrendsCharts"></f7-icon>
                     </template>
                 </f7-list-item>
-                <f7-list-item :title="tt('Account Balance Trends')"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="tt('Account Balance Trends')"
                               :class="{ 'list-item-selected': showAccountBalanceTrendsCharts }"
-                              @click="showAccountBalanceTrendsCharts = true; showDisplayModePopover = false">
+                              @click="showAccountBalanceTrendsCharts = true">
                     <template #after>
                         <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="showAccountBalanceTrendsCharts"></f7-icon>
                     </template>
@@ -50,10 +51,10 @@
                 </template>
                 <template #footer>
                     <div v-if="dateRange.isUserCustomRange && queryDateRangeType === dateRange.type && startTime && endTime">
-                        <span>{{ displayStartTime }}</span>
+                        <span>{{ displayStartDateTime }}</span>
                         <span>&nbsp;-&nbsp;</span>
                         <br/>
-                        <span>{{ displayEndTime }}</span>
+                        <span>{{ displayEndDateTime }}</span>
                     </div>
                 </template>
             </f7-list-item>
@@ -226,7 +227,7 @@
                                     <div class="transaction-footer display-flex justify-content-space-between">
                                         <div class="flex-shrink-0">
                                             <span>{{ getDisplayTime(item.transaction) }}</span>
-                                            <span v-if="item.transaction.utcOffset !== currentTimezoneOffsetMinutes">{{ `(${getDisplayTimezone(item.transaction)})` }}</span>
+                                            <span style="margin-inline-start: 4px" v-if="!isSameAsDefaultTimezoneOffsetMinutes(item.transaction)">{{ `(${getDisplayTimezone(item.transaction)})` }}</span>
                                         </div>
                                         <div class="account-balance flex-shrink-1">
                                             <span>{{ isCurrentLiabilityAccount ? tt('Outstanding Balance') : tt('Balance') }}</span>
@@ -279,10 +280,10 @@
             </f7-card-content>
         </f7-card>
 
-        <f7-popover class="chart-data-date-aggregation-type-popover-menu"
-                    v-model:opened="showChartDataDateAggregationTypePopover">
+        <f7-popover class="chart-data-date-aggregation-type-popover-menu">
             <f7-list dividers>
-                <f7-list-item :title="dateAggregationType.displayName"
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="dateAggregationType.displayName"
                               :class="{ 'list-item-selected': chartDataDateAggregationType === dateAggregationType.type }"
                               :key="dateAggregationType.type"
                               v-for="dateAggregationType in allDateAggregationTypes"
@@ -387,7 +388,6 @@ const {
     tt,
     getCurrentLanguageTextDirection,
     getAllDateRanges,
-    formatUnixTimeToLongDateTime,
     formatNumberToLocalizedNumerals
 } = useI18n();
 
@@ -401,7 +401,6 @@ const {
     firstDayOfWeek,
     fiscalYearStart,
     allDateAggregationTypes,
-    currentTimezoneOffsetMinutes,
     isCurrentLiabilityAccount,
     currentAccount,
     currentAccountCurrency,
@@ -415,6 +414,7 @@ const {
     setReconciliationStatements,
     getDisplayDate,
     getDisplayTime,
+    isSameAsDefaultTimezoneOffsetMinutes,
     getDisplayTimezone,
     getDisplaySourceAmount,
     getDisplayDestinationAmount,
@@ -433,12 +433,10 @@ const showAccountBalanceTrendsCharts = ref<boolean>(false);
 const chartDataDateAggregationType = ref<number>(ChartDateAggregationType.Day.type);
 const transactionToDelete = ref<TransactionReconciliationStatementResponseItemWithInfo | null>(null);
 const newClosingBalance = ref<number>(0);
-const showDisplayModePopover = ref<boolean>(false);
 const showCustomDateRangeSheet = ref<boolean>(false);
 const showNewClosingBalanceSheet = ref<boolean>(false);
 const showMoreActionSheet = ref<boolean>(false);
 const showDeleteActionSheet = ref<boolean>(false);
-const showChartDataDateAggregationTypePopover = ref<boolean>(false);
 const virtualDataItems = ref<ReconciliationStatementVirtualListData>({
     items: [],
     topPosition: 0
@@ -447,8 +445,6 @@ const virtualDataItems = ref<ReconciliationStatementVirtualListData>({
 const textDirection = computed<TextDirection>(() => getCurrentLanguageTextDirection());
 const validQuery = computed(() => currentAccount.value && currentAccount.value.type === AccountType.SingleAccount.type);
 const allAvailableDateRanges = computed(() => getAllDateRanges(DateRangeScene.Normal, true, !!accountsStore.getAccountStatementDate(accountId.value)));
-const displayStartTime = computed<string>(() => formatUnixTimeToLongDateTime(startTime.value));
-const displayEndTime = computed<string>(() => formatUnixTimeToLongDateTime(endTime.value));
 
 const allReconciliationStatementVirtualListItems = computed<ReconciliationStatementVirtualListItem[]>(() => {
     const ret: ReconciliationStatementVirtualListItem[] = [];
@@ -673,7 +669,6 @@ function removeTransaction(transaction: TransactionReconciliationStatementRespon
 
 function setChartDataDateAggregationType(type: number): void {
     chartDataDateAggregationType.value = type;
-    showChartDataDateAggregationTypePopover.value = false;
 }
 
 function renderExternal(vl: unknown, vlData: ReconciliationStatementVirtualListData): void {

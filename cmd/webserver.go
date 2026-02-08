@@ -379,6 +379,11 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/accounts/delete.json", bindApi(api.Accounts.AccountDeleteHandler))
 			apiV1Route.POST("/accounts/sub_account/delete.json", bindApi(api.Accounts.SubAccountDeleteHandler))
 
+			// Account Balances (Quick Modification)
+			apiV1Route.POST("/accounts/balance/modify.json", bindApi(api.AccountBalances.ModifySingleAccountBalanceHandler))
+			apiV1Route.POST("/accounts/balance/batch_modify.json", bindApi(api.AccountBalances.BatchModifyAccountBalancesHandler))
+			apiV1Route.GET("/accounts/balance/history.json", bindApi(api.AccountBalances.GetAccountBalanceHistoryHandler))
+
 			// Transactions
 			apiV1Route.GET("/transactions/count.json", bindApi(api.Transactions.TransactionCountHandler))
 			apiV1Route.GET("/transactions/list.json", bindApi(api.Transactions.TransactionListHandler))

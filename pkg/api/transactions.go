@@ -424,7 +424,13 @@ func (a *TransactionsApi) TransactionReconciliationStatementHandler(c *core.WebC
 		minTransactionTime = utils.GetMinTransactionTimeFromUnixTime(reconciliationStatementRequest.StartTime)
 	}
 
-	transactionsWithAccountBalance, totalInflows, totalOutflows, openingBalance, closingBalance, err := a.transactions.GetAllTransactionsInOneAccountWithAccountBalanceByMaxTime(c, uid, pageCountForAccountStatement, maxTransactionTime, minTransactionTime, reconciliationStatementRequest.AccountId, account.Category)
+	accountId, err := utils.StringToInt64(reconciliationStatementRequest.AccountId)
+	if err != nil {
+		log.Warnf(c, "[transactions.TransactionReconciliationStatementHandler] invalid account id \"%s\" for user \"uid:%d\", because %s", reconciliationStatementRequest.AccountId, uid, err.Error())
+		return nil, errs.ErrAccountIdInvalid
+	}
+
+	transactionsWithAccountBalance, totalInflows, totalOutflows, openingBalance, closingBalance, err := a.transactions.GetAllTransactionsInOneAccountWithAccountBalanceByMaxTime(c, uid, pageCountForAccountStatement, maxTransactionTime, minTransactionTime, accountId, account.Category)
 
 	if err != nil {
 		log.Errorf(c, "[transactions.TransactionReconciliationStatementHandler] failed to get transactions from \"%d\" to \"%d\" for user \"uid:%d\", because %s", reconciliationStatementRequest.StartTime, reconciliationStatementRequest.EndTime, uid, err.Error())

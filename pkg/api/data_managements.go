@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -263,7 +264,7 @@ func (a *DataManagementsApi) ClearAllTransactionsByAccountHandler(c *core.WebCon
 		return nil, errs.ErrNotPermittedToPerformThisAction
 	}
 
-	account, err := a.accounts.GetAccountByAccountId(c, uid, clearDataReq.AccountId)
+	account, err := a.accounts.GetAccountByAccountId(c, uid, strconv.FormatInt(clearDataReq.AccountId, 10))
 
 	if err != nil {
 		log.Errorf(c, "[data_managements.ClearAllTransactionsByAccountHandler] failed to get account \"id:%d\" for user \"uid:%d\", because %s", uid, clearDataReq.AccountId, err.Error())

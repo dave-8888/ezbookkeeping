@@ -496,6 +496,21 @@ export default {
     deleteSubAccount: (req: AccountDeleteRequest): ApiResponsePromise<boolean> => {
         return axios.post<ApiResponse<boolean>>('v1/accounts/sub_account/delete.json', req);
     },
+    modifyAccountBalance: ({ id, balance }: { id: number | bigint, balance: number }): ApiResponsePromise<any> => {
+        return axios.post<ApiResponse<any>>('v1/accounts/balance/modify.json', {
+            id: id.toString(),  // 转换为字符串避免精度丢失
+            balance
+        });
+    },
+
+    modifyBatchAccountBalances: ({ accountIds, operation, amount }: { accountIds: (number | bigint)[], operation: string, amount: number }): ApiResponsePromise<any> => {
+        return axios.post<ApiResponse<any>>('v1/accounts/balance/batch_modify.json', {
+            accountIds: accountIds.map(id => id.toString()),  // 转换为字符串数组
+            operation,
+            amount
+        });
+    },
+
     getTransactions: (req: TransactionListByMaxTimeRequest): ApiResponsePromise<TransactionInfoPageWrapperResponse> => {
         const tagFilter = encodeURIComponent(req.tagFilter);
         const amountFilter = encodeURIComponent(req.amountFilter);

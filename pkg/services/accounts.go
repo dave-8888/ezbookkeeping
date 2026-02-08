@@ -58,23 +58,31 @@ func (s *AccountService) GetAllAccountsByUid(c core.Context, uid int64) ([]*mode
 }
 
 // GetAccountByAccountId returns account model according to account id
-func (s *AccountService) GetAccountByAccountId(c core.Context, uid int64, accountId int64) (*models.Account, error) {
+func (s *AccountService) GetAccountByAccountId(c core.Context, uid int64, accountId_s string) (*models.Account, error) {
 	if uid <= 0 {
 		return nil, errs.ErrUserIdInvalid
 	}
-
+	accountId, _ := utils.StringToInt64(accountId_s)
 	if accountId <= 0 {
 		return nil, errs.ErrAccountIdInvalid
 	}
 
+	log.Infof(c, "[AccountService.GetAccountByAccountId] called with uid=%d, accountId=%d", uid, accountId)
+
 	account := &models.Account{}
-	has, err := s.UserDataDB(uid).NewSession(c).Where("uid=? AND deleted=? AND account_id=?", uid, false, accountId).Get(account)
+	session := s.UserDataDB(uid).NewSession(c)
+	has, err := session.Where("uid=? AND deleted=? AND account_id=?", uid, false, accountId).Get(account)
 
 	if err != nil {
+		log.Errorf(c, "[AccountService.GetAccountByAccountId] database query failed: %v", err)
 		return nil, err
 	} else if !has {
+		log.Warnf(c, "[AccountService.GetAccountByAccountId] account not found for uid=%d, accountId=%d", uid, accountId)
 		return nil, errs.ErrAccountNotFound
 	}
+
+	log.Infof(c, "[AccountService.GetAccountByAccountId] found account: id=%d, name=%s, balance=%d, currency=%s",
+		account.AccountId, account.Name, account.Balance, account.Currency)
 
 	return account, err
 }
@@ -985,4 +993,115 @@ func (s *AccountService) GetAccountOrSubAccountIdsByAccountName(accounts []*mode
 	}
 
 	return accountIds
+}
+
+// ModifyAccountBalance modifies the balance of an account
+func (s *AccountService) ModifyAccountBalance(c core.Context, uid int64, accountId_s string, newBalance int64) error {
+	if uid <= 0 {
+		return errs.ErrUserIdInvalid
+	}
+	if accountId_s == "" {
+		return errs.ErrAccountIdInvalid
+	}
+	accountId, _ := utils.StringToInt64(accountId_s)
+	if accountId <= 0 {
+		return errs.ErrAccountIdInvalid
+	}
+
+	if newBalance < 0 {
+		return errs.ErrAmountInvalid
+	}
+
+	account := &models.Account{}
+	has, err := s.UserDataDB(uid).NewSession(c).Where("uid=? AND deleted=? AND account_id=?", uid, false, accountId).Get(account)
+
+	if err != nil {
+		return err
+	} else if !has {
+		return errs.ErrAccountNotFound
+	}
+
+	// Store old balance for logging purposes
+	_ = account.Balance
+
+	account.Balance = newBalance
+	account.UpdatedUnixTime = time.Now().Unix()
+
+	updatedRows, err := s.UserDataDB(uid).NewSession(c).ID(accountId).Cols("balance", "updated_unix_time").Where("uid=? AND deleted=?", uid, false).Update(account)
+
+	if err != nil {
+		return err
+	} else if updatedRows < 1 {
+		return errs.ErrAccountNotFound
+	}
+
+	return nil
+}
+
+// ModifyMultipleAccountBalances modifies balances of multiple accounts
+func (s *AccountService) ModifyMultipleAccountBalances(c core.Context, uid int64, accountIds_s []string, operation string, amount int64) ([]*models.Account, error) {
+	if uid <= 0 {
+		return nil, errs.ErrUserIdInvalid
+	}
+	accountIds, _ := utils.StringArrayToInt64Array(accountIds_s)
+	if len(accountIds) <= 0 {
+		return nil, errs.ErrAccountIdInvalid
+	}
+
+	if amount <= 0 {
+		return nil, errs.ErrAmountInvalid
+	}
+
+	var accounts []*models.Account
+	err := s.UserDataDB(uid).NewSession(c).Where("uid=? AND deleted=?", uid, false).In("account_id", accountIds).Find(&accounts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(accounts) == 0 {
+		return nil, errs.ErrAccountNotFound
+	}
+
+	modifiedAccounts := make([]*models.Account, 0, len(accounts))
+	now := time.Now().Unix()
+
+	for _, account := range accounts {
+		// Store old balance for logging purposes (currently unused)
+		_ = account.Balance
+
+		if operation == "add" {
+			account.Balance += amount
+		} else if operation == "subtract" {
+			account.Balance -= amount
+		}
+
+		// Ensure balance doesn't go negative
+		if account.Balance < 0 {
+			account.Balance = 0
+		}
+
+		account.UpdatedUnixTime = now
+		modifiedAccounts = append(modifiedAccounts, account)
+	}
+
+	// Update all accounts in a transaction
+	err = s.UserDataDB(uid).DoTransaction(c, func(sess *xorm.Session) error {
+		for _, account := range modifiedAccounts {
+			updatedRows, err := sess.ID(account.AccountId).Cols("balance", "updated_unix_time").Where("uid=? AND deleted=?", uid, false).Update(account)
+
+			if err != nil {
+				return err
+			} else if updatedRows < 1 {
+				return errs.ErrAccountNotFound
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return modifiedAccounts, nil
 }

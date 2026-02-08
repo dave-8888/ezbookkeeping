@@ -273,9 +273,9 @@ type TransactionAllListRequest struct {
 
 // TransactionReconciliationStatementRequest represents all parameters of transaction reconciliation statement request
 type TransactionReconciliationStatementRequest struct {
-	AccountId int64 `form:"account_id,string" binding:"required,min=1"`
-	StartTime int64 `form:"start_time"`
-	EndTime   int64 `form:"end_time"`
+	AccountId string `form:"account_id" binding:"required,min=1"`
+	StartTime int64  `form:"start_time"`
+	EndTime   int64  `form:"end_time"`
 }
 
 // TransactionStatisticRequest represents all parameters of transaction statistic request

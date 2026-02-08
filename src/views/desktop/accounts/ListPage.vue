@@ -57,6 +57,8 @@
                                             <span>{{ tt('Account List') }}</span>
                                             <v-btn class="ms-3" color="default" variant="outlined"
                                                    :disabled="loading" @click="add">{{ tt('Add') }}</v-btn>
+                                            <v-btn class="ms-3" color="warning" variant="tonal"
+                                                   :disabled="loading" :to="'/account/quick_balance_modify'">{{ tt('Quick Balance Modify') }}</v-btn>
                                             <v-btn class="ms-3" color="primary" variant="tonal"
                                                    :disabled="loading" @click="saveSortResult"
                                                    v-if="displayOrderModified">{{ tt('Save Display Order') }}</v-btn>

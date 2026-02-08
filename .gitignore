@@ -148,3 +148,4 @@ dist/
 # Roo Code
 .roo/
 /log/ezbookkeeping.log
+/data/ezbookkeeping.db

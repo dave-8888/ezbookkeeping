@@ -48,10 +48,11 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 		return nil, errs.NewIncompleteOrIncorrectSubmissionError(err)
 	}
 
-	if req.Balance < 0 {
-		log.Warnf(c, "[account_balances.ModifySingleAccountBalanceHandler] balance cannot be negative")
-		return nil, errs.ErrAmountInvalid
-	}
+	// Allow negative balance for liability accounts like credit cards
+	// if req.Balance < 0 {
+	// 	log.Warnf(c, "[account_balances.ModifySingleAccountBalanceHandler] balance cannot be negative")
+	// 	return nil, errs.ErrAmountInvalid
+	// }
 
 	uid := c.GetCurrentUid()
 
@@ -98,10 +99,10 @@ func (a *AccountBalancesApi) BatchModifyAccountBalancesHandler(c *core.WebContex
 		return nil, errs.NewIncompleteOrIncorrectSubmissionError(err)
 	}
 
-	if req.Amount <= 0 {
-		log.Warnf(c, "[account_balances.BatchModifyAccountBalancesHandler] amount must be greater than 0")
-		return nil, errs.ErrAmountInvalid
-	}
+	//if req.Amount <= 0 {
+	//	log.Warnf(c, "[account_balances.BatchModifyAccountBalancesHandler] amount must be greater than 0")
+	//	return nil, errs.ErrAmountInvalid
+	//}
 
 	uid := c.GetCurrentUid()
 

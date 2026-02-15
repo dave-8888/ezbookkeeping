@@ -1008,9 +1008,10 @@ func (s *AccountService) ModifyAccountBalance(c core.Context, uid int64, account
 		return errs.ErrAccountIdInvalid
 	}
 
-	if newBalance < 0 {
-		return errs.ErrAmountInvalid
-	}
+	// Allow negative balance for liability accounts like credit cards
+	// if newBalance < 0 {
+	// 	return errs.ErrAmountInvalid
+	// }
 
 	account := &models.Account{}
 	has, err := s.UserDataDB(uid).NewSession(c).Where("uid=? AND deleted=? AND account_id=?", uid, false, accountId).Get(account)

@@ -125,6 +125,7 @@ export default defineConfig(() => {
                     start_url: './',
                     scope: './',
                     display: 'standalone',
+                    lang: 'zh-CN',
                     related_applications: [],
                     prefer_related_applications: false,
                     icons: [
@@ -258,7 +259,7 @@ export default defineConfig(() => {
                             return 'common';
                         } else if (/[\\/]src[\\/]views[\\/]base[\\/]/i.test(id)) {
                             return 'common';
-                        } else if (/[\\/]src[\\/]locales[\\/]helpers\.(js|ts)/i.test(id)) {
+                        } else if (/[\\/]src[\\/]locales[\\/](helpers\.(js|ts))/i.test(id)) {
                             return 'common';
                         } else if (/[\\/]src[\\/]locales[\\/]/i.test(id)) {
                             return 'locales';

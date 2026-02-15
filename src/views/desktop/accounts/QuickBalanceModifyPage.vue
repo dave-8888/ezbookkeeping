@@ -212,7 +212,7 @@
                     type="number"
                     step="0.01"
                     :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
-                    :rules="[requiredRule, positiveNumberRule]"
+                    :rules="[requiredRule]"
                     hide-details="auto"
                 />
             </v-card-text>
@@ -261,7 +261,7 @@
                     type="number"
                     step="0.01"
                     :prefix="selectedAccounts.length > 0 ? getCurrencySymbol(selectedAccountDetails[0]?.currency || 'USD') : ''"
-                    :rules="[requiredRule, positiveNumberRule]"
+                    :rules="[requiredRule]"
                     hide-details="auto"
                 />
 
@@ -389,8 +389,6 @@ function getCurrencySymbol(currency: string): string {
 
 // 验证规则
 const requiredRule = (value: any) => !!value || tt('This field is required');
-const positiveNumberRule = (value: number) => value > 0 || tt('Amount must be greater than 0');
-
 // 方法
 function goBack(): void {
     router.back();
@@ -476,7 +474,7 @@ function clearSelection(): void {
 
 async function modifySingleAccount(): Promise<void> {
     console.log('currentAccount',currentAccount)
-    if (!currentAccount.value || newBalance.value <= 0) {
+    if (!currentAccount.value || newBalance.value === null || newBalance.value === undefined) {
         return;
     }
 

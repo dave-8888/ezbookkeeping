@@ -139,7 +139,7 @@ fabric.properties
 node_modules/
 
 # Node.js Build Target
-dist/
+#dist/
 
 # Visual Studio Code
 .vscode/

@@ -214,6 +214,7 @@
                     :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
                     :rules="[requiredRule]"
                     hide-details="auto"
+                    @keydown.enter="modifySingleAccount"
                 />
             </v-card-text>
 
@@ -263,6 +264,7 @@
                     :prefix="selectedAccounts.length > 0 ? getCurrencySymbol(selectedAccountDetails[0]?.currency || 'USD') : ''"
                     :rules="[requiredRule]"
                     hide-details="auto"
+                    @keydown.enter="modifyBatchAccounts"
                 />
 
                 <v-alert

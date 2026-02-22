@@ -570,4 +570,14 @@ onMounted(() => {
 .text-expense {
     color: rgb(var(--v-theme-error)) !important;
 }
+
+/* 表格行悬停效果 */
+:deep(.v-data-table tbody tr:hover) {
+    background-color: rgba(var(--v-theme-on-surface), 0.08) !important;
+}
+
+/* 选中行的悬停效果 */
+:deep(.v-data-table tbody tr.v-data-table__selected:hover) {
+    background-color: rgba(var(--v-theme-primary), 0.12) !important;
+}
 </style>

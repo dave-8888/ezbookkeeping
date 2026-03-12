@@ -82,7 +82,7 @@
 
                                 <div class="d-flex flex-column">
                                     <span class="text-caption">{{ tt('Total liabilities') }}</span>
-                                    <span class="text-h5" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ totalLiabilities }}</span>
+                                    <span class="text-h5" style="color: rgb(var(--v-theme-error))" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ totalLiabilities }}</span>
                                     <v-skeleton-loader class="skeleton-no-margin mt-3 mb-2" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!allAccounts || !allAccounts.length)"></v-skeleton-loader>
                                 </div>
                             </div>

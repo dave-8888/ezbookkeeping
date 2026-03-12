@@ -62,6 +62,12 @@
                     </router-link>
                 </li>
                 <li class="nav-link">
+                    <router-link to="/account/quick_balance_modify">
+                        <v-icon class="nav-item-icon" :icon="mdiCashEdit"/>
+                        <span class="nav-item-title">{{ tt('Quick Account Balance Modification') }}</span>
+                    </router-link>
+                </li>
+                <li class="nav-link">
                     <router-link to="/category/list">
                         <v-icon class="nav-item-icon" :icon="mdiViewDashboardOutline"/>
                         <span class="nav-item-title">{{ tt('Transaction Categories') }}</span>
@@ -228,6 +234,7 @@ import {
     mdiHomeOutline,
     mdiListBoxOutline,
     mdiPlusCircle,
+    mdiCashEdit,
     mdiCreditCardOutline,
     mdiViewDashboardOutline,
     mdiTagOutline,

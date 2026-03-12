@@ -8,7 +8,7 @@
                                :ripple="false" :icon="true" @click="goBack">
                             <v-icon :icon="mdiArrowLeft" size="24" />
                         </v-btn>
-                        <span>{{ tt('Quick Balance Modification') }}</span>
+                        <span>{{ tt('Quick Account Balance Modification') }}</span>
                         <v-spacer/>
                         <v-btn density="compact" color="default" variant="text" size="24"
                                class="ms-2" :icon="true" :loading="loading" @click="loadAccounts">

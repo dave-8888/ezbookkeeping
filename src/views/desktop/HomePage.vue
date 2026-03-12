@@ -44,68 +44,7 @@
         </v-col>
 
         <v-col cols="12" lg="8" md="12">
-            <v-card :class="{ 'disabled': loadingOverview }">
-                <template #title>
-                    <span>{{ tt('Asset Summary') }}</span>
-                </template>
-
-                <v-card-text>
-                    <div class="mb-8">
-                        <span class="text-body-1" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ tt('format.misc.youHaveAccounts', { count: displayAccountCount }) }}</span>
-                        <v-skeleton-loader class="skeleton-no-margin mt-1 mb-2 pb-1" width="200px" type="text" :loading="true" v-else-if="loadingOverview && (!allAccounts || !allAccounts.length)"></v-skeleton-loader>
-                    </div>
-
-                    <v-row>
-                        <v-col cols="12" md="4">
-                            <div class="d-flex align-center">
-                                <div class="me-3">
-                                    <v-avatar rounded color="grey" size="42" class="elevation-1">
-                                        <v-icon size="24" :icon="mdiBankOutline"/>
-                                    </v-avatar>
-                                </div>
-
-                                <div class="d-flex flex-column">
-                                    <span class="text-caption">{{ tt('Total assets') }}</span>
-                                    <span class="text-h5" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ totalAssets }}</span>
-                                    <v-skeleton-loader class="skeleton-no-margin mt-3 mb-2" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!allAccounts || !allAccounts.length)"></v-skeleton-loader>
-                                </div>
-                            </div>
-                        </v-col>
-
-                        <v-col cols="12" md="4">
-                            <div class="d-flex align-center">
-                                <div class="me-3">
-                                    <v-avatar rounded color="expense" size="42" class="elevation-1">
-                                        <v-icon size="24" :icon="mdiCreditCardOutline"/>
-                                    </v-avatar>
-                                </div>
-
-                                <div class="d-flex flex-column">
-                                    <span class="text-caption">{{ tt('Total liabilities') }}</span>
-                                    <span class="text-h5" style="color: rgb(var(--v-theme-error))" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ totalLiabilities }}</span>
-                                    <v-skeleton-loader class="skeleton-no-margin mt-3 mb-2" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!allAccounts || !allAccounts.length)"></v-skeleton-loader>
-                                </div>
-                            </div>
-                        </v-col>
-
-                        <v-col cols="12" md="4">
-                            <div class="d-flex align-center">
-                                <div class="me-3">
-                                    <v-avatar rounded color="primary" size="42" class="elevation-1">
-                                        <v-icon size="24" :icon="mdiPiggyBankOutline"/>
-                                    </v-avatar>
-                                </div>
-
-                                <div class="d-flex flex-column">
-                                    <span class="text-caption">{{ tt('Net assets') }}</span>
-                                    <span class="text-h5" v-if="!loadingOverview || (allAccounts && allAccounts.length)">{{ netAssets }}</span>
-                                    <v-skeleton-loader class="skeleton-no-margin mt-3 mb-2" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!allAccounts || !allAccounts.length)"></v-skeleton-loader>
-                                </div>
-                            </div>
-                        </v-col>
-                    </v-row>
-                </v-card-text>
-            </v-card>
+            <asset-summary-card :loading="loadingOverview" />
         </v-col>
 
         <v-col cols="12" md="6">
@@ -188,6 +127,7 @@
 
 <script setup lang="ts">
 import SnackBar from '@/components/desktop/SnackBar.vue';
+import AssetSummaryCard from './overview/cards/AssetSummaryCard.vue';
 import IncomeExpenseOverviewCard from './overview/cards/IncomeExpenseOverviewCard.vue';
 import MonthlyIncomeAndExpenseCard, { type MonthlyIncomeAndExpenseCardClickEvent } from './overview/cards/MonthlyIncomeAndExpenseCard.vue';
 
@@ -203,7 +143,6 @@ import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
 import { useDesktopPageStore } from '@/stores/desktopPage.ts';
 import { useOverviewStore } from '@/stores/overview.ts';
 
-import { type NumeralSystem } from '@/core/numeral.ts';
 import { DateRange } from '@/core/datetime.ts';
 import { ThemeType } from '@/core/theme.ts';
 import {
@@ -218,9 +157,6 @@ import {
     mdiRefresh,
     mdiEyeOutline,
     mdiEyeOffOutline,
-    mdiBankOutline,
-    mdiCreditCardOutline,
-    mdiPiggyBankOutline,
     mdiCalendarTodayOutline,
     mdiCalendarWeekOutline,
     mdiCalendarMonthOutline,
@@ -233,13 +169,9 @@ type SnackBarType = InstanceType<typeof SnackBar>;
 const router = useRouter();
 const theme = useTheme();
 
-const { tt, getCurrentNumeralSystemType } = useI18n();
+const { tt } = useI18n();
 const {
     showAmountInHomePage,
-    allAccounts,
-    netAssets,
-    totalAssets,
-    totalLiabilities,
     displayDateRange,
     transactionOverview,
     getDisplayIncomeAmount,
@@ -256,9 +188,6 @@ const snackbar = useTemplateRef<SnackBarType>('snackbar');
 const loadingOverview = ref<boolean>(true);
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
-const numeralSystem = computed<NumeralSystem>(() => getCurrentNumeralSystemType());
-
-const displayAccountCount = computed<string>(() => allAccounts.value ? numeralSystem.value.formatNumber(allAccounts.value.length) : numeralSystem.value.digitZero);
 
 function clickMonthlyIncomeOrExpense(e: MonthlyIncomeAndExpenseCardClickEvent): void {
     const minTime = e.monthStartTime;

@@ -1,6 +1,10 @@
 <template>
     <v-row class="match-height">
         <v-col cols="12">
+            <asset-summary-card :loading="loading" />
+        </v-col>
+
+        <v-col cols="12">
             <v-card>
                 <template #title>
                     <div class="title-and-toolbar d-flex align-center">
@@ -337,10 +341,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/locales/helpers.ts';
+import { useAccountsStore } from '@/stores/account.ts';
+import logger from '@/lib/logger.ts';
 import services from '@/lib/services.ts';
 import { evaluateExpressionToAmount } from '@/lib/evaluator.ts';
 import { AccountCategory } from '@/core/account.ts';
 import SnackBar from '@/components/desktop/SnackBar.vue';
+import AssetSummaryCard from '@/views/desktop/overview/cards/AssetSummaryCard.vue';
 
 import {
     mdiArrowLeft,
@@ -371,6 +378,7 @@ interface AccountItem {
 
 const router = useRouter();
 const { tt, formatAmountToLocalizedNumeralsWithCurrency } = useI18n();
+const accountsStore = useAccountsStore();
 
 // 状态变量
 const loading = ref<boolean>(false);
@@ -438,6 +446,18 @@ function goBack(): void {
     router.back();
 }
 
+async function refreshAccountsStore(force: boolean): Promise<void> {
+    try {
+        await accountsStore.loadAllAccounts({ force });
+    } catch (error: any) {
+        if (error?.isUpToDate) {
+            return;
+        }
+
+        logger.warn('failed to refresh accounts store in quick balance modify page', error);
+    }
+}
+
 async function loadAccounts(): Promise<void> {
     loading.value = true;
 
@@ -457,6 +477,7 @@ async function loadAccounts(): Promise<void> {
         }));
 
         filterAccounts();
+        await refreshAccountsStore(true);
     } catch (error: any) {
         SnackBar['showNetworkError'](error);
     } finally {
@@ -572,7 +593,7 @@ async function modifySingleAccount(): Promise<void> {
             }
         }
 
-        filterAccounts(); // 重新过滤以更新显示
+        await loadAccounts();
         showModifyDialog.value = false;
         SnackBar['showSuccess'](tt('Account balance updated successfully'));
     } catch (error: any) {
@@ -609,7 +630,7 @@ async function modifyBatchAccounts(): Promise<void> {
             });
         }
 
-        filterAccounts(); // 重新过滤以更新显示
+        await loadAccounts();
         selectedAccounts.value = []; // 清空选择
         showBatchModifyDialog.value = false;
         SnackBar['showSuccess'](tt('Batch account balances updated successfully'));

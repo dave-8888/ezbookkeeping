@@ -468,12 +468,17 @@ const vuetify = createVuetify({
                         return key;
                     }
 
-                    if (params && params.length > 0) {
-                        // @ts-expect-error the arguments passed in are compatible with vue-i18n method arguments
-                        return i18nGlobal.t(mappedTextKey, ...params);
-                    } else {
+                    if (!params || params.length === 0) {
                         return i18nGlobal.t(mappedTextKey);
                     }
+
+                    if (params.length === 1) {
+                        // @ts-expect-error the argument passed in is compatible with vue-i18n method arguments
+                        return i18nGlobal.t(mappedTextKey, params[0]);
+                    }
+
+                    // Vuetify locale callbacks may pass list interpolation params as separate arguments.
+                    return i18nGlobal.t(mappedTextKey, params);
                 },
                 n: (value: number): string => {
                     return i18nGlobal.n(value);
@@ -491,7 +496,9 @@ const vuetify = createVuetify({
 // key is in the original i18n text of vuetify (in vuetify/lib/locale/en.js), value is the text in the ezBookkeeping i18n files
 const vuetifyI18nTextKeyMap: Record<string, string> = {
     'open': 'Open',
-    'close': 'Close'
+    'close': 'Close',
+    'dataFooter.itemsPerPageText': 'Lines Per Page',
+    'dataFooter.pageText': 'Displayed Items Range'
 }
 
 echarts.use([

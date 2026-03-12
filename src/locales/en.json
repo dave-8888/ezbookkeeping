@@ -1974,6 +1974,7 @@
     "Geographic Location Separator": "Geographic Location Separator",
     "Transaction Tags Separator": "Transaction Tags Separator",
     "Lines Per Page": "Lines Per Page",
+    "Displayed Items Range": "{0}-{1} of {2}",
     "No data to import": "No data to import",
     "Missing transaction time, transaction type, or amount column mapping": "Missing transaction time, transaction type, or amount column mapping",
     "Transaction type mapping is not set": "Transaction type mapping is not set",

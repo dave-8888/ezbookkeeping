@@ -215,7 +215,45 @@
                     :rules="[requiredRule]"
                     hide-details="auto"
                     @keydown.enter="modifySingleAccount"
-                />
+                >
+                    <template #append-inner>
+                        <v-btn
+                            density="compact"
+                            variant="text"
+                            color="primary"
+                            :icon="true"
+                            @click="toggleNewBalanceCalculator"
+                        >
+                            <v-icon :icon="mdiCalculatorVariantOutline" size="18" />
+                            <v-tooltip activator="parent">{{ tt('Calculator') }}</v-tooltip>
+                        </v-btn>
+                    </template>
+                </v-text-field>
+
+                <v-expand-transition>
+                    <div v-if="showNewBalanceCalculator" class="mt-3">
+                        <v-text-field
+                            v-model="newBalanceExpression"
+                            :label="tt('Calculation Formula')"
+                            :placeholder="tt('For example: 1000+200-35.5')"
+                            hide-details="auto"
+                            @keydown.enter="applyNewBalanceExpression"
+                        >
+                            <template #append-inner>
+                                <v-btn
+                                    density="compact"
+                                    variant="text"
+                                    color="primary"
+                                    :icon="true"
+                                    @click="applyNewBalanceExpression"
+                                >
+                                    <v-icon :icon="mdiCheck" size="18" />
+                                    <v-tooltip activator="parent">{{ tt('Apply') }}</v-tooltip>
+                                </v-btn>
+                            </template>
+                        </v-text-field>
+                    </div>
+                </v-expand-transition>
             </v-card-text>
 
             <v-card-actions>
@@ -300,6 +338,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/locales/helpers.ts';
 import services from '@/lib/services.ts';
+import { evaluateExpressionToAmount } from '@/lib/evaluator.ts';
 import { AccountCategory } from '@/core/account.ts';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 
@@ -312,7 +351,9 @@ import {
     mdiClose,
     mdiPencil,
     mdiListBoxOutline,
-    mdiAccountSearch
+    mdiAccountSearch,
+    mdiCalculatorVariantOutline,
+    mdiCheck
 } from '@mdi/js';
 
 interface AccountItem {
@@ -347,6 +388,8 @@ const showHidden = ref<boolean>(false);
 
 const currentAccount = ref<AccountItem | null>(null);
 const newBalance = ref<number>(0);
+const showNewBalanceCalculator = ref<boolean>(false);
+const newBalanceExpression = ref<string>('');
 const batchAmount = ref<number>(0);
 const batchOperationType = ref<'add' | 'subtract'>('add');
 
@@ -376,7 +419,6 @@ function formatCurrency(amount: number, currency: string): string {
 }
 
 function getCurrencySymbol(currency: string): string {
-    // 简单的货币符号映射
     const currencySymbols: Record<string, string> = {
         'USD': '$',
         'EUR': '€',
@@ -389,8 +431,8 @@ function getCurrencySymbol(currency: string): string {
     return currencySymbols[currency] || currency;
 }
 
-// 验证规则
 const requiredRule = (value: any) => !!value || tt('This field is required');
+
 // 方法
 function goBack(): void {
     router.back();
@@ -456,7 +498,28 @@ function getAccountCategory(categoryType: number) {
 function openModifyDialog(account: AccountItem): void {
     currentAccount.value = account;
     newBalance.value = account.balance / 100; // 转换为小数形式显示
+    newBalanceExpression.value = newBalance.value.toString();
+    showNewBalanceCalculator.value = false;
     showModifyDialog.value = true;
+}
+
+function toggleNewBalanceCalculator(): void {
+    showNewBalanceCalculator.value = !showNewBalanceCalculator.value;
+
+    if (showNewBalanceCalculator.value && !newBalanceExpression.value) {
+        newBalanceExpression.value = newBalance.value.toString();
+    }
+}
+
+function applyNewBalanceExpression(): void {
+    const calculatedAmount = evaluateExpressionToAmount(newBalanceExpression.value);
+
+    if (calculatedAmount === undefined) {
+        SnackBar['showError'](tt('Formula is invalid'));
+        return;
+    }
+
+    newBalance.value = calculatedAmount / 100;
 }
 
 function openBatchModifyDialog(operation: 'add' | 'subtract'): void {

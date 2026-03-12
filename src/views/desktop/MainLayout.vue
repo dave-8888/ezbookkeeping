@@ -16,7 +16,7 @@
                 @ps-scroll-y="handleNavScroll"
             >
                 <li class="nav-link home-link">
-                    <router-link to="/">
+                    <router-link to="/" @click="refreshOverviewPage">
                         <v-icon class="nav-item-icon" :icon="mdiHomeOutline"/>
                         <span class="nav-item-title">{{ tt('Overview') }}</span>
                     </router-link>
@@ -333,6 +333,10 @@ function logout(): void {
 
 function showAddDialogInTransactionListPage(): void {
     desktopPageStore.setShowAddTransactionDialogInTransactionList();
+}
+
+function refreshOverviewPage(): void {
+    desktopPageStore.requestOverviewRefresh();
 }
 </script>
 

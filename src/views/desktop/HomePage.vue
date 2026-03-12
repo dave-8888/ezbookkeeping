@@ -191,7 +191,7 @@ import SnackBar from '@/components/desktop/SnackBar.vue';
 import IncomeExpenseOverviewCard from './overview/cards/IncomeExpenseOverviewCard.vue';
 import MonthlyIncomeAndExpenseCard, { type MonthlyIncomeAndExpenseCardClickEvent } from './overview/cards/MonthlyIncomeAndExpenseCard.vue';
 
-import { ref, computed, useTemplateRef } from 'vue';
+import { ref, computed, useTemplateRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTheme } from 'vuetify';
 
@@ -200,6 +200,7 @@ import { useHomePageBase } from '@/views/base/HomePageBase.ts';
 
 import { useAccountsStore } from '@/stores/account.ts';
 import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
+import { useDesktopPageStore } from '@/stores/desktopPage.ts';
 import { useOverviewStore } from '@/stores/overview.ts';
 
 import { type NumeralSystem } from '@/core/numeral.ts';
@@ -247,6 +248,7 @@ const {
 
 const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
+const desktopPageStore = useDesktopPageStore();
 const overviewStore = useOverviewStore();
 
 const snackbar = useTemplateRef<SnackBarType>('snackbar');
@@ -323,7 +325,17 @@ function reload(force: boolean): void {
     });
 }
 
-if (isUserLogined() && isUserUnlocked()) {
+watch(() => desktopPageStore.overviewRefreshRequested, (newValue) => {
+    if (newValue) {
+        desktopPageStore.resetOverviewRefreshRequest();
+        reload(true);
+    }
+});
+
+if (desktopPageStore.overviewRefreshRequested) {
+    desktopPageStore.resetOverviewRefreshRequest();
+    reload(true);
+} else if (isUserLogined() && isUserUnlocked()) {
     reload(false);
 }
 </script>

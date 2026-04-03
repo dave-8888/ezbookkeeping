@@ -403,12 +403,12 @@ func (a *TransactionsApi) TransactionReconciliationStatementHandler(c *core.WebC
 	account, err := a.accounts.GetAccountByAccountId(c, uid, reconciliationStatementRequest.AccountId)
 
 	if err != nil {
-		log.Errorf(c, "[transactions.TransactionReconciliationStatementHandler] failed to get account \"id:%d\" for user \"uid:%d\", because %s", reconciliationStatementRequest.AccountId, uid, err.Error())
+		log.Errorf(c, "[transactions.TransactionReconciliationStatementHandler] failed to get account \"id:%s\" for user \"uid:%d\", because %s", reconciliationStatementRequest.AccountId, uid, err.Error())
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
 	if account.Type != models.ACCOUNT_TYPE_SINGLE_ACCOUNT {
-		log.Errorf(c, "[transactions.TransactionReconciliationStatementHandler] account \"id:%d\" for user \"uid:%d\" is not a single account", reconciliationStatementRequest.AccountId, uid)
+		log.Errorf(c, "[transactions.TransactionReconciliationStatementHandler] account \"id:%s\" for user \"uid:%d\" is not a single account", reconciliationStatementRequest.AccountId, uid)
 		return nil, errs.ErrAccountTypeInvalid
 	}
 

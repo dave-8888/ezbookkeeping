@@ -60,7 +60,7 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 	account, err := a.accounts.GetAccountByAccountId(c, uid, req.Id)
 
 	if err != nil {
-		log.Errorf(c, "[account_balances.ModifySingleAccountBalanceHandler] failed to get account \"id:%d\" for user \"uid:%d\", because %s", req.Id, uid, err.Error())
+		log.Errorf(c, "[account_balances.ModifySingleAccountBalanceHandler] failed to get account \"id:%s\" for user \"uid:%d\", because %s", req.Id, uid, err.Error())
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
@@ -74,11 +74,11 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 	err = a.accounts.ModifyAccountBalance(c, uid, req.Id, req.Balance)
 
 	if err != nil {
-		log.Errorf(c, "[account_balances.ModifySingleAccountBalanceHandler] failed to modify account \"id:%d\" balance for user \"uid:%d\", because %s", req.Id, uid, err.Error())
+		log.Errorf(c, "[account_balances.ModifySingleAccountBalanceHandler] failed to modify account \"id:%s\" balance for user \"uid:%d\", because %s", req.Id, uid, err.Error())
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
-	log.Infof(c, "[account_balances.ModifySingleAccountBalanceHandler] user \"uid:%d\" has modified account \"id:%d\" balance from %d to %d",
+	log.Infof(c, "[account_balances.ModifySingleAccountBalanceHandler] user \"uid:%d\" has modified account \"id:%s\" balance from %d to %d",
 		uid, req.Id, oldBalance, req.Balance)
 
 	return &models.AccountInfoResponse{

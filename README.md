@@ -71,6 +71,26 @@ Visit [Docker Hub](https://hub.docker.com/r/mayswind/ezbookkeeping) to see all i
 
     $ docker run -p8080:8080 mayswind/ezbookkeeping:latest-snapshot
 
+### Run with Docker Compose (Local Source / WSL Debian)
+If you want to build and run the current source tree with Docker inside WSL Debian, this repository now includes a ready-to-use `compose.yaml`.
+
+    $ cp .env.example .env
+    $ # edit .env and change EBK_SECURITY_SECRET_KEY before the first production use
+    $ docker compose up -d --build
+
+By default, ezBookkeeping will be available at `http://localhost:8080/`.
+
+This compose deployment uses:
+- `docker/ezbookkeeping.docker.ini` as the container configuration file
+- environment overrides from `.env`
+- named Docker volumes for SQLite data, logs, and uploaded files
+
+You can inspect logs with:
+
+    $ docker compose logs -f
+
+For better file I/O performance in WSL, it is recommended to keep the repository in the Linux filesystem (for example `/home/<your-user>/ezbookkeeping`) instead of `/mnt/<drive>/...` whenever possible.
+
 ### Install from Binary
 Download the latest release: [https://github.com/mayswind/ezbookkeeping/releases](https://github.com/mayswind/ezbookkeeping/releases)
 

@@ -1,0 +1,12 @@
+.github/
+.gitea/
+.idea/
+.vscode/
+.roo/
+node_modules/
+dist/
+data/
+log/
+storage/
+*.exe
+.env

@@ -230,20 +230,36 @@ const monthlyIncomeAndExpenseData = computed<TransactionMonthlyIncomeAndExpenseD
     return data;
 });
 
-function reload(force: boolean): void {
+type ReloadResult = 'updated' | 'upToDate';
+
+function ignoreUpToDateError<T>(promise: Promise<T>): Promise<ReloadResult> {
+    return promise.then(() => 'updated' as const).catch(error => {
+        if (error && error.isUpToDate) {
+            return 'upToDate' as const;
+        }
+
+        return Promise.reject(error);
+    });
+}
+
+function reload(force: boolean, notify = force): void {
     loadingOverview.value = true;
 
     const promises = [
-        accountsStore.loadAllAccounts({ force: false }),
-        transactionCategoriesStore.loadAllCategories({ force: false }),
-        overviewStore.loadTransactionOverview({ force: force, loadLast11Months: true })
+        ignoreUpToDateError(accountsStore.loadAllAccounts({ force })),
+        ignoreUpToDateError(transactionCategoriesStore.loadAllCategories({ force })),
+        ignoreUpToDateError(overviewStore.loadTransactionOverview({ force, loadLast11Months: true }))
     ];
 
-    Promise.all(promises).then(() => {
+    Promise.all(promises).then(results => {
         loadingOverview.value = false;
 
-        if (force) {
-            snackbar.value?.showMessage('Data has been updated');
+        if (force && notify) {
+            if (results.some(result => result === 'updated')) {
+                snackbar.value?.showMessage('Data has been updated');
+            } else {
+                snackbar.value?.showMessage('Data is up to date');
+            }
         }
     }).catch(error => {
         loadingOverview.value = false;
@@ -257,13 +273,13 @@ function reload(force: boolean): void {
 watch(() => desktopPageStore.overviewRefreshRequested, (newValue) => {
     if (newValue) {
         desktopPageStore.resetOverviewRefreshRequest();
-        reload(true);
+        reload(true, false);
     }
 });
 
 if (desktopPageStore.overviewRefreshRequested) {
     desktopPageStore.resetOverviewRefreshRequest();
-    reload(true);
+    reload(true, false);
 } else if (isUserLogined() && isUserUnlocked()) {
     reload(false);
 }

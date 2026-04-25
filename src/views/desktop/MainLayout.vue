@@ -3,7 +3,7 @@
          :class="{ 'layout-overlay-nav': mdAndDown }">
         <div class="layout-vertical-nav" :class="{'visible': showVerticalOverlayMenu, 'scrolled': isVerticalNavScrolled, 'overlay-nav': mdAndDown}">
             <div class="nav-header">
-                <router-link to="/" class="app-logo d-flex align-center gap-x-3 app-title-wrapper">
+                <router-link to="/" class="app-logo d-flex align-center gap-x-3 app-title-wrapper" @click="refreshOverviewPage">
                     <div class="d-flex">
                         <img alt="logo" class="main-logo" :src="APPLICATION_LOGO_PATH" />
                     </div>

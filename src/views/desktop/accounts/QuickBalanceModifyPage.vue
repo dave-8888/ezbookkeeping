@@ -210,32 +210,34 @@
                     </div>
                 </div>
 
-                <v-text-field
-                    v-model.number="newBalance"
-                    :label="tt('New Balance')"
-                    type="number"
-                    step="0.01"
-                    :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
-                    :rules="[requiredRule]"
-                    hide-details="auto"
-                    @keydown.enter="modifySingleAccount"
-                >
-                    <template #append-inner>
-                        <v-btn
-                            density="compact"
-                            variant="text"
-                            color="primary"
-                            :icon="true"
-                            @click="toggleNewBalanceCalculator"
+                <v-row>
+                    <v-col cols="12" :md="showNewBalanceCalculator ? 6 : 12">
+                        <v-text-field
+                            v-model.number="newBalance"
+                            :label="tt('New Balance')"
+                            type="number"
+                            step="0.01"
+                            :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
+                            :rules="[requiredRule]"
+                            hide-details="auto"
+                            @keydown.enter="modifySingleAccount"
                         >
-                            <v-icon :icon="mdiCalculatorVariantOutline" size="18" />
-                            <v-tooltip activator="parent">{{ tt('Calculator') }}</v-tooltip>
-                        </v-btn>
-                    </template>
-                </v-text-field>
+                            <template #append-inner>
+                                <v-btn
+                                    density="compact"
+                                    variant="text"
+                                    color="primary"
+                                    :icon="true"
+                                    @click="toggleNewBalanceCalculator"
+                                >
+                                    <v-icon :icon="mdiCalculatorVariantOutline" size="18" />
+                                    <v-tooltip activator="parent">{{ tt('Calculator') }}</v-tooltip>
+                                </v-btn>
+                            </template>
+                        </v-text-field>
+                    </v-col>
 
-                <v-expand-transition>
-                    <div v-if="showNewBalanceCalculator" class="mt-3">
+                    <v-col v-if="showNewBalanceCalculator" cols="12" md="6">
                         <v-text-field
                             v-model="newBalanceExpression"
                             :label="tt('Calculation Formula')"
@@ -256,8 +258,8 @@
                                 </v-btn>
                             </template>
                         </v-text-field>
-                    </div>
-                </v-expand-transition>
+                    </v-col>
+                </v-row>
             </v-card-text>
 
             <v-card-actions>

@@ -63,8 +63,14 @@
                                             <v-btn class="ms-3" color="default" variant="outlined"
                                                    :disabled="loading || !canAddTransaction" @click="add()">
                                                 {{ tt('Add') }}
-                                                <v-menu activator="parent" :open-on-hover="true" v-if="isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates && allTransactionTemplates.length)">
+                                                <v-menu activator="parent" :open-on-hover="true" v-if="isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates && allTransactionTemplates.length)">
                                                     <v-list>
+                                                        <v-list-item key="VoiceInput"
+                                                                     :title="tt('Voice Input')"
+                                                                     :prepend-icon="mdiMicrophone"
+                                                                     :disabled="recognizingByVoice"
+                                                                     v-if="isSpeechRecognitionSupported()"
+                                                                     @click="addByVoiceInput"></v-list-item>
                                                         <v-list-item key="AIImageRecognition"
                                                                      :title="tt('AI Image Recognition')"
                                                                      :prepend-icon="mdiMagicStaff"
@@ -709,6 +715,8 @@ import {
     transactionTypeToCategoryType
 } from '@/lib/category.ts';
 import { isDataExportingEnabled, isDataImportingEnabled, isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
+import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
+import { recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
 import { scrollToSelectedItem, startDownloadFile } from '@/lib/ui/common.ts';
 import logger from '@/lib/logger.ts';
 
@@ -727,6 +735,7 @@ import {
     mdiArrowRight,
     mdiPound,
     mdiMagicStaff,
+    mdiMicrophone,
     mdiTextBoxOutline
 } from '@mdi/js';
 
@@ -764,7 +773,8 @@ const {
     tt,
     getAllRecentMonthDateRanges,
     getWeekdayLongName,
-    getCurrentNumeralSystemType
+    getCurrentNumeralSystemType,
+    getCurrentLanguageInfo
 } = useI18n();
 
 const {
@@ -850,6 +860,7 @@ const currentPageTransactions = ref<Transaction[]>([]);
 const categoryMenuState = ref<boolean>(false);
 const amountMenuState = ref<boolean>(false);
 const exportingData = ref<boolean>(false);
+const recognizingByVoice = ref<boolean>(false);
 const alwaysShowNav = ref<boolean>(display.mdAndUp.value);
 const showNav = ref<boolean>(display.mdAndUp.value);
 const showCustomDateRangeDialog = ref<boolean>(false);
@@ -1576,6 +1587,51 @@ function addByRecognizingImage(): void {
                 snackbar.value?.showError(error);
             }
         });
+    });
+}
+
+function addByVoiceInput(): void {
+    if (!isSpeechRecognitionSupported()) {
+        snackbar.value?.showMessage('Speech recognition is not supported by this browser');
+        return;
+    }
+
+    recognizingByVoice.value = true;
+    snackbar.value?.showMessage('Listening...');
+
+    recognizeTransactionByVoice({
+        languageTag: getCurrentLanguageInfo().alternativeLanguageTag,
+        allCategories: transactionCategoriesStore.allTransactionCategories,
+        allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
+        allTags: transactionTagsStore.allTransactionTags,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        editDialog.value?.open({
+            time: result.time,
+            type: result.type,
+            categoryId: result.categoryId,
+            accountId: result.sourceAccountId,
+            destinationAccountId: result.destinationAccountId,
+            amount: result.sourceAmount,
+            destinationAmount: result.destinationAmount,
+            tagIds: result.tagIds ? result.tagIds.join(',') : undefined,
+            comment: result.comment,
+            noTransactionDraft: true
+        }).then(result => {
+            if (result && result.message) {
+                snackbar.value?.showMessage(result.message);
+            }
+
+            reload(false, false);
+        }).catch(error => {
+            if (error) {
+                snackbar.value?.showError(error);
+            }
+        });
+    }).catch(error => {
+        snackbar.value?.showError(error);
+    }).finally(() => {
+        recognizingByVoice.value = false;
     });
 }
 

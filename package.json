@@ -12,6 +12,10 @@
     "url": "https://github.com/mayswind/ezbookkeeping/issues"
   },
   "scripts": {
+    "start": "sh ./run.sh",
+    "stop": "sh ./run.sh stop",
+    "restart": "sh ./run.sh restart",
+    "status": "sh ./run.sh status",
     "serve": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
     "serve:dist": "vite preview",

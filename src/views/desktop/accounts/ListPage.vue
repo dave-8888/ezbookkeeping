@@ -6,14 +6,14 @@
                     <v-navigation-drawer :permanent="alwaysShowNav" v-model="showNav">
                         <div class="mx-6 my-4">
                             <span class="text-subtitle-2">{{ tt('Net assets') }}</span>
-                            <p class="account-statistic-item-value text-income text-truncate mt-1 mb-3">
+                            <p class="account-statistic-item-value text-expense text-truncate mt-1 mb-3">
                                 <span v-if="!loading || allAccountCount > 0">{{ netAssets }}</span>
                                 <span v-else-if="loading && allAccountCount <= 0">
                                     <v-skeleton-loader class="skeleton-no-margin pt-2 pb-1" type="text" :loading="true"></v-skeleton-loader>
                                 </span>
                             </p>
                             <span class="text-subtitle-2">{{ tt('Total liabilities') }}</span>
-                            <p class="account-statistic-item-value text-expense text-truncate mt-1 mb-3">
+                            <p class="account-statistic-item-value text-income text-truncate mt-1 mb-3">
                                 <span v-if="!loading || allAccountCount > 0">{{ totalLiabilities }}</span>
                                 <span v-else-if="loading && allAccountCount <= 0">
                                     <v-skeleton-loader class="skeleton-no-margin pt-2 pb-1" type="text" :loading="true"></v-skeleton-loader>

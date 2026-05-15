@@ -154,7 +154,8 @@ import type {
     UserApplicationCloudSettingsUpdateRequest
 } from '@/models/user_app_cloud_setting.ts';
 import type {
-    RecognizedReceiptImageResponse
+    RecognizedReceiptImageResponse,
+    RecognizedTransactionResponse
 } from '@/models/large_language_model.ts';
 
 import {
@@ -760,6 +761,14 @@ export default {
     recognizeReceiptImage: ({ imageFile, cancelableUuid }: { imageFile: File, cancelableUuid?: string }): ApiResponsePromise<RecognizedReceiptImageResponse> => {
         return axios.postForm<ApiResponse<RecognizedReceiptImageResponse>>('v1/llm/transactions/recognize_receipt_image.json', {
             image: imageFile
+        }, {
+            timeout: DEFAULT_LLM_API_TIMEOUT,
+            cancelableUuid: cancelableUuid
+        } as ApiRequestConfig);
+    },
+    recognizeTransactionText: ({ text, cancelableUuid }: { text: string, cancelableUuid?: string }): ApiResponsePromise<RecognizedTransactionResponse> => {
+        return axios.post<ApiResponse<RecognizedTransactionResponse>>('v1/llm/transactions/recognize_transaction_text.json', {
+            text: text
         }, {
             timeout: DEFAULT_LLM_API_TIMEOUT,
             cancelableUuid: cancelableUuid

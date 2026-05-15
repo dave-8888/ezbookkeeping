@@ -4,6 +4,10 @@
             <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
             <f7-nav-title :title="tt(title)"></f7-nav-title>
             <f7-nav-right class="navbar-compact-icons" v-if="mode !== TransactionEditPageMode.View || transaction.type !== TransactionType.ModifyBalance">
+                <f7-link icon-f7="mic"
+                         :class="{ 'disabled': loading || submitting || recognizingByVoice }"
+                         v-if="pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.View && transaction.type !== TransactionType.ModifyBalance"
+                         @click="recognizeCurrentTransactionByVoice"></f7-link>
                 <f7-link icon-f7="ellipsis" @click="showMoreActionSheet = true"></f7-link>
                 <f7-link icon-f7="checkmark_alt" :class="{ 'disabled': inputIsEmpty || submitting }" @click="save" v-if="mode !== TransactionEditPageMode.View"></f7-link>
             </f7-nav-right>
@@ -513,6 +517,7 @@ import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
 import { TransactionTemplate } from '@/models/transaction_template.ts';
 import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_picture_info.ts';
 import { Transaction } from '@/models/transaction.ts';
+import type { RecognizedTransactionResponse } from '@/models/large_language_model.ts';
 
 import {
     getTimezoneOffset,
@@ -524,6 +529,8 @@ import { generateRandomUUID } from '@/lib/misc.ts';
 import { getTransactionPrimaryCategoryName, getTransactionSecondaryCategoryName } from '@/lib/category.ts';
 import { setTransactionModelByTransaction } from '@/lib/transaction.ts';
 import { getMapProvider, isTransactionPicturesEnabled } from '@/lib/server_settings.ts';
+import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
+import { recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
 import logger from '@/lib/logger.ts';
 
 const props = defineProps<{
@@ -541,7 +548,8 @@ const {
     formatDateTimeToLongDate,
     formatDateTimeToLongTime,
     formatGregorianTextualYearMonthDayToLongDate,
-    parseAmountFromLocalizedNumerals
+    parseAmountFromLocalizedNumerals,
+    getCurrentLanguageInfo
 } = useI18n();
 const { showAlert, showConfirm, showToast, routeBackOnError } = useI18nUIComponents();
 
@@ -613,6 +621,7 @@ const isSupportClipboard = !!navigator.clipboard;
 
 const loadingError = ref<unknown | null>(null);
 const submitted = ref<boolean>(false);
+const recognizingByVoice = ref<boolean>(false);
 const removingPictureId = ref<string | null>(null);
 const transactionDateTimeSheetMode = ref<string>('time');
 const showTimeInDefaultTimezone = ref<boolean>(false);
@@ -1134,6 +1143,67 @@ function pasteAmount(type: 'sourceAmount' | 'destinationAmount'): void {
         logger.error('failed to read clipboard text', error);
         showToast('Unable to read clipboard text');
     });
+}
+
+function recognizeCurrentTransactionByVoice(): void {
+    if (pageTypeAndMode?.type !== TransactionEditPageType.Transaction || mode.value === TransactionEditPageMode.View) {
+        return;
+    }
+
+    if (!isSpeechRecognitionSupported()) {
+        showToast('Speech recognition is not supported by this browser');
+        return;
+    }
+
+    recognizingByVoice.value = true;
+    showToast('Listening...');
+    showLoading(() => recognizingByVoice.value);
+
+    recognizeTransactionByVoice({
+        languageTag: getCurrentLanguageInfo().alternativeLanguageTag,
+        allCategories: allCategories.value,
+        allVisibleAccounts: allVisibleAccounts.value,
+        allTags: allTags.value,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        applyRecognizedTransactionResult(result);
+        showToast('Transaction info has been recognized');
+    }).catch(error => {
+        showToast(error.message || error);
+    }).finally(() => {
+        recognizingByVoice.value = false;
+        hideLoading();
+    });
+}
+
+function applyRecognizedTransactionResult(result: RecognizedTransactionResponse): void {
+    if (mode.value === TransactionEditPageMode.Add && result.type &&
+        result.type >= TransactionType.Income && result.type <= TransactionType.Transfer) {
+        transaction.value.type = result.type;
+    }
+
+    setTransactionModelByTransaction(
+        transaction.value,
+        null,
+        allCategories.value,
+        allCategoriesMap.value,
+        allVisibleAccounts.value,
+        allAccountsMap.value,
+        allTagsMap.value,
+        defaultAccountId.value,
+        {
+            time: result.time,
+            type: result.type,
+            categoryId: result.categoryId,
+            accountId: result.sourceAccountId,
+            destinationAccountId: result.destinationAccountId,
+            amount: typeof result.sourceAmount === 'number' ? result.sourceAmount : undefined,
+            destinationAmount: typeof result.destinationAmount === 'number' ? result.destinationAmount : undefined,
+            tagIds: result.tagIds ? result.tagIds.join(',') : undefined,
+            comment: result.comment
+        },
+        false
+    );
 }
 
 function updateGeoLocation(forceUpdate: boolean): void {

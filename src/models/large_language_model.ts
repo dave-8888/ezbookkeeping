@@ -1,5 +1,5 @@
-export interface RecognizedReceiptImageResponse {
-    readonly type: number;
+export interface RecognizedTransactionResponse {
+    readonly type?: number;
     readonly time?: number;
     readonly categoryId?: string;
     readonly sourceAccountId?: string;
@@ -9,3 +9,5 @@ export interface RecognizedReceiptImageResponse {
     readonly tagIds?: string[];
     readonly comment?: string;
 }
+
+export type RecognizedReceiptImageResponse = RecognizedTransactionResponse;

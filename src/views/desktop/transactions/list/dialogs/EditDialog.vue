@@ -9,6 +9,14 @@
                     </div>
                     <v-spacer/>
                     <v-btn density="comfortable" color="default" variant="text" class="ms-2" :icon="true"
+                           :loading="recognizingByVoice"
+                           :disabled="loading || submitting || recognizingByVoice"
+                           v-if="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.View && transaction.type !== TransactionType.ModifyBalance"
+                           @click="recognizeCurrentTransactionByVoice">
+                        <v-icon :icon="mdiMicrophone" />
+                        <v-tooltip activator="parent">{{ tt('Voice Input') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn density="comfortable" color="default" variant="text" class="ms-2" :icon="true"
                            :disabled="loading || submitting" v-if="mode !== TransactionEditPageMode.View && (activeTab === 'basicInfo' || (activeTab === 'map' && isSupportGetGeoLocationByClick()))">
                         <v-icon :icon="mdiDotsVertical" />
                         <v-menu activator="parent">
@@ -539,6 +547,7 @@ import { TransactionTag } from '@/models/transaction_tag.ts';
 import { TransactionTemplate } from '@/models/transaction_template.ts';
 import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_picture_info.ts';
 import { Transaction } from '@/models/transaction.ts';
+import type { RecognizedTransactionResponse } from '@/models/large_language_model.ts';
 
 import {
     getTimezoneOffsetMinutes,
@@ -555,6 +564,8 @@ import {
     isTransactionPicturesEnabled,
     getMapProvider
 } from '@/lib/server_settings.ts';
+import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
+import { recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
 import {
     isSupportGetGeoLocationByClick
 } from '@/lib/map/index.ts';
@@ -569,6 +580,7 @@ import {
     mdiCheck,
     mdiPound,
     mdiMenuDown,
+    mdiMicrophone,
     mdiImagePlusOutline,
     mdiTrashCanOutline,
     mdiFullscreen
@@ -597,7 +609,7 @@ const props = defineProps<{
     show?: boolean;
 }>();
 
-const { tt } = useI18n();
+const { tt, getCurrentLanguageInfo } = useI18n();
 
 const {
     mode,
@@ -671,6 +683,7 @@ const noTransactionDraft = ref<boolean>(false);
 const geoMenuState = ref<boolean>(false);
 const tagSearchContent = ref<string>('');
 const removingPictureId = ref<string>('');
+const recognizingByVoice = ref<boolean>(false);
 
 const initAmount = ref<number | undefined>(undefined);
 const initCategoryId = ref<string | undefined>(undefined);
@@ -991,6 +1004,55 @@ function save(): void {
             }
         });
     }
+}
+
+function recognizeCurrentTransactionByVoice(): void {
+    if (props.type !== TransactionEditPageType.Transaction || mode.value === TransactionEditPageMode.View) {
+        return;
+    }
+
+    if (!isSpeechRecognitionSupported()) {
+        snackbar.value?.showMessage('Speech recognition is not supported by this browser');
+        return;
+    }
+
+    recognizingByVoice.value = true;
+    snackbar.value?.showMessage('Listening...');
+
+    recognizeTransactionByVoice({
+        languageTag: getCurrentLanguageInfo().alternativeLanguageTag,
+        allCategories: allCategories.value,
+        allVisibleAccounts: allVisibleAccounts.value,
+        allTags: allTags.value,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        applyRecognizedTransactionResult(result);
+        activeTab.value = 'basicInfo';
+        snackbar.value?.showMessage('Transaction info has been recognized');
+    }).catch(error => {
+        snackbar.value?.showError(error);
+    }).finally(() => {
+        recognizingByVoice.value = false;
+    });
+}
+
+function applyRecognizedTransactionResult(result: RecognizedTransactionResponse): void {
+    if (mode.value === TransactionEditPageMode.Add && result.type &&
+        result.type >= TransactionType.Income && result.type <= TransactionType.Transfer) {
+        transaction.value.type = result.type;
+    }
+
+    setTransaction(null, {
+        time: result.time,
+        type: result.type,
+        categoryId: result.categoryId,
+        accountId: result.sourceAccountId,
+        destinationAccountId: result.destinationAccountId,
+        amount: typeof result.sourceAmount === 'number' ? result.sourceAmount : undefined,
+        destinationAmount: typeof result.destinationAmount === 'number' ? result.destinationAmount : undefined,
+        tagIds: result.tagIds ? result.tagIds.join(',') : undefined,
+        comment: result.comment
+    }, false);
 }
 
 function duplicate(withTime?: boolean, withGeoLocation?: boolean): void {

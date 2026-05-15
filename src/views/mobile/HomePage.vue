@@ -188,6 +188,13 @@
         <f7-popover class="template-popover-menu" target-el="#homepage-add-button"
                     v-model:opened="showTransactionTemplatePopover">
             <f7-list dividers v-if="allTransactionTemplates">
+                <f7-list-item key="VoiceInput" :title="tt('Voice Input')"
+                              @click="addByVoiceInput"
+                              v-if="isSpeechRecognitionSupported()">
+                    <template #media>
+                        <f7-icon f7="mic"></f7-icon>
+                    </template>
+                </f7-list-item>
                 <f7-list-item key="AIImageRecognition" :title="tt('AI Image Recognition')"
                               @click="showAIReceiptImageRecognitionSheet = true; showTransactionTemplatePopover = false"
                               v-if="isTransactionFromAIImageRecognitionEnabled()">
@@ -215,11 +222,13 @@ import { ref, computed } from 'vue';
 import type { Router } from 'framework7/types';
 
 import { useI18n } from '@/locales/helpers.ts';
-import { useI18nUIComponents } from '@/lib/ui/mobile.ts';
+import { useI18nUIComponents, showLoading, hideLoading } from '@/lib/ui/mobile.ts';
 import { useHomePageBase } from '@/views/base/HomePageBase.ts';
 
 import { useAccountsStore } from '@/stores/account.ts';
 import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
+import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
+import { useTransactionsStore } from '@/stores/transaction.ts';
 import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
 import { useOverviewStore } from '@/stores/overview.ts';
 
@@ -230,12 +239,14 @@ import type { RecognizedReceiptImageResponse } from '@/models/large_language_mod
 
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
+import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
+import { getRecognizedTransactionQueryParams, recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
 
 const props = defineProps<{
     f7router: Router.Router;
 }>();
 
-const { tt } = useI18n();
+const { tt, getCurrentLanguageInfo } = useI18n();
 const { showToast } = useI18nUIComponents();
 
 const {
@@ -248,10 +259,13 @@ const {
 
 const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
+const transactionTagsStore = useTransactionTagsStore();
+const transactionsStore = useTransactionsStore();
 const transactionTemplatesStore = useTransactionTemplatesStore();
 const overviewStore = useOverviewStore();
 
 const loading = ref<boolean>(true);
+const recognizingByVoice = ref<boolean>(false);
 const showTransactionTemplatePopover = ref<boolean>(false);
 const showAIReceiptImageRecognitionSheet = ref<boolean>(false);
 
@@ -261,7 +275,7 @@ const allTransactionTemplates = computed<TransactionTemplate[]>(() => {
 });
 
 function openTransactionTemplatePopover(): void {
-    if (isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
+    if (isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
         showTransactionTemplatePopover.value = true;
     }
 }
@@ -273,6 +287,7 @@ function init(): void {
         const promises = [
             accountsStore.loadAllAccounts({ force: false }),
             transactionCategoriesStore.loadAllCategories({ force: false }),
+            transactionTagsStore.loadAllTags({ force: false }),
             transactionTemplatesStore.loadAllTemplates({ templateType: TemplateType.Normal.type,  force: false }),
             overviewStore.loadTransactionOverview({ force: false })
         ];
@@ -309,44 +324,37 @@ function reload(done?: () => void): void {
     });
 }
 
+function addByVoiceInput(): void {
+    if (!isSpeechRecognitionSupported()) {
+        showToast('Speech recognition is not supported by this browser');
+        return;
+    }
+
+    showTransactionTemplatePopover.value = false;
+    recognizingByVoice.value = true;
+    showToast('Listening...');
+    showLoading(() => recognizingByVoice.value);
+
+    recognizeTransactionByVoice({
+        languageTag: getCurrentLanguageInfo().alternativeLanguageTag,
+        allCategories: transactionCategoriesStore.allTransactionCategories,
+        allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
+        allTags: transactionTagsStore.allTransactionTags,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        const params = getRecognizedTransactionQueryParams(result);
+        params.push('noTransactionDraft=true');
+        props.f7router.navigate(`/transaction/add?${params.join('&')}`);
+    }).catch(error => {
+        showToast(error.message || error);
+    }).finally(() => {
+        recognizingByVoice.value = false;
+        hideLoading();
+    });
+}
+
 function onReceiptRecognitionChanged(result: RecognizedReceiptImageResponse): void {
-    const params: string[] = [];
-
-    if (result.type) {
-        params.push(`type=${result.type}`);
-    }
-
-    if (result.time) {
-        params.push(`time=${result.time}`);
-    }
-
-    if (result.categoryId) {
-        params.push(`categoryId=${result.categoryId}`);
-    }
-
-    if (result.sourceAccountId) {
-        params.push(`accountId=${result.sourceAccountId}`);
-    }
-
-    if (result.destinationAccountId) {
-        params.push(`destinationAccountId=${result.destinationAccountId}`);
-    }
-
-    if (result.sourceAmount) {
-        params.push(`amount=${result.sourceAmount}`);
-    }
-
-    if (result.destinationAmount) {
-        params.push(`destinationAmount=${result.destinationAmount}`);
-    }
-
-    if (result.tagIds) {
-        params.push(`tagIds=${result.tagIds.join(',')}`);
-    }
-
-    if (result.comment) {
-        params.push(`comment=${encodeURIComponent(result.comment)}`);
-    }
+    const params = getRecognizedTransactionQueryParams(result);
 
     params.push(`noTransactionDraft=true`);
 

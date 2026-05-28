@@ -1,8 +1,8 @@
 package requestid
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/settings"
 )
 
 // RequestIdContainer contains the current request id generator

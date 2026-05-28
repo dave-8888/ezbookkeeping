@@ -11,13 +11,13 @@ import (
 	"github.com/golang-jwt/jwt/v5/request"
 	"xorm.io/xorm"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/datastore"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/datastore"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 // TokenUserAgentCreatedViaCli is the user agent of token created via cli

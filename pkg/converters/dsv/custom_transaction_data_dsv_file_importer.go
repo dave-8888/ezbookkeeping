@@ -16,14 +16,14 @@ import (
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters/converter"
-	csvconverter "github.com/mayswind/ezbookkeeping/pkg/converters/csv"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/converters/converter"
+	csvconverter "github.com/mayswind/financially_free/pkg/converters/csv"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 var supportedFileTypeSeparators = map[string]rune{

@@ -381,8 +381,8 @@ const additionalOptionsMenuState = ref<boolean>(false);
 const clientSessionId = ref<string>('');
 const currentStep = ref<ImportTransactionDialogStep>('uploadFile');
 const importProcess = ref<number>(0);
-const fileType = ref<string>('ezbookkeeping');
-const fileSubType = ref<string>('ezbookkeeping_csv');
+const fileType = ref<string>('financially_free');
+const fileSubType = ref<string>('financially_free_csv');
 const fileEncoding = ref<string>('auto');
 const detectingFileEncoding = ref<boolean>(false);
 const autoDetectedFileEncoding = ref<string | undefined>(undefined);
@@ -534,7 +534,7 @@ const exportFileGuideDocumentUrl = computed<string | undefined>(() => {
 
     const language = document.language ? document.language + '/' : '';
     const anchor = document.anchor ? '#' + document.anchor : '';
-    return `https://ezbookkeeping.mayswind.net/${language}export_and_import${anchor}`;
+    return `https://financially_free.mayswind.net/${language}export_and_import${anchor}`;
 });
 
 const exportFileGuideDocumentLanguageName = computed<string | undefined>(() => allSupportedImportFileTypesMap.value[fileType.value]?.document?.displayLanguageName);
@@ -546,8 +546,8 @@ function getDisplayCount(count: number): string {
 }
 
 function open(): Promise<void> {
-    fileType.value = 'ezbookkeeping';
-    fileSubType.value = 'ezbookkeeping_csv';
+    fileType.value = 'financially_free';
+    fileSubType.value = 'financially_free_csv';
     fileEncoding.value = 'auto';
     detectingFileEncoding.value = false;
     autoDetectedFileEncoding.value = undefined;
@@ -750,7 +750,7 @@ function parseData(): void {
                 return;
             }
 
-            type = 'ezbookkeeping_json';
+            type = 'financially_free_json';
             encoding = undefined;
             uploadFile = KnownFileType.JSON.createFile(executeCustomScriptResult, 'import');
         }

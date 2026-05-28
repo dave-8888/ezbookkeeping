@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/errs"
 )
 
-// defaultPlainTextDataTable defines the structure of ezbookkeeping default plain text data table
+// defaultPlainTextDataTable defines the structure of financially_free default plain text data table
 type defaultPlainTextDataTable struct {
 	columnSeparator       string
 	lineSeparator         string
@@ -16,18 +16,18 @@ type defaultPlainTextDataTable struct {
 	headerLineColumnNames []string
 }
 
-// defaultPlainTextDataRow defines the structure of ezbookkeeping default plain text data row
+// defaultPlainTextDataRow defines the structure of financially_free default plain text data row
 type defaultPlainTextDataRow struct {
 	allItems []string
 }
 
-// defaultPlainTextDataRowIterator defines the structure of ezbookkeeping default plain text data row iterator
+// defaultPlainTextDataRowIterator defines the structure of financially_free default plain text data row iterator
 type defaultPlainTextDataRowIterator struct {
 	dataTable    *defaultPlainTextDataTable
 	currentIndex int
 }
 
-// defaultTransactionPlainTextDataTableBuilder defines the structure of ezbookkeeping default transaction plain text data table builder
+// defaultTransactionPlainTextDataTableBuilder defines the structure of financially_free default transaction plain text data table builder
 type defaultTransactionPlainTextDataTableBuilder struct {
 	columnSeparator       string
 	lineSeparator         string

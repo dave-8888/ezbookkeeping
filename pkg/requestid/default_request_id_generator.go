@@ -10,11 +10,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 // Length and mask of all information in request id

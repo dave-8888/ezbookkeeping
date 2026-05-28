@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/errs"
 )
 
 func TestNewFiscalYearStart_ValidMonthDay(t *testing.T) {

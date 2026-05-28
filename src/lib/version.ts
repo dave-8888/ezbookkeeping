@@ -3,9 +3,9 @@ import type { VersionInfo } from '@/core/version.ts';
 import { getBasePath } from './web.ts';
 
 const clientVersionHolder: VersionInfo = {
-    version: __EZBOOKKEEPING_VERSION__,
-    commitHash: __EZBOOKKEEPING_BUILD_COMMIT_HASH__,
-    buildTime: __EZBOOKKEEPING_BUILD_UNIX_TIME__
+    version: __FINANCIALLY_FREE_VERSION__,
+    commitHash: __FINANCIALLY_FREE_BUILD_COMMIT_HASH__,
+    buildTime: __FINANCIALLY_FREE_BUILD_UNIX_TIME__
 };
 
 export function formatDisplayVersion(versionInfo: VersionInfo): string {
@@ -31,7 +31,7 @@ export function formatDisplayVersion(versionInfo: VersionInfo): string {
 }
 
 export function isProduction(): boolean {
-    return __EZBOOKKEEPING_IS_PRODUCTION__;
+    return __FINANCIALLY_FREE_IS_PRODUCTION__;
 }
 
 export function getClientVersionInfo(): VersionInfo {

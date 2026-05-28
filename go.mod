@@ -1,4 +1,4 @@
-module github.com/mayswind/ezbookkeeping
+module github.com/mayswind/financially_free
 
 go 1.25
 

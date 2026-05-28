@@ -1,6 +1,6 @@
 package models
 
-import "github.com/mayswind/ezbookkeeping/pkg/settings"
+import "github.com/mayswind/financially_free/pkg/settings"
 
 // UserLLMSetting represents user large language model settings stored in database
 type UserLLMSetting struct {

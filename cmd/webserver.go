@@ -14,28 +14,28 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/urfave/cli/v3"
 
-	"github.com/mayswind/ezbookkeeping/pkg/api"
-	"github.com/mayswind/ezbookkeeping/pkg/auth/oauth2"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/cron"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/mcp"
-	"github.com/mayswind/ezbookkeeping/pkg/middlewares"
-	"github.com/mayswind/ezbookkeeping/pkg/requestid"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
-	"github.com/mayswind/ezbookkeeping/pkg/validators"
+	"github.com/mayswind/financially_free/pkg/api"
+	"github.com/mayswind/financially_free/pkg/auth/oauth2"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/cron"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/mcp"
+	"github.com/mayswind/financially_free/pkg/middlewares"
+	"github.com/mayswind/financially_free/pkg/requestid"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/validators"
 )
 
 // WebServer represents the server command
 var WebServer = &cli.Command{
 	Name:  "server",
-	Usage: "ezBookkeeping web server operation",
+	Usage: "financially_free web server operation",
 	Commands: []*cli.Command{
 		{
 			Name:   "run",
-			Usage:  "Run ezBookkeeping web server",
+			Usage:  "Run financially_free web server",
 			Action: bindAction(startWebServer),
 		},
 	},
@@ -369,8 +369,8 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/data/clear/transactions/by_account.json", bindApi(api.DataManagements.ClearAllTransactionsByAccountHandler))
 
 			if config.EnableDataExport {
-				apiV1Route.GET("/data/export.csv", bindCsv(api.DataManagements.ExportDataToEzbookkeepingCSVHandler))
-				apiV1Route.GET("/data/export.tsv", bindTsv(api.DataManagements.ExportDataToEzbookkeepingTSVHandler))
+				apiV1Route.GET("/data/export.csv", bindCsv(api.DataManagements.ExportDataToFinanciallyFreeCSVHandler))
+				apiV1Route.GET("/data/export.tsv", bindTsv(api.DataManagements.ExportDataToFinanciallyFreeTSVHandler))
 			}
 
 			// Accounts

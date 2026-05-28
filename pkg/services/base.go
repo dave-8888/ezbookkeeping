@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/datastore"
-	"github.com/mayswind/ezbookkeeping/pkg/mail"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/storage"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
-	"github.com/mayswind/ezbookkeeping/pkg/uuid"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/datastore"
+	"github.com/mayswind/financially_free/pkg/mail"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/storage"
+	"github.com/mayswind/financially_free/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/uuid"
 )
 
 // ServiceUsingDB represents a service that need to use db

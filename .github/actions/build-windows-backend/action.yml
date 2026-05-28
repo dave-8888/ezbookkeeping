@@ -72,5 +72,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.backend-artifact-name-prefix }}-windows-x64
-        path: ezbookkeeping.exe
+        path: financially_free.exe
         if-no-files-found: error

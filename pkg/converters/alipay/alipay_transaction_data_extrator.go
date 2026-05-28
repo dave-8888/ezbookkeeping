@@ -3,12 +3,12 @@ package alipay
 import (
 	"strings"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters/csv"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/converters/csv"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 func createNewAlipayTransactionBasicDataTable(ctx core.Context, originalDataTable datatable.BasicDataTable, fileHeaderLine string, dataHeaderStartContent []string, dataBottomEndLineRune rune) (datatable.BasicDataTable, error) {

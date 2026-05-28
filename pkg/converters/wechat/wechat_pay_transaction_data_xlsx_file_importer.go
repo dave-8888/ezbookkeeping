@@ -3,13 +3,13 @@ package wechat
 import (
 	"time"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters/converter"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/excel"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
+	"github.com/mayswind/financially_free/pkg/converters/converter"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/converters/excel"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/models"
 )
 
 // wechatPayTransactionDataXlsxFileImporter defines the structure of wechatPay xlsx importer for transaction data

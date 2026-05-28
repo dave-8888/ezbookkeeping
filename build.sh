@@ -29,7 +29,7 @@ check_dependency() {
 
 show_help() {
     cat <<-EOF
-ezBookkeeping build script
+financially_free build script
 
 Usage:
     build.sh type [options]
@@ -169,8 +169,8 @@ build_backend() {
 
     echo "Building backend binary file ($RELEASE_TYPE)..."
 
-    CGO_ENABLED=1 go build -a -v -trimpath -ldflags "-w -s -linkmode external -extldflags '-static' $backend_build_extra_arguments" -o ezbookkeeping ezbookkeeping.go
-    chmod +x ezbookkeeping
+    CGO_ENABLED=1 go build -a -v -trimpath -ldflags "-w -s -linkmode external -extldflags '-static' $backend_build_extra_arguments" -o financially_free financially_free.go
+    chmod +x financially_free
 }
 
 build_frontend() {
@@ -214,7 +214,7 @@ build_package() {
         package_file_name="$package_file_name-$BUILD_DATE"
     fi
 
-    package_file_name="ezbookkeeping-$package_file_name-$(arch).tar.gz"
+    package_file_name="financially_free-$package_file_name-$(arch).tar.gz"
 
     if [ -n "$PACKAGE_FILENAME" ]; then
         package_file_name="$PACKAGE_FILENAME"
@@ -230,7 +230,7 @@ build_package() {
     mkdir package/data
     mkdir package/storage
     mkdir package/log
-    cp ezbookkeeping package/
+    cp financially_free package/
     cp -R dist package/public
     cp -R conf package/conf
     cp -R templates package/templates
@@ -248,7 +248,7 @@ build_docker() {
         docker_tag="SNAPSHOT-$BUILD_DATE";
     fi
 
-    docker_tag="ezbookkeeping:$docker_tag"
+    docker_tag="financially_free:$docker_tag"
 
     if [ -n "$DOCKER_TAG" ]; then
         docker_tag="$DOCKER_TAG"

@@ -21,7 +21,7 @@ function isMobileDevice(): boolean {
 }
 
 function navigate(type: string): void {
-    if (__EZBOOKKEEPING_IS_PRODUCTION__) {
+    if (__FINANCIALLY_FREE_IS_PRODUCTION__) {
         window.location.replace(`${type}#/`);
     } else {
         window.location.replace(`${type}.html#/`);

@@ -3,34 +3,34 @@ import { isEnableDebug } from './settings.ts';
 function logDebug(msg: string, obj?: unknown): void {
     if (isEnableDebug()) {
         if (obj) {
-            console.debug('[ezBookkeeping Debug] ' + msg, obj);
+            console.debug('[financially_free Debug] ' + msg, obj);
         } else {
-            console.debug('[ezBookkeeping Debug] ' + msg);
+            console.debug('[financially_free Debug] ' + msg);
         }
     }
 }
 
 function logInfo(msg: string, obj?: unknown): void {
     if (obj) {
-        console.info('[ezBookkeeping Info] ' + msg, obj);
+        console.info('[financially_free Info] ' + msg, obj);
     } else {
-        console.info('[ezBookkeeping Info] ' + msg);
+        console.info('[financially_free Info] ' + msg);
     }
 }
 
 function logWarn(msg: string, obj?: unknown): void {
     if (obj) {
-        console.warn('[ezBookkeeping Warn] ' + msg, obj);
+        console.warn('[financially_free Warn] ' + msg, obj);
     } else {
-        console.warn('[ezBookkeeping Warn] ' + msg);
+        console.warn('[financially_free Warn] ' + msg);
     }
 }
 
 function logError(msg: string, obj?: unknown): void {
     if (obj) {
-        console.error('[ezBookkeeping Error] ' + msg, obj);
+        console.error('[financially_free Error] ' + msg, obj);
     } else {
-        console.error('[ezBookkeeping Error] ' + msg);
+        console.error('[financially_free Error] ' + msg);
     }
 }
 

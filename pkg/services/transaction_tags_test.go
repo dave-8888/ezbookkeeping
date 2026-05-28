@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mayswind/ezbookkeeping/pkg/models"
+	"github.com/mayswind/financially_free/pkg/models"
 )
 
 func TestGetTagMapByList_EmptyList(t *testing.T) {

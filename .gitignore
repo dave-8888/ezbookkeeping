@@ -148,5 +148,5 @@ node_modules/
 # Roo Code
 .roo/
 .env
-/log/ezbookkeeping.log
-/data/ezbookkeeping.db
+/log/financially_free.log
+/data/financially_free.db

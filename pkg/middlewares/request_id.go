@@ -1,9 +1,9 @@
 package middlewares
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/requestid"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/requestid"
+	"github.com/mayswind/financially_free/pkg/settings"
 )
 
 const requestIdHeader = "X-Request-ID"

@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
-	"github.com/mayswind/ezbookkeeping/pkg/services"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/converters"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/services"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 const pageCountForClearTransactions = 1000
@@ -52,13 +52,13 @@ var (
 	}
 )
 
-// ExportDataToEzbookkeepingCSVHandler returns exported data in csv format
-func (a *DataManagementsApi) ExportDataToEzbookkeepingCSVHandler(c *core.WebContext) ([]byte, string, *errs.Error) {
+// ExportDataToFinanciallyFreeCSVHandler returns exported data in csv format
+func (a *DataManagementsApi) ExportDataToFinanciallyFreeCSVHandler(c *core.WebContext) ([]byte, string, *errs.Error) {
 	return a.getExportedFileContent(c, "csv")
 }
 
-// ExportDataToEzbookkeepingTSVHandler returns exported data in csv format
-func (a *DataManagementsApi) ExportDataToEzbookkeepingTSVHandler(c *core.WebContext) ([]byte, string, *errs.Error) {
+// ExportDataToFinanciallyFreeTSVHandler returns exported data in csv format
+func (a *DataManagementsApi) ExportDataToFinanciallyFreeTSVHandler(c *core.WebContext) ([]byte, string, *errs.Error) {
 	return a.getExportedFileContent(c, "tsv")
 }
 

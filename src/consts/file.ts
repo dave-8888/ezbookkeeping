@@ -99,20 +99,20 @@ export const CHARDET_ENCODING_NAME_MAPPING: Record<string, string> = {
 
 export const SUPPORTED_IMPORT_FILE_CATEGORY_AND_TYPES: ImportFileCategoryAndTypes[] = [
     {
-        categoryName: 'ezBookkeeping File Format',
+        categoryName: 'financially_free File Format',
         fileTypes: [
             {
-                type: 'ezbookkeeping',
-                name: 'ezbookkeeping Data Export File',
+                type: 'financially_free',
+                name: 'financially_free Data Export File',
                 extensions: '.csv,.tsv',
                 subTypes: [
                     {
-                        type: 'ezbookkeeping_csv',
+                        type: 'financially_free_csv',
                         name: 'CSV (Comma-separated values) File',
                         extensions: '.csv',
                     },
                     {
-                        type: 'ezbookkeeping_tsv',
+                        type: 'financially_free_tsv',
                         name: 'TSV (Tab-separated values) File',
                         extensions: '.tsv',
                     }

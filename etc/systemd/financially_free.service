@@ -1,0 +1,16 @@
+[Unit]
+Description=financially_free, a lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features.
+After=syslog.target
+After=network.target
+After=mariadb.service mysqld.service postgresql.service
+
+[Service]
+Type=simple
+User=financially_free
+Group=financially_free
+WorkingDirectory=/usr/local/bin/financially_free
+ExecStart=/usr/local/bin/financially_free/financially_free server run
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

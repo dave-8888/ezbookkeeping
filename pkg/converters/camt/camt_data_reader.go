@@ -6,8 +6,8 @@ import (
 
 	"golang.org/x/net/html/charset"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
 )
 
 // camt053FileReader defines the structure of camt.053 file reader

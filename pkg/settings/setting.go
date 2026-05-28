@@ -10,16 +10,16 @@ import (
 
 	"gopkg.in/ini.v1"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/locales"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/locales"
 )
 
 const (
 	ebkWorkDirEnvName                  = "EBK_WORK_DIR"
 	ebkConfigItemValueEnvNamePrefix    = "EBK"
 	ebkConfigItemFilePathEnvNamePrefix = "EBKCFP"
-	defaultConfigPath                  = "/conf/ezbookkeeping.ini"
+	defaultConfigPath                  = "/conf/financially_free.ini"
 	defaultStaticRootPath              = "public"
 )
 
@@ -150,7 +150,7 @@ const (
 	defaultDomain   string = "localhost"
 
 	defaultDatabaseHost            string = "127.0.0.1:3306"
-	defaultDatabaseName            string = "ezbookkeeping"
+	defaultDatabaseName            string = "financially_free"
 	defaultDatabaseMaxIdleConn     uint16 = 2
 	defaultDatabaseMaxOpenConn     uint16 = 0
 	defaultDatabaseConnMaxLifetime uint32 = 14400
@@ -167,7 +167,7 @@ const (
 	defaultInMemoryDuplicateCheckerCleanupInterval uint32 = 60  // 1 minutes
 	defaultDuplicateSubmissionsInterval            uint32 = 300 // 5 minutes
 
-	defaultSecretKey                     string = "ezbookkeeping"
+	defaultSecretKey                     string = "financially_free"
 	defaultTokenExpiredTime              uint32 = 2592000 // 30 days
 	defaultTokenMinRefreshInterval       uint32 = 86400   // 1 day
 	defaultTemporaryTokenExpiredTime     uint32 = 300     // 5 minutes

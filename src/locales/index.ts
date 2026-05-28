@@ -34,7 +34,7 @@ export interface LanguageOption {
 
 export const DEFAULT_LANGUAGE: string = 'zh-Hans';
 
-// To add new languages, please refer to https://ezbookkeeping.mayswind.net/translating
+// To add new languages, please refer to https://financially_free.mayswind.net/translating
 export const ALL_LANGUAGES: Record<string, LanguageInfo> = {
     'de': {
         name: 'German',

@@ -3,7 +3,7 @@ package settings
 import (
 	"fmt"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
+	"github.com/mayswind/financially_free/pkg/core"
 )
 
 // ConfigContainer contains the current setting config

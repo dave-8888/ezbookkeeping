@@ -5,15 +5,15 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/cron"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/cron"
+	"github.com/mayswind/financially_free/pkg/log"
 )
 
 // CronJobs represents the cron command
 var CronJobs = &cli.Command{
 	Name:  "cron",
-	Usage: "ezBookkeeping cron job utilities",
+	Usage: "financially_free cron job utilities",
 	Commands: []*cli.Command{
 		{
 			Name:   "list",

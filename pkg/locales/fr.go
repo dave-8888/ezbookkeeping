@@ -1,12 +1,12 @@
 package locales
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/core"
+	"github.com/mayswind/financially_free/pkg/core"
 )
 
 var fr = &LocaleTextItems{
 	GlobalTextItems: &GlobalTextItems{
-		AppName: "ezBookkeeping",
+		AppName: "financially_free",
 	},
 	DefaultTypes: &DefaultTypes{
 		DecimalSeparator:    core.DECIMAL_SEPARATOR_COMMA,

@@ -6,18 +6,18 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	clis "github.com/mayswind/ezbookkeeping/pkg/cli"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/log"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	clis "github.com/mayswind/financially_free/pkg/cli"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/log"
+	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 // UserData represents the data command
 var UserData = &cli.Command{
 	Name:  "userdata",
-	Usage: "ezBookkeeping user data maintenance",
+	Usage: "financially_free user data maintenance",
 	Commands: []*cli.Command{
 		{
 			Name:   "user-add",
@@ -360,7 +360,7 @@ var UserData = &cli.Command{
 					Name:     "type",
 					Aliases:  []string{"t"},
 					Required: true,
-					Usage:    "Import file type (supports \"ezbookkeeping_csv\", \"ezbookkeeping_tsv\")",
+					Usage:    "Import file type (supports \"financially_free_csv\", \"financially_free_tsv\")",
 				},
 			},
 		},
@@ -919,7 +919,7 @@ func importUserTransaction(c *core.CliContext) error {
 		return os.ErrExist
 	}
 
-	if filetype != "ezbookkeeping_csv" && filetype != "ezbookkeeping_tsv" {
+	if filetype != "financially_free_csv" && filetype != "financially_free_tsv" {
 		log.CliErrorf(c, "[user_data.importUserTransaction] unknown file type \"%s\"", filetype)
 		return errs.ErrImportFileTypeNotSupported
 	}

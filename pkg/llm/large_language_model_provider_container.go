@@ -1,14 +1,14 @@
 package llm
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/data"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/provider"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/googleai"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/ollama"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/openai"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/llm/data"
+	"github.com/mayswind/financially_free/pkg/llm/provider"
+	"github.com/mayswind/financially_free/pkg/llm/provider/googleai"
+	"github.com/mayswind/financially_free/pkg/llm/provider/ollama"
+	"github.com/mayswind/financially_free/pkg/llm/provider/openai"
+	"github.com/mayswind/financially_free/pkg/settings"
 )
 
 // LargeLanguageModelProviderContainer contains the current large language model provider

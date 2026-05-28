@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
-const ezbookkeepingServerSettingsGlobalVariableName = "EZBOOKKEEPING_SERVER_SETTINGS"
-const ezbookkeepingServerSettingsGlobalVariableFullName = "window." + ezbookkeepingServerSettingsGlobalVariableName
-const ezbookkeepingServerSettingsJavascriptFileHeader = ezbookkeepingServerSettingsGlobalVariableFullName +
-	"=" + ezbookkeepingServerSettingsGlobalVariableFullName + "||{};\n"
+const financiallyFreeServerSettingsGlobalVariableName = "FINANCIALLY_FREE_SERVER_SETTINGS"
+const financiallyFreeServerSettingsGlobalVariableFullName = "window." + financiallyFreeServerSettingsGlobalVariableName
+const financiallyFreeServerSettingsJavascriptFileHeader = financiallyFreeServerSettingsGlobalVariableFullName +
+	"=" + financiallyFreeServerSettingsGlobalVariableFullName + "||{};\n"
 
 // ServerSettingsApi represents server settings api
 type ServerSettingsApi struct {
@@ -33,7 +33,7 @@ var (
 func (a *ServerSettingsApi) ServerSettingsJavascriptHandler(c *core.WebContext) ([]byte, string, *errs.Error) {
 	config := a.CurrentConfig()
 	builder := &strings.Builder{}
-	builder.WriteString(ezbookkeepingServerSettingsJavascriptFileHeader)
+	builder.WriteString(financiallyFreeServerSettingsJavascriptFileHeader)
 
 	a.appendBooleanSetting(builder, "a", config.EnableInternalAuth)
 	a.appendBooleanSetting(builder, "o", config.EnableOAuth2Login)
@@ -133,7 +133,7 @@ func (a *ServerSettingsApi) ServerSettingsJavascriptHandler(c *core.WebContext) 
 }
 
 func (a *ServerSettingsApi) appendStringSetting(builder *strings.Builder, key string, value string) {
-	builder.WriteString(ezbookkeepingServerSettingsGlobalVariableFullName)
+	builder.WriteString(financiallyFreeServerSettingsGlobalVariableFullName)
 	builder.WriteString("[")
 	a.appendEncodedString(builder, key)
 	builder.WriteString("]=")
@@ -144,7 +144,7 @@ func (a *ServerSettingsApi) appendStringSetting(builder *strings.Builder, key st
 }
 
 func (a *ServerSettingsApi) appendMultiLanguageTipSetting(builder *strings.Builder, key string, value settings.MultiLanguageContentConfig) {
-	builder.WriteString(ezbookkeepingServerSettingsGlobalVariableFullName)
+	builder.WriteString(financiallyFreeServerSettingsGlobalVariableFullName)
 	builder.WriteString("[")
 	a.appendEncodedString(builder, key)
 	builder.WriteString("]={\n")
@@ -164,7 +164,7 @@ func (a *ServerSettingsApi) appendMultiLanguageTipSetting(builder *strings.Build
 }
 
 func (a *ServerSettingsApi) appendBooleanSetting(builder *strings.Builder, key string, value bool) {
-	builder.WriteString(ezbookkeepingServerSettingsGlobalVariableFullName)
+	builder.WriteString(financiallyFreeServerSettingsGlobalVariableFullName)
 	builder.WriteString("[")
 	a.appendEncodedString(builder, key)
 	builder.WriteString("]=")
@@ -179,7 +179,7 @@ func (a *ServerSettingsApi) appendBooleanSetting(builder *strings.Builder, key s
 }
 
 func (a *ServerSettingsApi) appendIntegerSetting(builder *strings.Builder, key string, value int) {
-	builder.WriteString(ezbookkeepingServerSettingsGlobalVariableFullName)
+	builder.WriteString(financiallyFreeServerSettingsGlobalVariableFullName)
 	builder.WriteString("[")
 	a.appendEncodedString(builder, key)
 	builder.WriteString("]=")

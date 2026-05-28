@@ -1,25 +1,25 @@
-name: ezbookkeeping
+name: financially_free
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ezbookkeeping:local
+    image: financially_free:local
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8888}:8080"
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      EBK_CONF_PATH: /ezbookkeeping/conf/ezbookkeeping.ini
+      EBK_CONF_PATH: /financially_free/conf/financially_free.ini
       EBK_SERVER_DOMAIN: ${EBK_SERVER_DOMAIN:-localhost}
       EBK_SERVER_ROOT_URL: ${EBK_SERVER_ROOT_URL:-http://localhost:8888/}
       EBK_SECURITY_SECRET_KEY: ${EBK_SECURITY_SECRET_KEY:-change-me-before-production}
     volumes:
-      - ./docker/ezbookkeeping.docker.ini:/ezbookkeeping/conf/ezbookkeeping.ini:ro
-      - ezbookkeeping_data:/ezbookkeeping/data
-      - ezbookkeeping_log:/ezbookkeeping/log
-      - ezbookkeeping_storage:/ezbookkeeping/storage
+      - ./docker/financially_free.docker.ini:/financially_free/conf/financially_free.ini:ro
+      - financially_free_data:/financially_free/data
+      - financially_free_log:/financially_free/log
+      - financially_free_storage:/financially_free/storage
     healthcheck:
       test: ["CMD-SHELL", "wget -q -T 3 -O - http://127.0.0.1:8080/healthz.json >/dev/null || exit 1"]
       interval: 30s
@@ -28,6 +28,6 @@ services:
       start_period: 20s
 
 volumes:
-  ezbookkeeping_data:
-  ezbookkeeping_log:
-  ezbookkeeping_storage:
+  financially_free_data:
+  financially_free_log:
+  financially_free_storage:

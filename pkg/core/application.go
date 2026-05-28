@@ -1,4 +1,4 @@
 package core
 
 // ApplicationName represents the application name
-const ApplicationName = "ezBookkeeping"
+const ApplicationName = "financially_free"

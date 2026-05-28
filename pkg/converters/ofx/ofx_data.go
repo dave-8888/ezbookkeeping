@@ -3,7 +3,7 @@ package ofx
 import (
 	"encoding/xml"
 
-	"github.com/mayswind/ezbookkeeping/pkg/models"
+	"github.com/mayswind/financially_free/pkg/models"
 )
 
 // oFXDeclarationVersion represents the declaration version of open financial exchange (ofx) file

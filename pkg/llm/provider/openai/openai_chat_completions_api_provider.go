@@ -3,9 +3,9 @@ package openai
 import (
 	"net/http"
 
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/provider"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/llm/provider"
+	"github.com/mayswind/financially_free/pkg/settings"
 )
 
 // OpenAIOfficialChatCompletionsAPIProvider defines the structure of OpenAI official chat completions API provider

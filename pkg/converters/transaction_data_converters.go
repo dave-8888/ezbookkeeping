@@ -1,24 +1,24 @@
 package converters
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/converters/alipay"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/beancount"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/camt"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/converter"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/default"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/dsv"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/feidee"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/fireflyIII"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/gnucash"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/iif"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/jdcom"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/mt"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/ofx"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/qif"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/wechat"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
+	"github.com/mayswind/financially_free/pkg/converters/alipay"
+	"github.com/mayswind/financially_free/pkg/converters/beancount"
+	"github.com/mayswind/financially_free/pkg/converters/camt"
+	"github.com/mayswind/financially_free/pkg/converters/converter"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/converters/default"
+	"github.com/mayswind/financially_free/pkg/converters/dsv"
+	"github.com/mayswind/financially_free/pkg/converters/feidee"
+	"github.com/mayswind/financially_free/pkg/converters/fireflyIII"
+	"github.com/mayswind/financially_free/pkg/converters/gnucash"
+	"github.com/mayswind/financially_free/pkg/converters/iif"
+	"github.com/mayswind/financially_free/pkg/converters/jdcom"
+	"github.com/mayswind/financially_free/pkg/converters/mt"
+	"github.com/mayswind/financially_free/pkg/converters/ofx"
+	"github.com/mayswind/financially_free/pkg/converters/qif"
+	"github.com/mayswind/financially_free/pkg/converters/wechat"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/models"
 )
 
 // GetTransactionDataExporter returns the transaction data exporter according to the file type
@@ -34,11 +34,11 @@ func GetTransactionDataExporter(fileType string) converter.TransactionDataExport
 
 // GetTransactionDataImporter returns the transaction data importer according to the file type
 func GetTransactionDataImporter(fileType string) (converter.TransactionDataImporter, error) {
-	if fileType == "ezbookkeeping_csv" {
+	if fileType == "financially_free_csv" {
 		return _default.DefaultTransactionDataCSVFileConverter, nil
-	} else if fileType == "ezbookkeeping_tsv" {
+	} else if fileType == "financially_free_tsv" {
 		return _default.DefaultTransactionDataTSVFileConverter, nil
-	} else if fileType == "ezbookkeeping_json" {
+	} else if fileType == "financially_free_json" {
 		return _default.DefaultTransactionDataJsonFileImporter, nil
 	} else if fileType == "ofx" {
 		return ofx.OFXTransactionDataImporter, nil

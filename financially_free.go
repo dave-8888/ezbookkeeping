@@ -9,9 +9,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mayswind/ezbookkeeping/cmd"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/cmd"
+	"github.com/mayswind/financially_free/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 var (
@@ -31,7 +31,7 @@ func main() {
 	settings.BuildTime = BuildUnixTime
 
 	cmd := &cli.Command{
-		Name:    "ezBookkeeping",
+		Name:    "financially_free",
 		Usage:   "A lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features.",
 		Version: GetFullVersion(),
 		Commands: []*cli.Command{
@@ -57,7 +57,7 @@ func main() {
 	err := cmd.Run(context.Background(), os.Args)
 
 	if err != nil {
-		log.Fatalf("Failed to run ezBookkeeping with %s: %v", os.Args, err)
+		log.Fatalf("Failed to run financially_free with %s: %v", os.Args, err)
 	}
 }
 

@@ -36,8 +36,8 @@
                             <span class="text-body-1">{{ tt('Official Website') }}</span>
                         </v-col>
                         <v-col cols="12" md="10" class="mb-6">
-                            <a class="text-body-1" href="https://github.com/mayswind/ezbookkeeping" target="_blank">
-                                https://github.com/mayswind/ezbookkeeping
+                            <a class="text-body-1" href="https://github.com/mayswind/financially_free" target="_blank">
+                                https://github.com/mayswind/financially_free
                             </a>
                         </v-col>
                     </v-row>
@@ -46,8 +46,8 @@
                             <span class="text-body-1">{{ tt('Report Issue') }}</span>
                         </v-col>
                         <v-col cols="12" md="10" class="mb-6">
-                            <a class="text-body-1" href="https://github.com/mayswind/ezbookkeeping/issues" target="_blank">
-                                https://github.com/mayswind/ezbookkeeping/issues
+                            <a class="text-body-1" href="https://github.com/mayswind/financially_free/issues" target="_blank">
+                                https://github.com/mayswind/financially_free/issues
                             </a>
                         </v-col>
                     </v-row>
@@ -56,8 +56,8 @@
                             <span class="text-body-1">{{ tt('Getting help') }}</span>
                         </v-col>
                         <v-col cols="12" md="10">
-                            <a class="text-body-1" href="https://ezbookkeeping.mayswind.net" target="_blank">
-                                https://ezbookkeeping.mayswind.net
+                            <a class="text-body-1" href="https://financially_free.mayswind.net" target="_blank">
+                                https://financially_free.mayswind.net
                             </a>
                         </v-col>
                     </v-row>
@@ -113,7 +113,7 @@
                             <v-divider/>
                             <br/>
                             <p>
-                                <span>ezBookkeeping's codebase and localization translation rely on contributions from the community. The following people have contributed to ezBookkeeping:</span>
+                                <span>financially_free's codebase and localization translation rely on contributions from the community. The following people have contributed to financially_free:</span>
                             </p>
                             <div>
                                 <strong>Project Maintainer</strong>
@@ -170,7 +170,7 @@
                                 </tbody>
                             </table>
                             <p class="mt-4 mb-4">
-                                <span>ezBookkeeping also contains additional third party software and illustration.</span><br/>
+                                <span>financially_free also contains additional third party software and illustration.</span><br/>
                                 <span>All the third party software / illustration included or linked is redistributed under the terms and conditions of their original licenses.</span>
                             </p>
                             <p :key="license.name" v-for="license in thirdPartyLicenses">

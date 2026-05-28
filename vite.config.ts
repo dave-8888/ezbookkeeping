@@ -92,13 +92,13 @@ export default defineConfig(() => {
         publicDir: PUBLIC_DIR,
         base: './',
         define: {
-            __EZBOOKKEEPING_IS_PRODUCTION__: process.env['NODE_ENV'] === 'production',
-            __EZBOOKKEEPING_VERSION__: JSON.stringify(packageFile.version),
-            __EZBOOKKEEPING_BUILD_UNIX_TIME__: JSON.stringify(buildUnixTime),
-            __EZBOOKKEEPING_BUILD_COMMIT_HASH__: JSON.stringify(git.short()),
-            __EZBOOKKEEPING_CONTRIBUTORS__: JSON.stringify(contributorsFile),
-            __EZBOOKKEEPING_LICENSE__: JSON.stringify(licenseContent),
-            __EZBOOKKEEPING_THIRD_PARTY_LICENSES__: JSON.stringify(thirdPartyLicenseFile)
+            __FINANCIALLY_FREE_IS_PRODUCTION__: process.env['NODE_ENV'] === 'production',
+            __FINANCIALLY_FREE_VERSION__: JSON.stringify(packageFile.version),
+            __FINANCIALLY_FREE_BUILD_UNIX_TIME__: JSON.stringify(buildUnixTime),
+            __FINANCIALLY_FREE_BUILD_COMMIT_HASH__: JSON.stringify(git.short()),
+            __FINANCIALLY_FREE_CONTRIBUTORS__: JSON.stringify(contributorsFile),
+            __FINANCIALLY_FREE_LICENSE__: JSON.stringify(licenseContent),
+            __FINANCIALLY_FREE_THIRD_PARTY_LICENSES__: JSON.stringify(thirdPartyLicenseFile)
         },
         plugins: [
             vue({
@@ -137,8 +137,8 @@ export default defineConfig(() => {
                 strategies: 'generateSW',
                 injectRegister: false,
                 manifest: {
-                    name: 'ezBookkeeping',
-                    short_name: 'ezBookkeeping',
+                    name: 'financially_free',
+                    short_name: 'financially_free',
                     description: 'A lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features.',
                     theme_color: '#C67E48',
                     background_color: '#F6F7F8',
@@ -150,12 +150,12 @@ export default defineConfig(() => {
                     prefer_related_applications: false,
                     icons: [
                         {
-                            src: 'img/ezbookkeeping-192.png',
+                            src: 'img/financially_free-192.png',
                             sizes: '192x192',
                             type: 'image/png'
                         },
                         {
-                            src: 'img/ezbookkeeping-512.png',
+                            src: 'img/financially_free-512.png',
                             sizes: '512x512',
                             type: 'image/png'
                         }

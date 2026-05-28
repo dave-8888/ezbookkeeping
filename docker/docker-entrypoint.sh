@@ -11,5 +11,5 @@ fi
 if [ $# -gt 0 ]; then
     exec "$@"
 else
-    exec /ezbookkeeping/ezbookkeeping server run ${conf_path_param};
+    exec /financially_free/financially_free server run ${conf_path_param};
 fi

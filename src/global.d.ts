@@ -1,10 +1,10 @@
-declare const __EZBOOKKEEPING_IS_PRODUCTION__: boolean;
-declare const __EZBOOKKEEPING_VERSION__: string;
-declare const __EZBOOKKEEPING_BUILD_UNIX_TIME__: string;
-declare const __EZBOOKKEEPING_BUILD_COMMIT_HASH__: string;
-declare const __EZBOOKKEEPING_LICENSE__: string;
-declare const __EZBOOKKEEPING_CONTRIBUTORS__: ContributorInfo;
-declare const __EZBOOKKEEPING_THIRD_PARTY_LICENSES__: LicenseInfo[];
+declare const __FINANCIALLY_FREE_IS_PRODUCTION__: boolean;
+declare const __FINANCIALLY_FREE_VERSION__: string;
+declare const __FINANCIALLY_FREE_BUILD_UNIX_TIME__: string;
+declare const __FINANCIALLY_FREE_BUILD_COMMIT_HASH__: string;
+declare const __FINANCIALLY_FREE_LICENSE__: string;
+declare const __FINANCIALLY_FREE_CONTRIBUTORS__: ContributorInfo;
+declare const __FINANCIALLY_FREE_THIRD_PARTY_LICENSES__: LicenseInfo[];
 
 declare interface ContributorInfo {
     code: string[];
@@ -19,7 +19,7 @@ declare interface LicenseInfo {
 }
 
 interface Window {
-    EZBOOKKEEPING_SERVER_SETTINGS?: {
+    FINANCIALLY_FREE_SERVER_SETTINGS?: {
         [key: string]: string | number | boolean | undefined | null;
     };
 }

@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Frequently Asked Questions
-    url: https://ezbookkeeping.mayswind.net/faq
+    url: https://financially_free.mayswind.net/faq
     about: Please check whether your question has already been mentioned here.
   - name: Usage Questions
-    url: https://github.com/mayswind/ezbookkeeping/discussions/categories/q-a
-    about: Questions about using ezBookkeeping can be discussed in GitHub Discussions.
+    url: https://github.com/mayswind/financially_free/discussions/categories/q-a
+    about: Questions about using financially_free can be discussed in GitHub Discussions.

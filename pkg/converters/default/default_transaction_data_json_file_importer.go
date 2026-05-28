@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/mayswind/ezbookkeeping/pkg/converters/converter"
-	"github.com/mayswind/ezbookkeeping/pkg/converters/datatable"
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/errs"
-	"github.com/mayswind/ezbookkeeping/pkg/models"
-	"github.com/mayswind/ezbookkeeping/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/converters/converter"
+	"github.com/mayswind/financially_free/pkg/converters/datatable"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/utils"
 )
 
 var allJsonDataSupportedColumns = []datatable.TransactionDataTableColumn{
@@ -26,10 +26,10 @@ var allJsonDataSupportedColumns = []datatable.TransactionDataTableColumn{
 	datatable.TRANSACTION_DATA_TABLE_DESCRIPTION,
 }
 
-// defaultTransactionDataJsonImporter defines the structure of ezbookkeeping default json importer for transaction data
+// defaultTransactionDataJsonImporter defines the structure of financially_free default json importer for transaction data
 type defaultTransactionDataJsonImporter struct{}
 
-// Initialize an ezbookkeeping default transaction data json file importer singleton instance
+// Initialize an financially_free default transaction data json file importer singleton instance
 var (
 	DefaultTransactionDataJsonFileImporter = &defaultTransactionDataJsonImporter{}
 )
@@ -49,10 +49,10 @@ func (c *defaultTransactionDataJsonImporter) ParseImportedData(ctx core.Context,
 	}
 
 	dataTableImporter := converter.CreateNewImporterWithTypeNameMapping(
-		ezbookkeepingTransactionTypeNameMapping,
-		ezbookkeepingGeoLocationSeparator,
-		ezbookkeepingGeoLocationOrder,
-		ezbookkeepingTagSeparator,
+		financiallyFreeTransactionTypeNameMapping,
+		financiallyFreeGeoLocationSeparator,
+		financiallyFreeGeoLocationOrder,
+		financiallyFreeTagSeparator,
 	)
 
 	return dataTableImporter.ParseImportedData(ctx, user, transactionDataTable, defaultTimezone, additionalOptions, accountMap, expenseCategoryMap, incomeCategoryMap, transferCategoryMap, tagMap)

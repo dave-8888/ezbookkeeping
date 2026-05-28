@@ -35,19 +35,19 @@ runs:
     - name: Package windows-x64 package
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Path "ezbookkeeping"
-        New-Item -ItemType Directory -Path "ezbookkeeping\data"
-        New-Item -ItemType Directory -Path "ezbookkeeping\storage"
-        New-Item -ItemType Directory -Path "ezbookkeeping\log"
-        Copy-Item ${{ runner.temp }}\backend\ezbookkeeping.exe -Destination ezbookkeeping\
-        Copy-Item -Recurse -Force package\public -Destination ezbookkeeping\public
-        Copy-Item -Recurse -Force conf -Destination ezbookkeeping\conf
-        Copy-Item -Recurse -Force templates -Destination ezbookkeeping\templates
-        Copy-Item .\LICENSE -Destination ezbookkeeping\
-        Push-Location ezbookkeeping
+        New-Item -ItemType Directory -Path "financially_free"
+        New-Item -ItemType Directory -Path "financially_free\data"
+        New-Item -ItemType Directory -Path "financially_free\storage"
+        New-Item -ItemType Directory -Path "financially_free\log"
+        Copy-Item ${{ runner.temp }}\backend\financially_free.exe -Destination financially_free\
+        Copy-Item -Recurse -Force package\public -Destination financially_free\public
+        Copy-Item -Recurse -Force conf -Destination financially_free\conf
+        Copy-Item -Recurse -Force templates -Destination financially_free\templates
+        Copy-Item .\LICENSE -Destination financially_free\
+        Push-Location financially_free
         7z a -r -tzip -mx9 ..\${{ inputs.package-file-name-prefix }}-windows-x64.zip *
         Pop-Location
-        Remove-Item -Recurse -Force ezbookkeeping
+        Remove-Item -Recurse -Force financially_free
 
     - name: Upload windows artifact
       uses: actions/upload-artifact@v4

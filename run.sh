@@ -10,8 +10,8 @@ APP_PORT="${APP_PORT:-8888}"
 FRONTEND_PORT="${FRONTEND_PORT:-8889}"
 FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
 FRONTEND_PORTS="${FRONTEND_PORTS:-$FRONTEND_PORT 8081 5173 4173}"
-RUNTIME_DIR="${RUNTIME_DIR:-$HOME/.cache/ezbookkeeping-runtime}"
-BIN_PATH="${BIN_PATH:-$RUNTIME_DIR/ezbookkeeping}"
+RUNTIME_DIR="${RUNTIME_DIR:-$HOME/.cache/financially_free-runtime}"
+BIN_PATH="${BIN_PATH:-$RUNTIME_DIR/financially_free}"
 BUILD_BACKEND="${BUILD_BACKEND:-1}"
 BUILD_FRONTEND="${BUILD_FRONTEND:-1}"
 START_FRONTEND="${START_FRONTEND:-1}"
@@ -19,10 +19,17 @@ STOP_DOCKER_COMPOSE="${STOP_DOCKER_COMPOSE:-1}"
 STOP_TIMEOUT_SECONDS="${STOP_TIMEOUT_SECONDS:-15}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-30}"
 USE_LAUNCHD="${USE_LAUNCHD:-auto}"
-LAUNCHD_LABEL="${LAUNCHD_LABEL:-ezbookkeeping-codex}"
-FRONTEND_LAUNCHD_LABEL="${FRONTEND_LAUNCHD_LABEL:-ezbookkeeping-frontend-codex}"
+LAUNCHD_LABEL="${LAUNCHD_LABEL:-financially_free-codex}"
+FRONTEND_LAUNCHD_LABEL="${FRONTEND_LAUNCHD_LABEL:-financially_free-frontend-codex}"
+LEGACY_RUNTIME_DIR="${LEGACY_RUNTIME_DIR:-$HOME/.cache/ezbookkeeping-runtime}"
+LEGACY_BIN_PATH="${LEGACY_BIN_PATH:-$LEGACY_RUNTIME_DIR/ezbookkeeping}"
+LEGACY_CONF_PATH="${LEGACY_CONF_PATH:-$PWD/conf/ezbookkeeping.ini}"
+LEGACY_LAUNCHD_LABEL="${LEGACY_LAUNCHD_LABEL:-ezbookkeeping-codex}"
+LEGACY_FRONTEND_LAUNCHD_LABEL="${LEGACY_FRONTEND_LAUNCHD_LABEL:-ezbookkeeping-frontend-codex}"
 LAUNCHD_SERVICE="gui/$(id -u)/$LAUNCHD_LABEL"
 FRONTEND_LAUNCHD_SERVICE="gui/$(id -u)/$FRONTEND_LAUNCHD_LABEL"
+LEGACY_LAUNCHD_SERVICE="gui/$(id -u)/$LEGACY_LAUNCHD_LABEL"
+LEGACY_FRONTEND_LAUNCHD_SERVICE="gui/$(id -u)/$LEGACY_FRONTEND_LAUNCHD_LABEL"
 PID_FILE="$RUNTIME_DIR/server.pid"
 LOG_FILE="$RUNTIME_DIR/server.log"
 ERR_LOG_FILE="$RUNTIME_DIR/server.err.log"
@@ -50,7 +57,7 @@ print_go_install_help() {
 
 show_help() {
     cat <<-EOF
-ezBookkeeping local run script
+financially_free local run script
 
 Usage:
     ./run.sh [start|stop|restart|status]
@@ -64,15 +71,15 @@ Environment:
     FRONTEND_PORT=8889                    Vite dev server port
     FRONTEND_HOST=0.0.0.0                 Vite dev server host
     FRONTEND_PORTS="8889 8081 5173 4173"  Vite dev/preview ports to stop for this project
-    RUNTIME_DIR=~/.cache/ezbookkeeping-runtime
-    BIN_PATH=\$RUNTIME_DIR/ezbookkeeping
+    RUNTIME_DIR=~/.cache/financially_free-runtime
+    BIN_PATH=\$RUNTIME_DIR/financially_free
     BUILD_BACKEND=1                       Build backend before start, set 0 to reuse BIN_PATH
     BUILD_FRONTEND=1                      Build frontend before start
     START_FRONTEND=1                      Start Vite dev server after backend is healthy
     STOP_DOCKER_COMPOSE=1                 Stop local compose app before start/stop
     USE_LAUNCHD=auto                      Use launchctl on macOS, set 0 to use nohup
-    LAUNCHD_LABEL=ezbookkeeping-codex
-    FRONTEND_LAUNCHD_LABEL=ezbookkeeping-frontend-codex
+    LAUNCHD_LABEL=financially_free-codex
+    FRONTEND_LAUNCHD_LABEL=financially_free-frontend-codex
 EOF
 }
 
@@ -122,17 +129,22 @@ process_cwd() {
     fi
 }
 
-is_ezbookkeeping_process() {
+is_financially_free_process() {
     COMMAND="$(process_command "$1")"
 
     case "$COMMAND" in
-        *ezbookkeeping*)
+        *financially_free*)
             return 0
             ;;
-        *)
-            return 1
+    esac
+
+    case "$COMMAND" in
+        *"$LEGACY_BIN_PATH"* | *"$LEGACY_CONF_PATH"*)
+            return 0
             ;;
     esac
+
+    return 1
 }
 
 port_listen_pids() {
@@ -203,6 +215,23 @@ remove_launchd_job() {
     return 1
 }
 
+legacy_launchd_job_exists() {
+    use_launchd && launchctl print "$LEGACY_LAUNCHD_SERVICE" >/dev/null 2>&1
+}
+
+remove_legacy_launchd_job() {
+    if ! use_launchd; then
+        return 1
+    fi
+
+    if legacy_launchd_job_exists; then
+        launchctl remove "$LEGACY_LAUNCHD_LABEL" >/dev/null 2>&1 || true
+        return 0
+    fi
+
+    return 1
+}
+
 frontend_launchd_job_exists() {
     use_launchd && launchctl print "$FRONTEND_LAUNCHD_SERVICE" >/dev/null 2>&1
 }
@@ -214,6 +243,23 @@ remove_frontend_launchd_job() {
 
     if frontend_launchd_job_exists; then
         launchctl remove "$FRONTEND_LAUNCHD_LABEL" >/dev/null 2>&1 || true
+        return 0
+    fi
+
+    return 1
+}
+
+legacy_frontend_launchd_job_exists() {
+    use_launchd && launchctl print "$LEGACY_FRONTEND_LAUNCHD_SERVICE" >/dev/null 2>&1
+}
+
+remove_legacy_frontend_launchd_job() {
+    if ! use_launchd; then
+        return 1
+    fi
+
+    if legacy_frontend_launchd_job_exists; then
+        launchctl remove "$LEGACY_FRONTEND_LAUNCHD_LABEL" >/dev/null 2>&1 || true
         return 0
     fi
 
@@ -240,13 +286,13 @@ stop_pid() {
         return 1
     fi
 
-    if ! is_ezbookkeeping_process "$PID"; then
+    if ! is_financially_free_process "$PID"; then
         COMMAND="$(process_command "$PID")"
-        echo "Process $PID is not ezBookkeeping: $COMMAND"
+        echo "Process $PID is not financially_free: $COMMAND"
         return 2
     fi
 
-    echo "Stopping ezBookkeeping process $PID..."
+    echo "Stopping financially_free process $PID..."
     kill "$PID" 2>/dev/null || true
     return 0
 }
@@ -258,13 +304,13 @@ force_stop_pid() {
         return 1
     fi
 
-    if ! is_ezbookkeeping_process "$PID"; then
+    if ! is_financially_free_process "$PID"; then
         COMMAND="$(process_command "$PID")"
-        echo "Process $PID is still not ezBookkeeping: $COMMAND"
+        echo "Process $PID is still not financially_free: $COMMAND"
         return 2
     fi
 
-    echo "Force stopping ezBookkeeping process $PID..."
+    echo "Force stopping financially_free process $PID..."
     kill -9 "$PID" 2>/dev/null || true
     return 0
 }
@@ -329,7 +375,7 @@ stop_frontend_dev_processes() {
 
     for PID in $PIDS; do
         if is_current_project_frontend_process "$PID"; then
-            echo "Stopping ezBookkeeping frontend dev process $PID..."
+            echo "Stopping financially_free frontend dev process $PID..."
             kill "$PID" 2>/dev/null || true
             STOPPED_FRONTEND="1"
         fi
@@ -360,7 +406,7 @@ stop_frontend_dev_processes() {
 
     for PID in $(frontend_listen_pids); do
         if is_current_project_frontend_process "$PID"; then
-            echo "Force stopping ezBookkeeping frontend dev process $PID..."
+            echo "Force stopping financially_free frontend dev process $PID..."
             kill -9 "$PID" 2>/dev/null || true
         fi
     done
@@ -377,8 +423,18 @@ stop_app() {
         STOPPED="1"
     fi
 
+    if remove_legacy_launchd_job; then
+        echo "Stopping launchd service $LEGACY_LAUNCHD_LABEL..."
+        STOPPED="1"
+    fi
+
     if remove_frontend_launchd_job; then
         echo "Stopping launchd service $FRONTEND_LAUNCHD_LABEL..."
+        STOPPED="1"
+    fi
+
+    if remove_legacy_frontend_launchd_job; then
+        echo "Stopping launchd service $LEGACY_FRONTEND_LAUNCHD_LABEL..."
         STOPPED="1"
     fi
 
@@ -413,11 +469,11 @@ stop_app() {
 
         : > "$PID_FILE"
         : > "$FRONTEND_PID_FILE"
-        echo "ezBookkeeping has stopped."
+        echo "financially_free has stopped."
     else
         : > "$PID_FILE"
         : > "$FRONTEND_PID_FILE"
-        echo "ezBookkeeping is not running."
+        echo "financially_free is not running."
     fi
 }
 
@@ -435,7 +491,7 @@ build_backend() {
     ensure_runtime_dirs
 
     echo "Building backend binary..."
-    go build -o "$BIN_PATH" ezbookkeeping.go
+    go build -o "$BIN_PATH" financially_free.go
     chmod +x "$BIN_PATH"
 }
 
@@ -454,7 +510,7 @@ record_listen_pid() {
     PIDS="$(port_listen_pids)"
 
     for PID in $PIDS; do
-        if is_ezbookkeeping_process "$PID"; then
+        if is_financially_free_process "$PID"; then
             echo "$PID" > "$PID_FILE"
             return 0
         fi
@@ -510,7 +566,7 @@ wait_for_frontend() {
 start_service_process() {
     if use_launchd; then
         remove_launchd_job >/dev/null 2>&1 || true
-        echo "Starting ezBookkeeping service with launchctl..."
+        echo "Starting financially_free service with launchctl..."
         launchctl submit \
             -l "$LAUNCHD_LABEL" \
             -o "$LOG_FILE" \
@@ -521,25 +577,25 @@ start_service_process() {
             EBK_SERVER_DOMAIN="${EBK_SERVER_DOMAIN:-localhost}" \
             EBK_SERVER_ROOT_URL="${EBK_SERVER_ROOT_URL:-http://localhost:$APP_PORT/}" \
             EBK_SERVER_STATIC_ROOT_PATH="${EBK_SERVER_STATIC_ROOT_PATH:-$PWD/dist}" \
-            EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/ezbookkeeping.db}" \
+            EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/financially_free.db}" \
             EBK_LOG_MODE="${EBK_LOG_MODE:-console}" \
             EBK_STORAGE_LOCAL_FILESYSTEM_PATH="${EBK_STORAGE_LOCAL_FILESYSTEM_PATH:-$RUNTIME_DIR/storage}" \
             EBK_SECURITY_SECRET_KEY="${EBK_SECURITY_SECRET_KEY:-change-me-before-production}" \
-            "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/ezbookkeeping.ini}" server run
+            "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/financially_free.ini}" server run
         return 0
     fi
 
-    echo "Starting ezBookkeeping service..."
+    echo "Starting financially_free service..."
     EBK_SERVER_HTTP_PORT="$APP_PORT" \
     EBK_WORK_DIR="${EBK_WORK_DIR:-$PWD}" \
     EBK_SERVER_DOMAIN="${EBK_SERVER_DOMAIN:-localhost}" \
     EBK_SERVER_ROOT_URL="${EBK_SERVER_ROOT_URL:-http://localhost:$APP_PORT/}" \
     EBK_SERVER_STATIC_ROOT_PATH="${EBK_SERVER_STATIC_ROOT_PATH:-$PWD/dist}" \
-    EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/ezbookkeeping.db}" \
+    EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/financially_free.db}" \
     EBK_LOG_MODE="${EBK_LOG_MODE:-console}" \
     EBK_STORAGE_LOCAL_FILESYSTEM_PATH="${EBK_STORAGE_LOCAL_FILESYSTEM_PATH:-$RUNTIME_DIR/storage}" \
     EBK_SECURITY_SECRET_KEY="${EBK_SECURITY_SECRET_KEY:-change-me-before-production}" \
-    nohup "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/ezbookkeeping.ini}" server run > "$LOG_FILE" 2> "$ERR_LOG_FILE" < /dev/null &
+    nohup "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/financially_free.ini}" server run > "$LOG_FILE" 2> "$ERR_LOG_FILE" < /dev/null &
     NEW_PID="$!"
 
     echo "$NEW_PID" > "$PID_FILE"
@@ -564,13 +620,14 @@ start_frontend_dev() {
     NPM_PATH="$(command -v npm)"
     stop_frontend_dev_processes || true
     remove_frontend_launchd_job >/dev/null 2>&1 || true
+    remove_legacy_frontend_launchd_job >/dev/null 2>&1 || true
 
     : > "$FRONTEND_LOG_FILE"
     : > "$FRONTEND_ERR_LOG_FILE"
     : > "$FRONTEND_PID_FILE"
 
     if use_launchd; then
-        echo "Starting ezBookkeeping frontend dev server with launchctl..."
+        echo "Starting financially_free frontend dev server with launchctl..."
         launchctl submit \
             -l "$FRONTEND_LAUNCHD_LABEL" \
             -o "$FRONTEND_LOG_FILE" \
@@ -585,7 +642,7 @@ start_frontend_dev() {
             EBK_NPM_PATH="$NPM_PATH" \
             /bin/sh -lc 'cd "$EBK_FRONTEND_CWD" && exec "$EBK_NPM_PATH" run serve -- --host "$FRONTEND_HOST" --port "$FRONTEND_PORT"'
     else
-        echo "Starting ezBookkeeping frontend dev server..."
+        echo "Starting financially_free frontend dev server..."
         APP_PORT="$APP_PORT" \
         BACKEND_PORT="$APP_PORT" \
         FRONTEND_PORT="$FRONTEND_PORT" \
@@ -597,12 +654,12 @@ start_frontend_dev() {
     fi
 
     if ! wait_for_frontend; then
-        echo "ezBookkeeping frontend failed to start or health check failed."
+        echo "financially_free frontend failed to start or health check failed."
         show_frontend_error_log
         exit 1
     fi
 
-    echo "ezBookkeeping frontend is running at http://localhost:${FRONTEND_PORT}/"
+    echo "financially_free frontend is running at http://localhost:${FRONTEND_PORT}/"
     echo "Frontend logs: $FRONTEND_LOG_FILE"
 }
 
@@ -611,10 +668,11 @@ start_app() {
     build_frontend
     ensure_runtime_dirs
     stop_docker_compose_app
+    remove_legacy_launchd_job >/dev/null 2>&1 || true
     stop_port_processes || true
 
     if ! [ -x "$BIN_PATH" ]; then
-        echo_red "Cannot find executable ezBookkeeping binary: $BIN_PATH"
+        echo_red "Cannot find executable financially_free binary: $BIN_PATH"
         exit 1
     fi
 
@@ -624,12 +682,12 @@ start_app() {
     start_service_process
 
     if ! wait_for_health; then
-        echo "ezBookkeeping failed to start or health check failed."
+        echo "financially_free failed to start or health check failed."
         show_error_log
         exit 1
     fi
 
-    echo "ezBookkeeping is running at http://localhost:${APP_PORT}/"
+    echo "financially_free is running at http://localhost:${APP_PORT}/"
     echo "Logs: $LOG_FILE"
     start_frontend_dev
 }
@@ -640,8 +698,8 @@ status_app() {
     if [ -f "$PID_FILE" ]; then
         PID="$(sed -n '1p' "$PID_FILE" 2>/dev/null || true)"
 
-        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null && is_ezbookkeeping_process "$PID"; then
-            echo "ezBookkeeping is running with pid $PID at http://localhost:${APP_PORT}/"
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null && is_financially_free_process "$PID"; then
+            echo "financially_free is running with pid $PID at http://localhost:${APP_PORT}/"
             RUNNING="1"
         fi
     fi
@@ -649,10 +707,10 @@ status_app() {
     PIDS="$(port_listen_pids)"
 
     for PID in $PIDS; do
-        if is_ezbookkeeping_process "$PID"; then
+        if is_financially_free_process "$PID"; then
             echo "$PID" > "$PID_FILE"
             if [ "$RUNNING" != "1" ]; then
-                echo "ezBookkeeping is running with pid $PID at http://localhost:${APP_PORT}/"
+                echo "financially_free is running with pid $PID at http://localhost:${APP_PORT}/"
             fi
             RUNNING="1"
             break
@@ -668,7 +726,7 @@ status_app() {
 
     for PID in $(frontend_listen_pids); do
         if is_current_project_frontend_process "$PID"; then
-            echo "ezBookkeeping frontend dev server is running with pid $PID."
+            echo "financially_free frontend dev server is running with pid $PID."
             RUNNING="1"
         fi
     done
@@ -677,7 +735,7 @@ status_app() {
         exit 0
     fi
 
-    echo "ezBookkeeping is not running."
+    echo "financially_free is not running."
     exit 3
 }
 

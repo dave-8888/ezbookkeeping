@@ -1,21 +1,21 @@
-# ezBookkeeping
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/mayswind/ezbookkeeping/blob/master/LICENSE)
-[![Go Report](https://goreportcard.com/badge/github.com/mayswind/ezbookkeeping)](https://goreportcard.com/report/github.com/mayswind/ezbookkeeping)
-[![Latest Release](https://img.shields.io/github/release/mayswind/ezbookkeeping.svg?style=flat)](https://github.com/mayswind/ezbookkeeping/releases)
-[![Latest Build](https://img.shields.io/github/actions/workflow/status/mayswind/ezbookkeeping/build-snapshot.yml?branch=main)](https://github.com/mayswind/ezbookkeeping/actions)
-[![Latest Docker Image Size](https://img.shields.io/docker/image-size/mayswind/ezbookkeeping.svg?style=flat)](https://hub.docker.com/r/mayswind/ezbookkeeping)
-[![Docker Pulls](https://img.shields.io/docker/pulls/mayswind/ezbookkeeping)](https://hub.docker.com/r/mayswind/ezbookkeeping)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mayswind/ezbookkeeping)
+# financially_free
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/mayswind/financially_free/blob/master/LICENSE)
+[![Go Report](https://goreportcard.com/badge/github.com/mayswind/financially_free)](https://goreportcard.com/report/github.com/mayswind/financially_free)
+[![Latest Release](https://img.shields.io/github/release/mayswind/financially_free.svg?style=flat)](https://github.com/mayswind/financially_free/releases)
+[![Latest Build](https://img.shields.io/github/actions/workflow/status/mayswind/financially_free/build-snapshot.yml?branch=main)](https://github.com/mayswind/financially_free/actions)
+[![Latest Docker Image Size](https://img.shields.io/docker/image-size/mayswind/financially_free.svg?style=flat)](https://hub.docker.com/r/mayswind/financially_free)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mayswind/financially_free)](https://hub.docker.com/r/mayswind/financially_free)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mayswind/financially_free)
 
-[![Recommend By HelloGitHub](https://api.hellogithub.com/v1/widgets/recommend.svg?rid=ded5af09da574ec1811ddb154f1b2093&claim_uid=LT7EZxeBukCnh0K)](https://hellogithub.com/en/repository/mayswind/ezbookkeeping)
+[![Recommend By HelloGitHub](https://api.hellogithub.com/v1/widgets/recommend.svg?rid=ded5af09da574ec1811ddb154f1b2093&claim_uid=LT7EZxeBukCnh0K)](https://hellogithub.com/en/repository/mayswind/financially_free)
 [![Trending](https://trendshift.io/api/badge/repositories/12917)](https://trendshift.io/repositories/12917)
 
 ## Introduction
-ezBookkeeping is a lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features. It's easy to deploy, and you can start it with just one single Docker command. Designed to be resource-efficient and highly scalable, it can run smoothly on devices as small as a Raspberry Pi, or scale up to NAS, MicroServers, and even large cluster environments.
+financially_free is a lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features. It's easy to deploy, and you can start it with just one single Docker command. Designed to be resource-efficient and highly scalable, it can run smoothly on devices as small as a Raspberry Pi, or scale up to NAS, MicroServers, and even large cluster environments.
 
-ezBookkeeping offers tailored interfaces for both mobile and desktop devices. With support for PWA (Progressive Web Apps), you can even [add it to your mobile home screen](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/mobile/add_to_home_screen.gif) and use it like a native app.
+financially_free offers tailored interfaces for both mobile and desktop devices. With support for PWA (Progressive Web Apps), you can even [add it to your mobile home screen](https://raw.githubusercontent.com/wiki/mayswind/financially_free/img/mobile/add_to_home_screen.gif) and use it like a native app.
 
-Live Demo: [https://ezbookkeeping-demo.mayswind.net](https://ezbookkeeping-demo.mayswind.net)
+Live Demo: [https://financially_free-demo.mayswind.net](https://financially_free-demo.mayswind.net)
 
 ## Features
 - **Open Source & Self-Hosted**
@@ -54,22 +54,22 @@ Live Demo: [https://ezbookkeeping-demo.mayswind.net](https://ezbookkeeping-demo.
 
 ## Screenshots
 ### Desktop Version
-[![ezBookkeeping](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/desktop/en.png)](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/desktop/en.png)
+[![financially_free](https://raw.githubusercontent.com/wiki/mayswind/financially_free/img/desktop/en.png)](https://raw.githubusercontent.com/wiki/mayswind/financially_free/img/desktop/en.png)
 
 ### Mobile Version
-[![ezBookkeeping](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/mobile/en.png)](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/mobile/en.png)
+[![financially_free](https://raw.githubusercontent.com/wiki/mayswind/financially_free/img/mobile/en.png)](https://raw.githubusercontent.com/wiki/mayswind/financially_free/img/mobile/en.png)
 
 ## Installation
 ### Run with Docker
-Visit [Docker Hub](https://hub.docker.com/r/mayswind/ezbookkeeping) to see all images and tags.
+Visit [Docker Hub](https://hub.docker.com/r/mayswind/financially_free) to see all images and tags.
 
 **Latest Release:**
 
-    $ docker run -p8080:8080 mayswind/ezbookkeeping
+    $ docker run -p8080:8080 mayswind/financially_free
 
 **Latest Daily Build:**
 
-    $ docker run -p8080:8080 mayswind/ezbookkeeping:latest-snapshot
+    $ docker run -p8080:8080 mayswind/financially_free:latest-snapshot
 
 ### Run with Docker Compose (Local Source / WSL Debian)
 If you want to build and run the current source tree with Docker inside WSL Debian, this repository now includes a ready-to-use `compose.yaml`.
@@ -78,10 +78,10 @@ If you want to build and run the current source tree with Docker inside WSL Debi
     $ # edit .env and change EBK_SECURITY_SECRET_KEY before the first production use
     $ docker compose up -d --build
 
-By default, ezBookkeeping will be available at `http://localhost:8080/`.
+By default, financially_free will be available at `http://localhost:8080/`.
 
 This compose deployment uses:
-- `docker/ezbookkeeping.docker.ini` as the container configuration file
+- `docker/financially_free.docker.ini` as the container configuration file
 - environment overrides from `.env`
 - named Docker volumes for SQLite data, logs, and uploaded files
 
@@ -89,39 +89,39 @@ You can inspect logs with:
 
     $ docker compose logs -f
 
-For better file I/O performance in WSL, it is recommended to keep the repository in the Linux filesystem (for example `/home/<your-user>/ezbookkeeping`) instead of `/mnt/<drive>/...` whenever possible.
+For better file I/O performance in WSL, it is recommended to keep the repository in the Linux filesystem (for example `/home/<your-user>/financially_free`) instead of `/mnt/<drive>/...` whenever possible.
 
 ### Install from Binary
-Download the latest release: [https://github.com/mayswind/ezbookkeeping/releases](https://github.com/mayswind/ezbookkeeping/releases)
+Download the latest release: [https://github.com/mayswind/financially_free/releases](https://github.com/mayswind/financially_free/releases)
 
 **Linux / macOS**
 
-    $ ./ezbookkeeping server run
+    $ ./financially_free server run
 
 **Windows**
 
-    > .\ezbookkeeping.exe server run
+    > .\financially_free.exe server run
 
-By default, ezBookkeeping listens on port 8080. You can then visit `http://{YOUR_HOST_ADDRESS}:8080/` .
+By default, financially_free listens on port 8080. You can then visit `http://{YOUR_HOST_ADDRESS}:8080/` .
 
 ### Build from Source
 Make sure you have [Golang](https://golang.org/), [GCC](https://gcc.gnu.org/), [Node.js](https://nodejs.org/) and [NPM](https://www.npmjs.com/) installed. Then download the source code, and follow these steps:
 
 **Linux / macOS**
 
-    $ ./build.sh package -o ezbookkeeping.tar.gz
+    $ ./build.sh package -o financially_free.tar.gz
 
-All the files will be packaged in `ezbookkeeping.tar.gz`.
+All the files will be packaged in `financially_free.tar.gz`.
 
 **Windows**
 
-    > .\build.bat package -o ezbookkeeping.zip
+    > .\build.bat package -o financially_free.zip
 
 or
 
-    PS > .\build.ps1 package -Output ezbookkeeping.zip
+    PS > .\build.ps1 package -Output financially_free.zip
 
-All the files will be packaged in `ezbookkeeping.zip`.
+All the files will be packaged in `financially_free.zip`.
 
 You can also build a Docker image. Make sure you have [Docker](https://www.docker.com/) installed, then follow these steps:
 
@@ -132,16 +132,16 @@ You can also build a Docker image. Make sure you have [Docker](https://www.docke
 ## Contributing
 We welcome contributions of all kinds.
 
-Found a bug? [Submit an issue](https://github.com/mayswind/ezbookkeeping/issues)
+Found a bug? [Submit an issue](https://github.com/mayswind/financially_free/issues)
 
 Want to contribute code? Feel free to fork and send a pull request.
 
 Contributions of all kinds — bug reports, feature suggestions, documentation improvements, or code — are highly appreciated.
 
-Check out our [Contributor Graph](https://github.com/mayswind/ezbookkeeping/graphs/contributors) to see the amazing people who've already helped.
+Check out our [Contributor Graph](https://github.com/mayswind/financially_free/graphs/contributors) to see the amazing people who've already helped.
 
 ## Translating
-Help make ezBookkeeping accessible to users around the world. If you want to contribute a translation, please refer to our [translation guide](https://ezbookkeeping.mayswind.net/translating).
+Help make financially_free accessible to users around the world. If you want to contribute a translation, please refer to our [translation guide](https://financially_free.mayswind.net/translating).
 
 Currently available translations:
 
@@ -169,8 +169,8 @@ Currently available translations:
 Don't see your language? Help us add it.
 
 ## Documentation
-1. [English](https://ezbookkeeping.mayswind.net)
-1. [中文 (简体)](https://ezbookkeeping.mayswind.net/zh_Hans)
+1. [English](https://financially_free.mayswind.net)
+1. [中文 (简体)](https://financially_free.mayswind.net/zh_Hans)
 
 ## License
-[MIT](https://github.com/mayswind/ezbookkeeping/blob/master/LICENSE)
+[MIT](https://github.com/mayswind/financially_free/blob/master/LICENSE)

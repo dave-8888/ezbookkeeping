@@ -1,9 +1,9 @@
 package provider
 
 import (
-	"github.com/mayswind/ezbookkeeping/pkg/core"
-	"github.com/mayswind/ezbookkeeping/pkg/llm/data"
-	"github.com/mayswind/ezbookkeeping/pkg/settings"
+	"github.com/mayswind/financially_free/pkg/core"
+	"github.com/mayswind/financially_free/pkg/llm/data"
+	"github.com/mayswind/financially_free/pkg/settings"
 )
 
 // LargeLanguageModelProvider defines the structure of large language model provider

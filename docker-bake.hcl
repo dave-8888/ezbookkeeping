@@ -1,5 +1,5 @@
 variable "DEFAULT_TAG" {
-  default = "ezbookkeeping:local"
+  default = "financially_free:local"
 }
 
 // Special target: https://github.com/docker/metadata-action#bake-definition

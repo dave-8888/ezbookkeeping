@@ -54,6 +54,11 @@ func initializeLargeLanguageModelProvider(llmConfig *settings.LLMConfig) (provid
 	return nil, errs.ErrInvalidLLMProvider
 }
 
+// NewLargeLanguageModelProvider creates a large language model provider according to the specified config
+func NewLargeLanguageModelProvider(llmConfig *settings.LLMConfig) (provider.LargeLanguageModelProvider, error) {
+	return initializeLargeLanguageModelProvider(llmConfig)
+}
+
 // GetJsonResponseByReceiptImageRecognitionModel returns the json response from the current large language model provider by receipt image recognition model
 func (l *LargeLanguageModelProviderContainer) GetJsonResponseByReceiptImageRecognitionModel(c core.Context, uid int64, currentConfig *settings.Config, request *data.LargeLanguageModelRequest) (*data.LargeLanguageModelTextualResponse, error) {
 	if currentConfig.ReceiptImageRecognitionLLMConfig == nil || Container.receiptImageRecognitionCurrentProvider == nil {
@@ -61,4 +66,19 @@ func (l *LargeLanguageModelProviderContainer) GetJsonResponseByReceiptImageRecog
 	}
 
 	return l.receiptImageRecognitionCurrentProvider.GetJsonResponse(c, uid, currentConfig.ReceiptImageRecognitionLLMConfig, request)
+}
+
+// GetJsonResponseByModel returns the json response from the specified large language model provider and config
+func (l *LargeLanguageModelProviderContainer) GetJsonResponseByModel(c core.Context, uid int64, llmConfig *settings.LLMConfig, request *data.LargeLanguageModelRequest) (*data.LargeLanguageModelTextualResponse, error) {
+	currentProvider, err := NewLargeLanguageModelProvider(llmConfig)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if llmConfig == nil || currentProvider == nil {
+		return nil, errs.ErrInvalidLLMProvider
+	}
+
+	return currentProvider.GetJsonResponse(c, uid, llmConfig, request)
 }

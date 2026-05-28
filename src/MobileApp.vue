@@ -1,10 +1,13 @@
 <template>
     <f7-app v-bind="f7params">
         <f7-view id="main-view" class="safe-areas" main url="/"></f7-view>
+        <global-quick-transaction-button />
     </f7-app>
 </template>
 
 <script setup lang="ts">
+import GlobalQuickTransactionButton from '@/components/mobile/GlobalQuickTransactionButton.vue';
+
 import { ref, computed, watch, onMounted } from 'vue';
 
 import type { Framework7Parameters, Notification, Actions, Dialog, Popover, Popup, Sheet } from 'framework7/types';

@@ -87,6 +87,7 @@
             </f7-list-item>
 
             <f7-list-item :title="tt('Page Settings')" link="/settings/page"></f7-list-item>
+            <f7-list-item :title="tt('AI Settings')" link="/settings/ai"></f7-list-item>
             <f7-list-item :title="tt('Statistics Settings')" link="/statistic/settings"></f7-list-item>
             <f7-list-item :title="tt('Settings Sync')" link="/settings/sync"></f7-list-item>
 

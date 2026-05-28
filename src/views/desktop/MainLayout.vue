@@ -205,11 +205,14 @@
             <v-progress-circular indeterminate></v-progress-circular>
         </v-overlay>
 
+        <global-quick-transaction-button />
+
         <snack-bar ref="snackbar" />
     </div>
 </template>
 
 <script setup lang="ts">
+import GlobalQuickTransactionButton from '@/components/desktop/GlobalQuickTransactionButton.vue';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 
 import { ref, computed, useTemplateRef } from 'vue';

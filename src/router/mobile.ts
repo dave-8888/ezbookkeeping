@@ -21,6 +21,7 @@ import StatisticsSettingsPage from '@/views/mobile/statistics/SettingsPage.vue';
 
 import TextSizeSettingsPage from '@/views/mobile/settings/TextSizeSettingsPage.vue';
 import PageSettingsPage from '@/views/mobile/settings/PageSettingsPage.vue';
+import AISettingsPage from '@/views/mobile/settings/AISettingsPage.vue';
 import ApplicationCloudSyncSettingsPage from '@/views/mobile/settings/ApplicationCloudSyncSettingsPage.vue';
 import AccountFilterSettingsPage from '@/views/mobile/settings/AccountFilterSettingsPage.vue';
 import CategoryFilterSettingsPage from '@/views/mobile/settings/CategoryFilterSettingsPage.vue';
@@ -236,6 +237,11 @@ const routes: Router.RouteParameters[] = [
     {
         path: '/settings/page',
         async: asyncResolve(PageSettingsPage),
+        beforeEnter: [checkLogin]
+    },
+    {
+        path: '/settings/ai',
+        async: asyncResolve(AISettingsPage),
         beforeEnter: [checkLogin]
     },
     {

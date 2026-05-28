@@ -349,6 +349,10 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/users/settings/cloud/update.json", bindApi(api.UserApplicationCloudSettings.ApplicationSettingsUpdateHandler))
 			apiV1Route.POST("/users/settings/cloud/disable.json", bindApi(api.UserApplicationCloudSettings.ApplicationSettingsDisableHandler))
 
+			// User Large Language Model Settings
+			apiV1Route.GET("/users/settings/llm/get.json", bindApi(api.UserLLMSettings.UserLLMSettingsGetHandler))
+			apiV1Route.POST("/users/settings/llm/update.json", bindApi(api.UserLLMSettings.UserLLMSettingsUpdateHandler))
+
 			// Two-Factor Authorization
 			if config.EnableTwoFactor {
 				apiV1Route.GET("/users/2fa/status.json", bindApi(api.TwoFactorAuthorizations.TwoFactorStatusHandler))
@@ -443,12 +447,8 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/transaction/templates/delete.json", bindApi(api.TransactionTemplates.TemplateDeleteHandler))
 
 			// Large Language Models
-			if config.ReceiptImageRecognitionLLMConfig != nil && config.ReceiptImageRecognitionLLMConfig.LLMProvider != "" {
-				if config.TransactionFromAIImageRecognition {
-					apiV1Route.POST("/llm/transactions/recognize_receipt_image.json", bindApi(api.LargeLanguageModels.RecognizeReceiptImageHandler))
-					apiV1Route.POST("/llm/transactions/recognize_transaction_text.json", bindApi(api.LargeLanguageModels.RecognizeTransactionTextHandler))
-				}
-			}
+			apiV1Route.POST("/llm/transactions/recognize_receipt_image.json", bindApi(api.LargeLanguageModels.RecognizeReceiptImageHandler))
+			apiV1Route.POST("/llm/transactions/recognize_transaction_text.json", bindApi(api.LargeLanguageModels.RecognizeTransactionTextHandler))
 
 			// Exchange Rates
 			apiV1Route.GET("/exchange_rates/latest.json", bindApi(api.ExchangeRates.LatestExchangeRateHandler))

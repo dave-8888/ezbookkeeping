@@ -13,6 +13,10 @@ import {
     parseTransactionTextLocally,
     recognizeTransactionByText
 } from '@/lib/transaction_text.ts';
+import {
+    createTransactionFromRecognizedResult,
+    getRecognizedTransactionAutoCreateMissingFields
+} from '@/lib/transaction.ts';
 
 describe('parseTransactionTextLocally', () => {
     test('parses spoken expense amount, account, category, tag and relative date', () => {
@@ -120,6 +124,62 @@ describe('recognizeTransactionByText', () => {
         expect(result.type).toBe(TransactionType.Income);
         expect(result.sourceAmount).toBe(10000);
         expect(result.sourceAccountId).toBe('account_cmb');
+    });
+});
+
+describe('createTransactionFromRecognizedResult', () => {
+    test('creates a complete expense transaction from recognized fields', () => {
+        const categories = createCategories();
+        const accounts = createAccounts();
+        const context = createRecognizedTransactionCreateContext(categories, accounts);
+        const transaction = createTransactionFromRecognizedResult({
+            type: TransactionType.Expense,
+            categoryId: 'category_lunch',
+            sourceAccountId: 'account_alipay',
+            sourceAmount: 3800,
+            comment: '午饭 38 元 支付宝'
+        }, context);
+
+        expect(transaction.type).toBe(TransactionType.Expense);
+        expect(transaction.categoryId).toBe('category_lunch');
+        expect(transaction.sourceAccountId).toBe('account_alipay');
+        expect(transaction.sourceAmount).toBe(3800);
+        expect(getRecognizedTransactionAutoCreateMissingFields({
+            type: TransactionType.Expense,
+            categoryId: 'category_lunch',
+            sourceAccountId: 'account_alipay',
+            sourceAmount: 3800
+        }, transaction, context)).toStrictEqual([]);
+    });
+
+    test('fills transfer destination amount for same-currency accounts', () => {
+        const categories = createCategories();
+        const accounts = createAccounts();
+        const context = createRecognizedTransactionCreateContext(categories, accounts);
+        const result = {
+            type: TransactionType.Transfer,
+            categoryId: 'category_transfer_general',
+            sourceAccountId: 'account_alipay',
+            destinationAccountId: 'account_cmb',
+            sourceAmount: 20000
+        };
+        const transaction = createTransactionFromRecognizedResult(result, context);
+
+        expect(transaction.type).toBe(TransactionType.Transfer);
+        expect(transaction.destinationAmount).toBe(20000);
+        expect(getRecognizedTransactionAutoCreateMissingFields(result, transaction, context)).toStrictEqual([]);
+    });
+
+    test('requires a recognized transaction type before auto creation', () => {
+        const categories = createCategories();
+        const accounts = createAccounts();
+        const context = createRecognizedTransactionCreateContext(categories, accounts);
+        const result = {
+            sourceAmount: 1200
+        };
+        const transaction = createTransactionFromRecognizedResult(result, context);
+
+        expect(getRecognizedTransactionAutoCreateMissingFields(result, transaction, context)).toContain('type');
     });
 });
 
@@ -245,6 +305,56 @@ function createCategories(): Record<number, TransactionCategory[]> {
             })
         ]
     };
+}
+
+function createRecognizedTransactionCreateContext(categories: Record<number, TransactionCategory[]>, accounts: Account[]) {
+    return {
+        allCategories: categories,
+        allCategoriesMap: createCategoriesMap(categories),
+        allVisibleAccounts: accounts,
+        allAccountsMap: createAccountsMap(accounts),
+        allTagsMap: createTagsMap(createTags()),
+        defaultAccountId: 'account_cmb',
+        timeZone: 'Asia/Shanghai'
+    };
+}
+
+function createAccountsMap(accounts: Account[]): Record<string, Account> {
+    const accountsMap: Record<string, Account> = {};
+
+    for (const account of accounts) {
+        accountsMap[account.id] = account;
+    }
+
+    return accountsMap;
+}
+
+function createCategoriesMap(categories: Record<number, TransactionCategory[]>): Record<string, TransactionCategory> {
+    const categoriesMap: Record<string, TransactionCategory> = {};
+
+    for (const categoryList of Object.values(categories)) {
+        for (const category of categoryList) {
+            categoriesMap[category.id] = category;
+
+            if (category.subCategories) {
+                for (const subCategory of category.subCategories) {
+                    categoriesMap[subCategory.id] = subCategory;
+                }
+            }
+        }
+    }
+
+    return categoriesMap;
+}
+
+function createTagsMap(tags: TransactionTag[]): Record<string, TransactionTag> {
+    const tagsMap: Record<string, TransactionTag> = {};
+
+    for (const tag of tags) {
+        tagsMap[tag.id] = tag;
+    }
+
+    return tagsMap;
 }
 
 function createTags(): TransactionTag[] {

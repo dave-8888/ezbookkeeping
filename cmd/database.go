@@ -149,6 +149,14 @@ func updateAllDatabaseTablesStructure(c *core.CliContext) error {
 
 	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] user application cloud settings table maintained successfully")
 
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.UserLLMSetting))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] user large language model settings table maintained successfully")
+
 	err = datastore.Container.UserDataStore.SyncStructs(new(models.UserExternalAuth))
 
 	if err != nil {

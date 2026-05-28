@@ -154,6 +154,10 @@ import type {
     UserApplicationCloudSettingsUpdateRequest
 } from '@/models/user_app_cloud_setting.ts';
 import type {
+    UserLLMSettingResponse,
+    UserLLMSettingUpdateRequest
+} from '@/models/user_llm_setting.ts';
+import type {
     RecognizedReceiptImageResponse,
     RecognizedTransactionResponse
 } from '@/models/large_language_model.ts';
@@ -416,6 +420,12 @@ export default {
     disableUserApplicationCloudSettings: (): ApiResponsePromise<boolean> => {
         return axios.post<ApiResponse<boolean>>('v1/users/settings/cloud/disable.json');
     },
+    getUserLLMSetting: (): ApiResponsePromise<UserLLMSettingResponse> => {
+        return axios.get<ApiResponse<UserLLMSettingResponse>>('v1/users/settings/llm/get.json');
+    },
+    updateUserLLMSetting: (req: UserLLMSettingUpdateRequest): ApiResponsePromise<UserLLMSettingResponse> => {
+        return axios.post<ApiResponse<UserLLMSettingResponse>>('v1/users/settings/llm/update.json', req);
+    },
     get2FAStatus: (): ApiResponsePromise<TwoFactorStatusResponse> => {
         return axios.get<ApiResponse<TwoFactorStatusResponse>>('v1/users/2fa/status.json');
     },
@@ -497,15 +507,15 @@ export default {
     deleteSubAccount: (req: AccountDeleteRequest): ApiResponsePromise<boolean> => {
         return axios.post<ApiResponse<boolean>>('v1/accounts/sub_account/delete.json', req);
     },
-    modifyAccountBalance: ({ id, balance }: { id: number | bigint, balance: number }): ApiResponsePromise<any> => {
-        return axios.post<ApiResponse<any>>('v1/accounts/balance/modify.json', {
+    modifyAccountBalance: ({ id, balance }: { id: number | bigint, balance: number }): ApiResponsePromise<AccountInfoResponse> => {
+        return axios.post<ApiResponse<AccountInfoResponse>>('v1/accounts/balance/modify.json', {
             id: id.toString(),  // 转换为字符串避免精度丢失
             balance
         });
     },
 
-    modifyBatchAccountBalances: ({ accountIds, operation, amount }: { accountIds: (number | bigint)[], operation: string, amount: number }): ApiResponsePromise<any> => {
-        return axios.post<ApiResponse<any>>('v1/accounts/balance/batch_modify.json', {
+    modifyBatchAccountBalances: ({ accountIds, operation, amount }: { accountIds: (number | bigint)[], operation: string, amount: number }): ApiResponsePromise<AccountInfoResponse[]> => {
+        return axios.post<ApiResponse<AccountInfoResponse[]>>('v1/accounts/balance/batch_modify.json', {
             accountIds: accountIds.map(id => id.toString()),  // 转换为字符串数组
             operation,
             amount

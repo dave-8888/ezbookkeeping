@@ -12,6 +12,7 @@ import { useOverviewStore } from './overview.ts';
 import { useStatisticsStore } from './statistics.ts';
 import { useExploresStore } from './explore.ts';
 import { useExchangeRatesStore } from './exchangeRates.ts';
+import { useUserLLMSettingsStore } from './userLLMSetting.ts';
 
 import type { AuthResponse, RegisterResponse } from '@/models/auth_response.ts';
 import type {
@@ -52,6 +53,7 @@ export const useRootStore = defineStore('root', () => {
     const statisticsStore = useStatisticsStore();
     const exploresStore = useExploresStore();
     const exchangeRatesStore = useExchangeRatesStore();
+    const userLLMSettingsStore = useUserLLMSettingsStore();
 
     const currentNotification = ref<string | null>(null);
 
@@ -70,6 +72,7 @@ export const useRootStore = defineStore('root', () => {
         transactionCategoriesStore.resetTransactionCategories();
         transactionTemplatesStore.resetTransactionTemplates();
         accountsStore.resetAccounts();
+        userLLMSettingsStore.resetUserLLMSetting();
 
         if (resetUserInfoAndSettings) {
             userStore.resetUserBasicInfo();

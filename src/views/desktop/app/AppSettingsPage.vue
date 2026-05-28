@@ -13,6 +13,10 @@
                 <v-icon size="20" start :icon="mdiChartPieOutline"/>
                 {{ tt('Statistics') }}
             </v-tab>
+            <v-tab value="aiSetting" @click="pushRouter('aiSetting')">
+                <v-icon size="20" start :icon="mdiRobotOutline"/>
+                {{ tt('AI') }}
+            </v-tab>
             <v-tab value="cloudSyncSetting" @click="pushRouter('cloudSyncSetting')">
                 <v-icon size="20" start :icon="mdiCloudOutline"/>
                 {{ tt('Settings Sync') }}
@@ -32,6 +36,10 @@
                 <app-statistics-setting-tab/>
             </v-window-item>
 
+            <v-window-item value="aiSetting">
+                <app-a-i-setting-tab/>
+            </v-window-item>
+
             <v-window-item value="cloudSyncSetting">
                 <app-cloud-sync-setting-tab/>
             </v-window-item>
@@ -43,6 +51,7 @@
 import AppBasicSettingTab from './settings/tabs/AppBasicSettingTab.vue';
 import AppLockSettingTab from './settings/tabs/AppLockSettingTab.vue';
 import AppStatisticsSettingTab from './settings/tabs/AppStatisticsSettingTab.vue';
+import AppAISettingTab from './settings/tabs/AppAISettingTab.vue';
 import AppCloudSyncSettingTab from './settings/tabs/AppCloudSyncSettingTab.vue';
 
 import { ref } from 'vue';
@@ -54,6 +63,7 @@ import {
     mdiCogOutline,
     mdiLockOpenOutline,
     mdiChartPieOutline,
+    mdiRobotOutline,
     mdiCloudOutline
 } from '@mdi/js';
 
@@ -69,6 +79,7 @@ const ALL_TABS: string[] = [
     'basicSetting',
     'applicationLockSetting',
     'statisticsSetting',
+    'aiSetting',
     'cloudSyncSetting'
 ];
 

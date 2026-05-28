@@ -35,6 +35,30 @@
             </f7-card-header>
         </f7-card>
 
+        <form class="ai-transaction-text-form" v-if="isTransactionFromAIImageRecognitionEnabled()" @submit.prevent="addByTextInput">
+            <f7-list strong inset form class="margin-top-half margin-bottom-half">
+                <f7-list-input
+                    type="text"
+                    clear-button
+                    :disabled="recognizingByText"
+                    :placeholder="tt('Add Transaction')"
+                    v-model:value="transactionText"
+                >
+                    <template #media>
+                        <f7-icon f7="wand_stars"></f7-icon>
+                    </template>
+                </f7-list-input>
+            </f7-list>
+            <f7-block class="margin-top-half margin-bottom-half">
+                <f7-button fill small
+                           :class="{ 'disabled': recognizingByText }"
+                           @click="addByTextInput">
+                    <f7-preloader color="white" :size="16" v-if="recognizingByText" />
+                    <span v-else>{{ tt('Add') }}</span>
+                </f7-button>
+            </f7-block>
+        </form>
+
         <f7-list strong inset dividers class="margin-top overview-transaction-list" :class="{ 'skeleton-text': loading }">
             <f7-list-item :link="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.Today.type })}`" chevron-center>
                 <template #media>
@@ -240,7 +264,12 @@ import type { RecognizedReceiptImageResponse } from '@/models/large_language_mod
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
 import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
-import { getRecognizedTransactionQueryParams, recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
+import { recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
+import {
+    getRecognizedTransactionQueryParams,
+    hasRecognizedTransactionFields,
+    recognizeTransactionByText
+} from '@/lib/transaction_text.ts';
 
 const props = defineProps<{
     f7router: Router.Router;
@@ -265,6 +294,8 @@ const transactionTemplatesStore = useTransactionTemplatesStore();
 const overviewStore = useOverviewStore();
 
 const loading = ref<boolean>(true);
+const transactionText = ref<string>('');
+const recognizingByText = ref<boolean>(false);
 const recognizingByVoice = ref<boolean>(false);
 const showTransactionTemplatePopover = ref<boolean>(false);
 const showAIReceiptImageRecognitionSheet = ref<boolean>(false);
@@ -349,6 +380,43 @@ function addByVoiceInput(): void {
         showToast(error.message || error);
     }).finally(() => {
         recognizingByVoice.value = false;
+        hideLoading();
+    });
+}
+
+function addByTextInput(): void {
+    if (recognizingByText.value) {
+        return;
+    }
+
+    const text = transactionText.value.trim();
+
+    if (!text) {
+        showToast('Parameter Invalid');
+        return;
+    }
+
+    recognizingByText.value = true;
+    showLoading(() => recognizingByText.value);
+
+    recognizeTransactionByText(text, {
+        allCategories: transactionCategoriesStore.allTransactionCategories,
+        allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
+        allTags: transactionTagsStore.allTransactionTags,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        if (!hasRecognizedTransactionFields(result)) {
+            showToast('Unable to recognize transaction text');
+            return;
+        }
+
+        const params = getRecognizedTransactionQueryParams(result);
+        params.push('noTransactionDraft=true');
+        props.f7router.navigate(`/transaction/add?${params.join('&')}`);
+    }).catch(error => {
+        showToast(error.message || error);
+    }).finally(() => {
+        recognizingByText.value = false;
         hideLoading();
     });
 }
@@ -449,5 +517,9 @@ init();
 .template-popover-menu .popover-inner {
     max-height: 400px;
     overflow-y: auto;
+}
+
+.ai-transaction-text-form .preloader {
+    margin-inline-end: 6px;
 }
 </style>

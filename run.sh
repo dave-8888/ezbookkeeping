@@ -2,21 +2,33 @@
 
 set -eu
 
+SCRIPT_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 ACTION="${1:-start}"
-APP_PORT="${APP_PORT:-8080}"
+APP_PORT="${APP_PORT:-8888}"
+FRONTEND_PORT="${FRONTEND_PORT:-8889}"
+FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
+FRONTEND_PORTS="${FRONTEND_PORTS:-$FRONTEND_PORT 8081 5173 4173}"
 RUNTIME_DIR="${RUNTIME_DIR:-$HOME/.cache/ezbookkeeping-runtime}"
 BIN_PATH="${BIN_PATH:-$RUNTIME_DIR/ezbookkeeping}"
 BUILD_BACKEND="${BUILD_BACKEND:-1}"
 BUILD_FRONTEND="${BUILD_FRONTEND:-1}"
+START_FRONTEND="${START_FRONTEND:-1}"
 STOP_DOCKER_COMPOSE="${STOP_DOCKER_COMPOSE:-1}"
 STOP_TIMEOUT_SECONDS="${STOP_TIMEOUT_SECONDS:-15}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-30}"
 USE_LAUNCHD="${USE_LAUNCHD:-auto}"
 LAUNCHD_LABEL="${LAUNCHD_LABEL:-ezbookkeeping-codex}"
+FRONTEND_LAUNCHD_LABEL="${FRONTEND_LAUNCHD_LABEL:-ezbookkeeping-frontend-codex}"
 LAUNCHD_SERVICE="gui/$(id -u)/$LAUNCHD_LABEL"
+FRONTEND_LAUNCHD_SERVICE="gui/$(id -u)/$FRONTEND_LAUNCHD_LABEL"
 PID_FILE="$RUNTIME_DIR/server.pid"
 LOG_FILE="$RUNTIME_DIR/server.log"
 ERR_LOG_FILE="$RUNTIME_DIR/server.err.log"
+FRONTEND_PID_FILE="$RUNTIME_DIR/frontend.pid"
+FRONTEND_LOG_FILE="$RUNTIME_DIR/frontend.log"
+FRONTEND_ERR_LOG_FILE="$RUNTIME_DIR/frontend.err.log"
 
 echo_red() {
     printf '\033[31m%s\033[0m\n' "$1"
@@ -48,13 +60,19 @@ Aliases:
     pause    Same as stop
 
 Environment:
-    APP_PORT=8080                         HTTP port
+    APP_PORT=8888                         Backend HTTP port
+    FRONTEND_PORT=8889                    Vite dev server port
+    FRONTEND_HOST=0.0.0.0                 Vite dev server host
+    FRONTEND_PORTS="8889 8081 5173 4173"  Vite dev/preview ports to stop for this project
     RUNTIME_DIR=~/.cache/ezbookkeeping-runtime
     BIN_PATH=\$RUNTIME_DIR/ezbookkeeping
     BUILD_BACKEND=1                       Build backend before start, set 0 to reuse BIN_PATH
     BUILD_FRONTEND=1                      Build frontend before start
+    START_FRONTEND=1                      Start Vite dev server after backend is healthy
     STOP_DOCKER_COMPOSE=1                 Stop local compose app before start/stop
     USE_LAUNCHD=auto                      Use launchctl on macOS, set 0 to use nohup
+    LAUNCHD_LABEL=ezbookkeeping-codex
+    FRONTEND_LAUNCHD_LABEL=ezbookkeeping-frontend-codex
 EOF
 }
 
@@ -98,6 +116,12 @@ process_command() {
     ps -p "$1" -o command= 2>/dev/null || true
 }
 
+process_cwd() {
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1
+    fi
+}
+
 is_ezbookkeeping_process() {
     COMMAND="$(process_command "$1")"
 
@@ -115,6 +139,39 @@ port_listen_pids() {
     if command -v lsof >/dev/null 2>&1; then
         lsof -tiTCP:"$APP_PORT" -sTCP:LISTEN 2>/dev/null || true
     fi
+}
+
+frontend_listen_pids() {
+    if command -v lsof >/dev/null 2>&1; then
+        for PORT in $FRONTEND_PORTS; do
+            lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true
+        done | sort -u
+    fi
+}
+
+is_current_project_frontend_process() {
+    COMMAND="$(process_command "$1")"
+    CWD="$(process_cwd "$1")"
+
+    if [ "$CWD" = "$PWD" ]; then
+        case "$COMMAND" in
+            *node* | *npm* | *vite*)
+                return 0
+                ;;
+        esac
+    fi
+
+    case "$COMMAND" in
+        *"$PWD"*)
+            case "$COMMAND" in
+                *node* | *npm* | *vite*)
+                    return 0
+                    ;;
+            esac
+            ;;
+    esac
+
+    return 1
 }
 
 use_launchd() {
@@ -140,6 +197,23 @@ remove_launchd_job() {
 
     if launchd_job_exists; then
         launchctl remove "$LAUNCHD_LABEL" >/dev/null 2>&1 || true
+        return 0
+    fi
+
+    return 1
+}
+
+frontend_launchd_job_exists() {
+    use_launchd && launchctl print "$FRONTEND_LAUNCHD_SERVICE" >/dev/null 2>&1
+}
+
+remove_frontend_launchd_job() {
+    if ! use_launchd; then
+        return 1
+    fi
+
+    if frontend_launchd_job_exists; then
+        launchctl remove "$FRONTEND_LAUNCHD_LABEL" >/dev/null 2>&1 || true
         return 0
     fi
 
@@ -244,12 +318,67 @@ stop_port_processes() {
     return 0
 }
 
+stop_frontend_dev_processes() {
+    PIDS="$(frontend_listen_pids)"
+
+    if [ -z "$PIDS" ]; then
+        return 1
+    fi
+
+    STOPPED_FRONTEND="0"
+
+    for PID in $PIDS; do
+        if is_current_project_frontend_process "$PID"; then
+            echo "Stopping ezBookkeeping frontend dev process $PID..."
+            kill "$PID" 2>/dev/null || true
+            STOPPED_FRONTEND="1"
+        fi
+    done
+
+    if [ "$STOPPED_FRONTEND" != "1" ]; then
+        return 1
+    fi
+
+    WAITED=0
+
+    while [ "$WAITED" -lt "$STOP_TIMEOUT_SECONDS" ]; do
+        REMAINING=""
+
+        for PID in $(frontend_listen_pids); do
+            if is_current_project_frontend_process "$PID"; then
+                REMAINING="$REMAINING $PID"
+            fi
+        done
+
+        if [ -z "$REMAINING" ]; then
+            return 0
+        fi
+
+        sleep 1
+        WAITED=$((WAITED + 1))
+    done
+
+    for PID in $(frontend_listen_pids); do
+        if is_current_project_frontend_process "$PID"; then
+            echo "Force stopping ezBookkeeping frontend dev process $PID..."
+            kill -9 "$PID" 2>/dev/null || true
+        fi
+    done
+
+    return 0
+}
+
 stop_app() {
     ensure_runtime_dirs
     STOPPED="0"
 
     if remove_launchd_job; then
         echo "Stopping launchd service $LAUNCHD_LABEL..."
+        STOPPED="1"
+    fi
+
+    if remove_frontend_launchd_job; then
+        echo "Stopping launchd service $FRONTEND_LAUNCHD_LABEL..."
         STOPPED="1"
     fi
 
@@ -267,6 +396,10 @@ stop_app() {
         STOPPED="1"
     fi
 
+    if stop_frontend_dev_processes; then
+        STOPPED="1"
+    fi
+
     stop_docker_compose_app
 
     if [ "$STOPPED" = "1" ]; then
@@ -279,9 +412,11 @@ stop_app() {
         fi
 
         : > "$PID_FILE"
+        : > "$FRONTEND_PID_FILE"
         echo "ezBookkeeping has stopped."
     else
         : > "$PID_FILE"
+        : > "$FRONTEND_PID_FILE"
         echo "ezBookkeeping is not running."
     fi
 }
@@ -349,6 +484,29 @@ wait_for_health() {
     return 1
 }
 
+wait_for_frontend() {
+    WAITED=0
+
+    while [ "$WAITED" -lt "$HEALTH_TIMEOUT_SECONDS" ]; do
+        if command -v curl >/dev/null 2>&1 && curl -fsS "http://127.0.0.1:$FRONTEND_PORT/" >/dev/null 2>&1; then
+            return 0
+        fi
+
+        if [ -f "$FRONTEND_PID_FILE" ]; then
+            PID="$(sed -n '1p' "$FRONTEND_PID_FILE" 2>/dev/null || true)"
+
+            if [ -n "$PID" ] && ! kill -0 "$PID" 2>/dev/null; then
+                return 1
+            fi
+        fi
+
+        sleep 1
+        WAITED=$((WAITED + 1))
+    done
+
+    return 1
+}
+
 start_service_process() {
     if use_launchd; then
         remove_launchd_job >/dev/null 2>&1 || true
@@ -392,6 +550,62 @@ show_error_log() {
     tail -50 "$ERR_LOG_FILE" 2>/dev/null || true
 }
 
+show_frontend_error_log() {
+    echo "Frontend error log:"
+    tail -50 "$FRONTEND_ERR_LOG_FILE" 2>/dev/null || true
+}
+
+start_frontend_dev() {
+    if [ "$START_FRONTEND" != "1" ]; then
+        return 0
+    fi
+
+    check_dependency "node npm"
+    NPM_PATH="$(command -v npm)"
+    stop_frontend_dev_processes || true
+    remove_frontend_launchd_job >/dev/null 2>&1 || true
+
+    : > "$FRONTEND_LOG_FILE"
+    : > "$FRONTEND_ERR_LOG_FILE"
+    : > "$FRONTEND_PID_FILE"
+
+    if use_launchd; then
+        echo "Starting ezBookkeeping frontend dev server with launchctl..."
+        launchctl submit \
+            -l "$FRONTEND_LAUNCHD_LABEL" \
+            -o "$FRONTEND_LOG_FILE" \
+            -e "$FRONTEND_ERR_LOG_FILE" \
+            -- /usr/bin/env \
+            PATH="$PATH" \
+            APP_PORT="$APP_PORT" \
+            BACKEND_PORT="$APP_PORT" \
+            FRONTEND_PORT="$FRONTEND_PORT" \
+            FRONTEND_HOST="$FRONTEND_HOST" \
+            EBK_FRONTEND_CWD="$PWD" \
+            EBK_NPM_PATH="$NPM_PATH" \
+            /bin/sh -lc 'cd "$EBK_FRONTEND_CWD" && exec "$EBK_NPM_PATH" run serve -- --host "$FRONTEND_HOST" --port "$FRONTEND_PORT"'
+    else
+        echo "Starting ezBookkeeping frontend dev server..."
+        APP_PORT="$APP_PORT" \
+        BACKEND_PORT="$APP_PORT" \
+        FRONTEND_PORT="$FRONTEND_PORT" \
+        FRONTEND_HOST="$FRONTEND_HOST" \
+        nohup "$NPM_PATH" run serve -- --host "$FRONTEND_HOST" --port "$FRONTEND_PORT" > "$FRONTEND_LOG_FILE" 2> "$FRONTEND_ERR_LOG_FILE" < /dev/null &
+        NEW_FRONTEND_PID="$!"
+
+        echo "$NEW_FRONTEND_PID" > "$FRONTEND_PID_FILE"
+    fi
+
+    if ! wait_for_frontend; then
+        echo "ezBookkeeping frontend failed to start or health check failed."
+        show_frontend_error_log
+        exit 1
+    fi
+
+    echo "ezBookkeeping frontend is running at http://localhost:${FRONTEND_PORT}/"
+    echo "Frontend logs: $FRONTEND_LOG_FILE"
+}
+
 start_app() {
     build_backend
     build_frontend
@@ -417,15 +631,18 @@ start_app() {
 
     echo "ezBookkeeping is running at http://localhost:${APP_PORT}/"
     echo "Logs: $LOG_FILE"
+    start_frontend_dev
 }
 
 status_app() {
+    RUNNING="0"
+
     if [ -f "$PID_FILE" ]; then
         PID="$(sed -n '1p' "$PID_FILE" 2>/dev/null || true)"
 
         if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null && is_ezbookkeeping_process "$PID"; then
             echo "ezBookkeeping is running with pid $PID at http://localhost:${APP_PORT}/"
-            exit 0
+            RUNNING="1"
         fi
     fi
 
@@ -434,10 +651,31 @@ status_app() {
     for PID in $PIDS; do
         if is_ezbookkeeping_process "$PID"; then
             echo "$PID" > "$PID_FILE"
-            echo "ezBookkeeping is running with pid $PID at http://localhost:${APP_PORT}/"
-            exit 0
+            if [ "$RUNNING" != "1" ]; then
+                echo "ezBookkeeping is running with pid $PID at http://localhost:${APP_PORT}/"
+            fi
+            RUNNING="1"
+            break
         fi
     done
+
+    if [ "$RUNNING" != "1" ] && [ -n "$PIDS" ]; then
+        for PID in $PIDS; do
+            COMMAND="$(process_command "$PID")"
+            echo "Port $APP_PORT is occupied by another process: $COMMAND"
+        done
+    fi
+
+    for PID in $(frontend_listen_pids); do
+        if is_current_project_frontend_process "$PID"; then
+            echo "ezBookkeeping frontend dev server is running with pid $PID."
+            RUNNING="1"
+        fi
+    done
+
+    if [ "$RUNNING" = "1" ]; then
+        exit 0
+    fi
 
     echo "ezBookkeeping is not running."
     exit 3

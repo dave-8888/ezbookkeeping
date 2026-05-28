@@ -1,5 +1,28 @@
 <template>
     <v-row class="match-height">
+        <v-col cols="12" v-if="isTransactionFromAIImageRecognitionEnabled()">
+            <v-form class="quick-transaction-text-form d-flex align-center ga-2" @submit.prevent="addByTextInput">
+                <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    clearable
+                    :disabled="recognizingByText"
+                    :placeholder="tt('Add Transaction')"
+                    v-model="transactionText"
+                >
+                    <template #prepend-inner>
+                        <v-icon :icon="mdiMagicStaff" size="20" />
+                    </template>
+                </v-text-field>
+                <v-btn color="primary" type="submit"
+                       :loading="recognizingByText"
+                       :disabled="recognizingByText">
+                    {{ tt('Add') }}
+                </v-btn>
+            </v-form>
+        </v-col>
+
         <v-col cols="12" lg="4" md="12">
             <v-card :class="{ 'disabled': loadingOverview }">
                 <template #title>
@@ -123,11 +146,13 @@
     </v-row>
 
     <snack-bar ref="snackbar" />
+    <edit-dialog ref="editDialog" :type="TransactionEditPageType.Transaction" />
 </template>
 
 <script setup lang="ts">
 import SnackBar from '@/components/desktop/SnackBar.vue';
 import AssetSummaryCard from './overview/cards/AssetSummaryCard.vue';
+import EditDialog from './transactions/list/dialogs/EditDialog.vue';
 import IncomeExpenseOverviewCard from './overview/cards/IncomeExpenseOverviewCard.vue';
 import MonthlyIncomeAndExpenseCard, { type MonthlyIncomeAndExpenseCardClickEvent } from './overview/cards/MonthlyIncomeAndExpenseCard.vue';
 
@@ -140,6 +165,8 @@ import { useHomePageBase } from '@/views/base/HomePageBase.ts';
 
 import { useAccountsStore } from '@/stores/account.ts';
 import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
+import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
+import { useTransactionsStore } from '@/stores/transaction.ts';
 import { useDesktopPageStore } from '@/stores/desktopPage.ts';
 import { useOverviewStore } from '@/stores/overview.ts';
 
@@ -151,7 +178,13 @@ import {
 } from '@/models/transaction.ts';
 
 import { getUnixTimeBeforeUnixTime, getUnixTimeAfterUnixTime } from '@/lib/datetime.ts';
+import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
+import {
+    hasRecognizedTransactionFields,
+    recognizeTransactionByText
+} from '@/lib/transaction_text.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
+import { TransactionEditPageType } from '@/views/base/transactions/TransactionEditPageBase.ts';
 
 import {
     mdiRefresh,
@@ -161,10 +194,12 @@ import {
     mdiCalendarWeekOutline,
     mdiCalendarMonthOutline,
     mdiLayersTripleOutline,
-    mdiListBoxOutline
+    mdiListBoxOutline,
+    mdiMagicStaff
 } from '@mdi/js';
 
 type SnackBarType = InstanceType<typeof SnackBar>;
+type EditDialogType = InstanceType<typeof EditDialog>;
 
 const router = useRouter();
 const theme = useTheme();
@@ -180,12 +215,17 @@ const {
 
 const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
+const transactionTagsStore = useTransactionTagsStore();
+const transactionsStore = useTransactionsStore();
 const desktopPageStore = useDesktopPageStore();
 const overviewStore = useOverviewStore();
 
 const snackbar = useTemplateRef<SnackBarType>('snackbar');
+const editDialog = useTemplateRef<EditDialogType>('editDialog');
 
 const loadingOverview = ref<boolean>(true);
+const transactionText = ref<string>('');
+const recognizingByText = ref<boolean>(false);
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
 
@@ -248,6 +288,7 @@ function reload(force: boolean, notify = force): void {
     const promises = [
         ignoreUpToDateError(accountsStore.loadAllAccounts({ force })),
         ignoreUpToDateError(transactionCategoriesStore.loadAllCategories({ force })),
+        ignoreUpToDateError(transactionTagsStore.loadAllTags({ force })),
         ignoreUpToDateError(overviewStore.loadTransactionOverview({ force, loadLast11Months: true }))
     ];
 
@@ -270,6 +311,67 @@ function reload(force: boolean, notify = force): void {
     });
 }
 
+function addByTextInput(): void {
+    if (recognizingByText.value) {
+        return;
+    }
+
+    const text = transactionText.value.trim();
+
+    if (!text) {
+        snackbar.value?.showError('Parameter Invalid');
+        return;
+    }
+
+    recognizingByText.value = true;
+
+    recognizeTransactionByText(text, {
+        allCategories: transactionCategoriesStore.allTransactionCategories,
+        allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
+        allTags: transactionTagsStore.allTransactionTags,
+        recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
+    }).then(result => {
+        if (!hasRecognizedTransactionFields(result)) {
+            snackbar.value?.showError('Unable to recognize transaction text');
+            return;
+        }
+
+        const editDialogPromise = editDialog.value?.open({
+            time: result.time,
+            type: result.type,
+            categoryId: result.categoryId,
+            accountId: result.sourceAccountId,
+            destinationAccountId: result.destinationAccountId,
+            amount: result.sourceAmount,
+            destinationAmount: result.destinationAmount,
+            tagIds: result.tagIds ? result.tagIds.join(',') : undefined,
+            comment: result.comment,
+            noTransactionDraft: true
+        });
+
+        if (!editDialogPromise) {
+            return;
+        }
+
+        editDialogPromise.then(result => {
+            if (result && result.message) {
+                transactionText.value = '';
+                snackbar.value?.showMessage(result.message);
+            }
+
+            reload(false, false);
+        }).catch(error => {
+            if (error) {
+                snackbar.value?.showError(error);
+            }
+        });
+    }).catch(error => {
+        snackbar.value?.showError(error);
+    }).finally(() => {
+        recognizingByText.value = false;
+    });
+}
+
 watch(() => desktopPageStore.overviewRefreshRequested, (newValue) => {
     if (newValue) {
         desktopPageStore.resetOverviewRefreshRequest();
@@ -286,6 +388,14 @@ if (desktopPageStore.overviewRefreshRequested) {
 </script>
 
 <style>
+.quick-transaction-text-form {
+    max-inline-size: 720px;
+}
+
+.quick-transaction-text-form .v-btn {
+    min-inline-size: 84px;
+}
+
 .overview-card-background {
     position: absolute;
     inline-size: 9rem;
@@ -298,5 +408,12 @@ if (desktopPageStore.overviewRefreshRequested) {
     inline-size: 5rem;
     inset-block-end: 0.5rem;
     inset-inline-end: 1rem;
+}
+
+@media (max-width: 600px) {
+    .quick-transaction-text-form {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
 }
 </style>

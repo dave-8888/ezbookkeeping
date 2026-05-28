@@ -16,6 +16,22 @@ const SRC_DIR = resolve(__dirname, './src');
 const PUBLIC_DIR = resolve(__dirname, './public');
 const BUILD_DIR = resolve(__dirname, './dist',);
 
+function getPortFromEnv(name: string, fallback: number): number {
+    const value = process.env[name];
+
+    if (!value) {
+        return fallback;
+    }
+
+    const port = Number(value);
+
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        return fallback;
+    }
+
+    return port;
+}
+
 function injectFramework7CssFile({ htmlFileName, placeHolders }: { htmlFileName: string, placeHolders: { name: string, srcFileName: string, distFileNamePrefix: string }[] }): Plugin[] {
     return [
         {
@@ -66,6 +82,10 @@ function injectFramework7CssFile({ htmlFileName, placeHolders }: { htmlFileName:
 export default defineConfig(() => {
     const licenseContent = fs.readFileSync('./LICENSE', { encoding: 'utf-8' });
     const buildUnixTime = process.env['buildUnixTime'] || '';
+    const backendPort = getPortFromEnv('BACKEND_PORT', getPortFromEnv('APP_PORT', 8888));
+    const frontendHost = process.env['FRONTEND_HOST'] || '0.0.0.0';
+    const frontendPort = getPortFromEnv('FRONTEND_PORT', 8889);
+    const backendTarget = `http://127.0.0.1:${backendPort}/`;
 
     const options: UserConfig = {
         root: SRC_DIR,
@@ -197,6 +217,18 @@ export default defineConfig(() => {
                 }
             })
         ],
+        css: {
+            preprocessorOptions: {
+                scss: {
+                    quietDeps: true,
+                    silenceDeprecations: ['if-function']
+                },
+                sass: {
+                    quietDeps: true,
+                    silenceDeprecations: ['if-function']
+                }
+            }
+        },
         build: {
             target: [
                 'chrome91',
@@ -207,6 +239,7 @@ export default defineConfig(() => {
             outDir: BUILD_DIR,
             sourcemap: false,
             assetsInlineLimit: 0,
+            chunkSizeWarningLimit: 2200,
             emptyOutDir: true,
             rollupOptions: {
                 input: {
@@ -277,52 +310,52 @@ export default defineConfig(() => {
             },
         },
         server: {
-            host: '0.0.0.0',
-            port: 8081,
+            host: frontendHost,
+            port: frontendPort,
             strictPort: true,
             proxy: {
                 '/server_settings.js': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/mobile/server_settings.js': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/desktop/server_settings.js': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/oauth2': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/api': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/mcp': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/avatar': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/pictures': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/qrcode': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/proxy': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 },
                 '/_AMapService': {
-                    target: 'http://127.0.0.1:8080/',
+                    target: backendTarget,
                     changeOrigin: true
                 }
             }

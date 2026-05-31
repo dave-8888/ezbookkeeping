@@ -452,13 +452,15 @@ export const useAccountsStore = defineStore('accounts', () => {
         return null;
     }
 
-    function getNetAssets(showAccountBalance: boolean): number | HiddenAmount | NumberWithSuffix {
+    function getNetAssets(showAccountBalance: boolean, includeHidden: boolean = false): number | HiddenAmount | NumberWithSuffix {
         if (!showAccountBalance) {
             return DISPLAY_HIDDEN_AMOUNT;
         }
 
-        const accountsBalance = getAllFilteredAccountsBalance(allCategorizedAccountsMap.value, account =>
-            !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id])
+        const accountsBalance = getAllFilteredAccountsBalance(
+            allCategorizedAccountsMap.value,
+            account => !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id]),
+            includeHidden
         );
         let netAssets = 0;
         let hasUnCalculatedAmount = false;
@@ -488,13 +490,15 @@ export const useAccountsStore = defineStore('accounts', () => {
         }
     }
 
-    function getTotalAssets(showAccountBalance: boolean): number | HiddenAmount | NumberWithSuffix {
+    function getTotalAssets(showAccountBalance: boolean, includeHidden: boolean = false): number | HiddenAmount | NumberWithSuffix {
         if (!showAccountBalance) {
             return DISPLAY_HIDDEN_AMOUNT;
         }
 
-        const accountsBalance = getAllFilteredAccountsBalance(allCategorizedAccountsMap.value, account =>
-            (account.isAsset || false) && !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id])
+        const accountsBalance = getAllFilteredAccountsBalance(
+            allCategorizedAccountsMap.value,
+            account => (account.isAsset || false) && !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id]),
+            includeHidden
         );
         let totalAssets = 0;
         let hasUnCalculatedAmount = false;
@@ -524,13 +528,15 @@ export const useAccountsStore = defineStore('accounts', () => {
         }
     }
 
-    function getTotalLiabilities(showAccountBalance: boolean): number | HiddenAmount | NumberWithSuffix {
+    function getTotalLiabilities(showAccountBalance: boolean, includeHidden: boolean = false): number | HiddenAmount | NumberWithSuffix {
         if (!showAccountBalance) {
             return DISPLAY_HIDDEN_AMOUNT;
         }
 
-        const accountsBalance = getAllFilteredAccountsBalance(allCategorizedAccountsMap.value, account =>
-            (account.isLiability || false) && !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id])
+        const accountsBalance = getAllFilteredAccountsBalance(
+            allCategorizedAccountsMap.value,
+            account => (account.isLiability || false) && !(account.type === AccountType.SingleAccount.type && settingsStore.appSettings.totalAmountExcludeAccountIds[account.id]),
+            includeHidden
         );
         let totalLiabilities = 0;
         let hasUnCalculatedAmount = false;

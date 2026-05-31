@@ -36,7 +36,7 @@ input[type=number] {
 
 .dragging-item {
     opacity: 0.5;
-    background: #faf8f4;
+    background: #f5f5f7;
 }
 
 @media (min-width: 600px) {
@@ -48,15 +48,31 @@ input[type=number] {
 /** Custom class **/
 :root {
     --default-icon-color: #000;
-    --ebk-primary-color: 198, 126, 72;
-    --v-expand-panel-title-bg: rgba(var(--v-theme-on-surface), var(--v-hover-opacity));
-    --v-card-title-bg: rgba(var(--v-theme-on-surface), var(--v-hover-opacity));
+    --ebk-primary-color: 0, 113, 227;
+    --ebk-card-shadow: 0 18px 44px rgba(0, 0, 0, 0.10);
+    --ebk-glass-background: rgba(255, 255, 255, 0.72);
+    --ebk-glass-surface: rgba(255, 255, 255, 0.66);
+    --ebk-glass-surface-strong: rgba(255, 255, 255, 0.84);
+    --ebk-glass-field: rgba(255, 255, 255, 0.48);
+    --ebk-glass-border: rgba(29, 29, 31, 0.11);
+    --ebk-table-header-background: rgba(245, 245, 247, 0.72);
+    --ebk-auth-card-background: rgba(255, 255, 255, 0.78);
+    --v-expand-panel-title-bg: rgba(var(--v-theme-on-surface), 0.035);
+    --v-card-title-bg: rgba(var(--v-theme-on-surface), 0.035);
 }
 
 :root .v-theme--dark {
     --default-icon-color: #fff;
-    --v-expand-panel-title-bg: rgba(var(--v-theme-on-surface), var(--v-hover-opacity));
-    --v-card-title-bg: rgba(var(--v-theme-on-surface), var(--v-hover-opacity));
+    --ebk-card-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
+    --ebk-glass-background: rgba(29, 29, 31, 0.64);
+    --ebk-glass-surface: rgba(39, 39, 41, 0.62);
+    --ebk-glass-surface-strong: rgba(39, 39, 41, 0.84);
+    --ebk-glass-field: rgba(255, 255, 255, 0.06);
+    --ebk-glass-border: rgba(255, 255, 255, 0.13);
+    --ebk-table-header-background: rgba(39, 39, 41, 0.70);
+    --ebk-auth-card-background: rgba(0, 0, 0, 0.70);
+    --v-expand-panel-title-bg: rgba(255, 255, 255, 0.06);
+    --v-card-title-bg: rgba(255, 255, 255, 0.06);
 }
 
 .v-theme--dark .nav-link {
@@ -77,6 +93,122 @@ input[type=number] {
 
 .pin-code-input input {
     font-size: 1.25rem;
+}
+
+.v-application {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", helvetica, arial, sans-serif;
+    letter-spacing: 0;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(245, 245, 247, 0.76) 48%, rgba(210, 210, 215, 0.52)),
+        rgb(var(--v-theme-background)) !important;
+}
+
+.v-application.v-theme--dark {
+    background:
+        linear-gradient(135deg, rgba(39, 39, 41, 0.60), rgba(29, 29, 31, 0.76) 48%, rgba(0, 0, 0, 0.92)),
+        rgb(var(--v-theme-background)) !important;
+}
+
+a {
+    color: rgb(var(--v-theme-primary));
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.v-card {
+    border-radius: 8px !important;
+}
+
+.v-card:not(.v-card--variant-flat) {
+    border: thin solid var(--ebk-glass-border) !important;
+    background-color: var(--ebk-glass-surface) !important;
+    backdrop-filter: saturate(180%) blur(22px);
+    -webkit-backdrop-filter: saturate(180%) blur(22px);
+    box-shadow: var(--ebk-card-shadow) !important;
+}
+
+.v-card--variant-flat {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.v-btn:not(.v-btn--icon) {
+    border-radius: 999px;
+    font-weight: 500;
+}
+
+.v-btn--variant-elevated,
+.v-btn--variant-flat {
+    box-shadow: none !important;
+}
+
+.v-btn:focus-visible {
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: 2px;
+}
+
+.v-field {
+    background-color: var(--ebk-glass-field);
+    border-radius: 11px !important;
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+}
+
+.v-field--variant-outlined .v-field__outline {
+    color: var(--ebk-glass-border);
+}
+
+.v-field.v-field--focused .v-field__outline {
+    color: rgb(var(--v-theme-primary));
+}
+
+.v-table,
+.v-data-table {
+    background-color: transparent !important;
+}
+
+.v-table .v-table__wrapper > table > thead > tr > th {
+    background-color: var(--ebk-table-header-background) !important;
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+}
+
+.v-overlay__content > .v-card,
+.v-overlay__content > .v-list,
+.v-snackbar__wrapper {
+    border: thin solid var(--ebk-glass-border) !important;
+    background-color: var(--ebk-glass-surface-strong) !important;
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    box-shadow: var(--ebk-card-shadow) !important;
+}
+
+.layout-navbar .navbar-content-container,
+.layout-vertical-nav {
+    background-color: var(--ebk-glass-background) !important;
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.layout-navbar .navbar-content-container {
+    border-block-end: thin solid rgba(var(--v-border-color), 0.08);
+    box-shadow: none !important;
+}
+
+.layout-vertical-nav {
+    border-inline-end: thin solid rgba(var(--v-border-color), 0.08);
+}
+
+.layout-nav-type-vertical .layout-vertical-nav .nav-link > .router-link-exact-active {
+    background: rgb(var(--v-theme-primary)) !important;
+    box-shadow: none !important;
+}
+
+.layout-nav-type-vertical .layout-vertical-nav .nav-section-title {
+    letter-spacing: 0;
 }
 
 .expand-panel-title-with-bg {
@@ -106,12 +238,28 @@ input[type=number] {
 
 .v-theme--dark {
     .auth-image-background {
-        background-color: #202122;
+        background-color: #000;
     }
 }
 
+.auth-image-background {
+    background-color: #f5f5f7;
+}
+
 .auth-card {
-    background-color: rgb(var(--v-theme-surface));
+    border-inline-start: thin solid var(--ebk-glass-border);
+    background-color: var(--ebk-auth-card-background);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+}
+
+.auth-card .v-card {
+    box-shadow: none !important;
+}
+
+.auth-card h4 {
+    font-weight: 600;
+    line-height: 1.12;
 }
 
 @media (max-width: 959px) and (max-height: 669px) {
@@ -124,6 +272,7 @@ input[type=number] {
     position: absolute;
     inset-block-end: 0;
     min-inline-size: 100%;
+    opacity: 0.16;
 }
 
 .title-and-toolbar {
@@ -474,11 +623,11 @@ body .v-btn-group {
 
 /** Replacing the default style of @vuepic/vue-datepicker **/
 .dp__theme_light {
-    --dp-primary-color: #c67e48;
+    --dp-primary-color: #0071e3;
 }
 
 .dp__theme_dark {
-    --dp-primary-color: #c67e48;
+    --dp-primary-color: #2997ff;
 }
 
 /** Fix @vuepic/vue-datepicker style issue **/

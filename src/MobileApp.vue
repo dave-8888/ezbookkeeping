@@ -45,7 +45,7 @@ const f7params = ref<Framework7Parameters>({
     name: 'financially_free',
     theme: 'ios',
     colors: {
-        primary: '#c67e48'
+        primary: '#0071e3'
     },
     routes: routes,
     darkMode: (() => {

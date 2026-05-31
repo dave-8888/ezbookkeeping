@@ -186,7 +186,7 @@
                                :append-icon="mdiArrowRight"
                                @click="switchToNextTab"
                                v-if="currentStep === 'basicSetting'">{{ tt('Next') }}</v-btn>
-                        <v-btn color="teal"
+                        <v-btn color="primary"
                                :disabled="submitting || navigateToHomePage"
                                :append-icon="!submitting ? mdiCheck : undefined"
                                @click="submit"

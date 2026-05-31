@@ -21,7 +21,7 @@
                 </template>
 
                 <v-card-text>
-                    <h4 class="text-2xl font-weight-medium text-primary">
+                    <h4 class="text-2xl font-weight-medium text-expense">
                         <span v-if="!loadingOverview || (transactionOverview && transactionOverview.thisMonth && transactionOverview.thisMonth.valid)">{{ transactionOverview && transactionOverview.thisMonth ? getDisplayExpenseAmount(transactionOverview.thisMonth) : '-' }}</span>
                         <v-skeleton-loader class="d-inline-block skeleton-no-margin mt-3 pb-1" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!transactionOverview || !transactionOverview.thisMonth || !transactionOverview.thisMonth.valid)"></v-skeleton-loader>
                         <v-btn class="ms-1" density="compact" color="default" variant="text"

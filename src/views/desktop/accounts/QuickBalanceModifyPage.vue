@@ -1,10 +1,6 @@
 <template>
     <v-row class="match-height">
         <v-col cols="12">
-            <asset-summary-card :loading="loading" />
-        </v-col>
-
-        <v-col cols="12">
             <v-card>
                 <template #title>
                     <div class="title-and-toolbar d-flex align-center">
@@ -26,6 +22,13 @@
                 </template>
 
                 <v-card-text>
+                    <asset-summary-card
+                        class="mb-6"
+                        :loading="loading"
+                        :include-hidden-accounts="showHidden"
+                        :display-account-count="summaryAccountCount"
+                    />
+
                     <!-- 搜索和筛选区域 -->
                     <v-row class="mb-6">
                         <v-col cols="12" md="4">
@@ -210,56 +213,18 @@
                     </div>
                 </div>
 
-                <v-row>
-                    <v-col cols="12" :md="showNewBalanceCalculator ? 6 : 12">
-                        <v-text-field
-                            v-model.number="newBalance"
-                            :label="tt('New Balance')"
-                            type="number"
-                            step="0.01"
-                            :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
-                            :rules="[requiredRule]"
-                            hide-details="auto"
-                            @keydown.enter="modifySingleAccount"
-                        >
-                            <template #append-inner>
-                                <v-btn
-                                    density="compact"
-                                    variant="text"
-                                    color="primary"
-                                    :icon="true"
-                                    @click="toggleNewBalanceCalculator"
-                                >
-                                    <v-icon :icon="mdiCalculatorVariantOutline" size="18" />
-                                    <v-tooltip activator="parent">{{ tt('Calculator') }}</v-tooltip>
-                                </v-btn>
-                            </template>
-                        </v-text-field>
-                    </v-col>
-
-                    <v-col v-if="showNewBalanceCalculator" cols="12" md="6">
-                        <v-text-field
-                            v-model="newBalanceExpression"
-                            :label="tt('Calculation Formula')"
-                            :placeholder="tt('For example: 1000+200-35.5')"
-                            hide-details="auto"
-                            @keydown.enter="applyNewBalanceExpression"
-                        >
-                            <template #append-inner>
-                                <v-btn
-                                    density="compact"
-                                    variant="text"
-                                    color="primary"
-                                    :icon="true"
-                                    @click="applyNewBalanceExpression"
-                                >
-                                    <v-icon :icon="mdiCheck" size="18" />
-                                    <v-tooltip activator="parent">{{ tt('Apply') }}</v-tooltip>
-                                </v-btn>
-                            </template>
-                        </v-text-field>
-                    </v-col>
-                </v-row>
+                <v-text-field
+                    v-model="newBalanceExpression"
+                    :label="tt('New Balance')"
+                    type="text"
+                    :placeholder="'1000+200-35.5'"
+                    :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
+                    :rules="[newBalanceRule]"
+                    hide-details="auto"
+                    @update:model-value="updateNewBalanceFromExpression"
+                    @blur="normalizeNewBalanceExpression"
+                    @keydown.enter="modifySingleAccount"
+                />
             </v-card-text>
 
             <v-card-actions>
@@ -360,9 +325,7 @@ import {
     mdiClose,
     mdiPencil,
     mdiListBoxOutline,
-    mdiAccountSearch,
-    mdiCalculatorVariantOutline,
-    mdiCheck
+    mdiAccountSearch
 } from '@mdi/js';
 
 interface AccountItem {
@@ -398,7 +361,6 @@ const showHidden = ref<boolean>(false);
 
 const currentAccount = ref<AccountItem | null>(null);
 const newBalance = ref<number>(0);
-const showNewBalanceCalculator = ref<boolean>(false);
 const newBalanceExpression = ref<string>('');
 const batchAmount = ref<number>(0);
 const batchOperationType = ref<'add' | 'subtract'>('add');
@@ -423,6 +385,14 @@ const selectedAccountDetails = computed(() => {
     return accounts.value.filter(account => selectedAccounts.value.includes(account.id));
 });
 
+const summaryAccountCount = computed<number>(() => {
+    if (showHidden.value) {
+        return accounts.value.length;
+    }
+
+    return accounts.value.filter(account => !account.hidden).length;
+});
+
 // 辅助函数
 function formatCurrency(amount: number, currency: string): string {
     return formatAmountToLocalizedNumeralsWithCurrency(amount, currency);
@@ -442,6 +412,7 @@ function getCurrencySymbol(currency: string): string {
 }
 
 const requiredRule = (value: any) => !!value || tt('This field is required');
+const newBalanceRule = (value: string) => parseNewBalanceExpression(value) !== undefined || tt('Formula is invalid');
 
 // 方法
 function goBack(): void {
@@ -522,27 +493,34 @@ function openModifyDialog(account: AccountItem): void {
     currentAccount.value = account;
     newBalance.value = account.balance / 100; // 转换为小数形式显示
     newBalanceExpression.value = newBalance.value.toString();
-    showNewBalanceCalculator.value = false;
     showModifyDialog.value = true;
 }
 
-function toggleNewBalanceCalculator(): void {
-    showNewBalanceCalculator.value = !showNewBalanceCalculator.value;
+function parseNewBalanceExpression(expression: string): number | undefined {
+    const calculatedAmount = evaluateExpressionToAmount(expression);
 
-    if (showNewBalanceCalculator.value && !newBalanceExpression.value) {
-        newBalanceExpression.value = newBalance.value.toString();
+    if (calculatedAmount === undefined) {
+        return undefined;
+    }
+
+    return calculatedAmount / 100;
+}
+
+function updateNewBalanceFromExpression(value: string): void {
+    const calculatedBalance = parseNewBalanceExpression(value);
+
+    if (calculatedBalance !== undefined) {
+        newBalance.value = calculatedBalance;
     }
 }
 
-function applyNewBalanceExpression(): void {
-    const calculatedAmount = evaluateExpressionToAmount(newBalanceExpression.value);
+function normalizeNewBalanceExpression(): void {
+    const calculatedBalance = parseNewBalanceExpression(newBalanceExpression.value);
 
-    if (calculatedAmount === undefined) {
-        SnackBar['showError'](tt('Formula is invalid'));
-        return;
+    if (calculatedBalance !== undefined) {
+        newBalance.value = calculatedBalance;
+        newBalanceExpression.value = calculatedBalance.toString();
     }
-
-    newBalance.value = calculatedAmount / 100;
 }
 
 function openBatchModifyDialog(operation: 'add' | 'subtract'): void {
@@ -562,10 +540,14 @@ function clearSelection(): void {
 
 async function modifySingleAccount(): Promise<void> {
     console.log('currentAccount',currentAccount)
-    if (!currentAccount.value || newBalance.value === null || newBalance.value === undefined) {
+    const calculatedBalance = parseNewBalanceExpression(newBalanceExpression.value);
+
+    if (!currentAccount.value || calculatedBalance === undefined) {
+        SnackBar['showError'](tt('Formula is invalid'));
         return;
     }
 
+    newBalance.value = calculatedBalance;
     modifying.value = true;
 
     // 调试信息

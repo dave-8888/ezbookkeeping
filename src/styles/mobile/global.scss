@@ -99,6 +99,35 @@ input[type=number] {
     --f7-notification-title-text-transform: unset;
 }
 
+.ios {
+    --f7-page-bg-color: #f5f5f7;
+    --f7-bars-bg-color: rgba(245, 245, 247, 0.74);
+    --f7-bars-bg-color-rgb: 245, 245, 247;
+    --f7-bars-text-color: #1d1d1f;
+    --f7-text-color: #1d1d1f;
+    --f7-glass-bg-color: rgba(255, 255, 255, 0.70);
+    --f7-card-bg-color: rgba(255, 255, 255, 0.68);
+    --f7-card-border-radius: 16px;
+    --f7-card-box-shadow: 0 18px 44px rgba(0, 0, 0, 0.10);
+    --f7-list-strong-bg-color: rgba(255, 255, 255, 0.70);
+    --f7-block-strong-bg-color: rgba(255, 255, 255, 0.70);
+    --f7-block-strong-text-color: #1d1d1f;
+}
+
+.ios .dark, .ios.dark {
+    --f7-page-bg-color: #000;
+    --f7-bars-bg-color: rgba(29, 29, 31, 0.64);
+    --f7-bars-bg-color-rgb: 29, 29, 31;
+    --f7-bars-text-color: #f5f5f7;
+    --f7-text-color: #f5f5f7;
+    --f7-glass-bg-color: rgba(39, 39, 41, 0.66);
+    --f7-card-bg-color: rgba(39, 39, 41, 0.62);
+    --f7-card-box-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
+    --f7-list-strong-bg-color: rgba(39, 39, 41, 0.66);
+    --f7-block-strong-bg-color: rgba(39, 39, 41, 0.66);
+    --f7-block-strong-text-color: #f5f5f7;
+}
+
 .color-gray {
     --f7-theme-color: var(--f7-color-gray);
     --f7-theme-color-rgb: var(--f7-color-gray-rgb);
@@ -108,6 +137,40 @@ input[type=number] {
 
 .ios .dark, .ios.dark {
     --f7-list-item-header-text-color: inherit !important;
+}
+
+.ios body {
+    background: #f5f5f7;
+}
+
+.ios.dark body,
+.ios .dark body {
+    background: #000;
+}
+
+.ios .navbar,
+.ios .toolbar,
+.ios .subnavbar,
+.ios .card,
+.ios .list.inset > ul,
+.ios .list.inset > .list-group > ul,
+.ios .block-strong,
+.ios .dialog,
+.ios .popover,
+.ios .sheet-modal,
+.ios .actions-group,
+.ios .notification {
+    border: 1px solid var(--ebk-glass-border);
+    background-color: var(--ebk-glass-surface);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: var(--ebk-glass-shadow);
+}
+
+.ios .navbar,
+.ios .toolbar,
+.ios .subnavbar {
+    background-color: var(--ebk-glass-bars);
 }
 
 i.icon.la, i.icon.las, i.icon.lab {
@@ -160,12 +223,21 @@ i.icon.la, i.icon.las, i.icon.lab {
 /** custom class **/
 :root {
     --default-icon-color: #000;
-    --ebk-primary-color: 198, 126, 72;
+    --ebk-primary-color: 0, 113, 227;
+    --ebk-glass-bars: rgba(245, 245, 247, 0.74);
+    --ebk-glass-surface: rgba(255, 255, 255, 0.68);
+    --ebk-glass-border: rgba(29, 29, 31, 0.11);
+    --ebk-glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.10);
     --ebk-transaction-tag-chip-bg-color: rgba(0, 0, 0, 0.04);
 }
 
-:root.dark {
+:root.dark,
+.ios .dark {
     --default-icon-color: #fff;
+    --ebk-glass-bars: rgba(29, 29, 31, 0.64);
+    --ebk-glass-surface: rgba(39, 39, 41, 0.62);
+    --ebk-glass-border: rgba(255, 255, 255, 0.13);
+    --ebk-glass-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
     --ebk-transaction-tag-chip-bg-color: rgba(255, 255, 255, 0.04);
 }
 
@@ -319,7 +391,7 @@ html[dir="rtl"] i.icon.icon-with-direction {
 
 /** Replacing the default style of @vuepic/vue-datepicker **/
 .dp__theme_light {
-    --dp-primary-color: #c67e48;
+    --dp-primary-color: #0071e3;
     --dp-background-color: inherit;
     --dp-border-color: #aaa;
     --dp-menu-border-color: #aaa;
@@ -330,7 +402,7 @@ html[dir="rtl"] i.icon.icon-with-direction {
 }
 
 .dp__theme_dark {
-    --dp-primary-color: #c67e48;
+    --dp-primary-color: #2997ff;
     --dp-background-color: inherit;
     --dp-border-color: #555;
     --dp-menu-border-color: #555;

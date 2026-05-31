@@ -245,7 +245,7 @@
                         {{ tt('Next') }}
                         <v-progress-circular indeterminate size="22" class="ms-2" v-if="submitting"></v-progress-circular>
                     </v-btn>
-                    <v-btn class="button-icon-with-direction" color="teal"
+                    <v-btn class="button-icon-with-direction" color="primary"
                            :disabled="submitting || importTransactionCheckDataTab?.isEditing || !importTransactionCheckDataTab?.canImport"
                            :append-icon="!submitting ? mdiArrowRight : undefined" @click="submit"
                            v-if="currentStep === 'checkData'">

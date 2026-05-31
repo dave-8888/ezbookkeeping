@@ -134,7 +134,11 @@ export function filterCategorizedAccounts(categorizedAccountsMap: Record<number,
     return ret;
 }
 
-export function getAllFilteredAccountsBalance(categorizedAccounts: Record<number, CategorizedAccount>, accountFilter: (account: Account) => boolean): AccountBalance[] {
+export function getAllFilteredAccountsBalance(
+    categorizedAccounts: Record<number, CategorizedAccount>,
+    accountFilter: (account: Account) => boolean,
+    includeHidden: boolean = false
+): AccountBalance[] {
     const allAccountCategories = AccountCategory.values();
     const ret: AccountBalance[] = [];
 
@@ -146,7 +150,7 @@ export function getAllFilteredAccountsBalance(categorizedAccounts: Record<number
         }
 
         for (const account of categorizedAccount.accounts) {
-            if (account.hidden || !accountFilter(account)) {
+            if ((!includeHidden && account.hidden) || !accountFilter(account)) {
                 continue;
             }
 
@@ -159,7 +163,7 @@ export function getAllFilteredAccountsBalance(categorizedAccounts: Record<number
                 });
             } else if (account.type === AccountType.MultiSubAccounts.type && account.subAccounts) {
                 for (const subAccount of account.subAccounts) {
-                    if (subAccount.hidden || !accountFilter(subAccount)) {
+                    if ((!includeHidden && subAccount.hidden) || !accountFilter(subAccount)) {
                         continue;
                     }
 

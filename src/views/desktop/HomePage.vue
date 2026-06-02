@@ -24,10 +24,6 @@
                     <h4 class="text-2xl font-weight-medium text-expense">
                         <span v-if="!loadingOverview || (transactionOverview && transactionOverview.thisMonth && transactionOverview.thisMonth.valid)">{{ transactionOverview && transactionOverview.thisMonth ? getDisplayExpenseAmount(transactionOverview.thisMonth) : '-' }}</span>
                         <v-skeleton-loader class="d-inline-block skeleton-no-margin mt-3 pb-1" width="120px" type="text" :loading="true" v-else-if="loadingOverview && (!transactionOverview || !transactionOverview.thisMonth || !transactionOverview.thisMonth.valid)"></v-skeleton-loader>
-                        <v-btn class="ms-1" density="compact" color="default" variant="text"
-                               :icon="true" @click="showAmountInHomePage = !showAmountInHomePage">
-                            <v-icon :icon="showAmountInHomePage ? mdiEyeOffOutline : mdiEyeOutline" size="20" />
-                        </v-btn>
                     </h4>
                     <div class="mt-1 mb-3">
                         <span class="me-2">{{ tt('Monthly income') }}</span>
@@ -156,8 +152,6 @@ import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 
 import {
     mdiRefresh,
-    mdiEyeOutline,
-    mdiEyeOffOutline,
     mdiCalendarTodayOutline,
     mdiCalendarWeekOutline,
     mdiCalendarMonthOutline,
@@ -172,7 +166,6 @@ const theme = useTheme();
 
 const { tt } = useI18n();
 const {
-    showAmountInHomePage,
     displayDateRange,
     transactionOverview,
     getDisplayIncomeAmount,

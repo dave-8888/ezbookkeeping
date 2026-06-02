@@ -133,6 +133,12 @@
                         </div>
                         <v-spacer />
                         <v-btn color="primary" variant="text" class="me-2"
+                               :icon="true"
+                               @click="showAmountGlobally = !showAmountGlobally">
+                            <v-icon :icon="showAmountGlobally ? mdiEyeOffOutline : mdiEyeOutline" size="24" />
+                            <v-tooltip activator="parent">{{ showAmountGlobally ? tt('Hide Amount') : tt('Show Amount') }}</v-tooltip>
+                        </v-btn>
+                        <v-btn color="primary" variant="text" class="me-2"
                                :icon="true" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
                             <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="24" />
                         </v-btn>
@@ -252,6 +258,8 @@ import {
     mdiThemeLightDark,
     mdiWeatherSunny,
     mdiWeatherNight,
+    mdiEyeOutline,
+    mdiEyeOffOutline,
     mdiAccount,
     mdiAccountCogOutline,
     mdiLockOutline,
@@ -305,6 +313,16 @@ const currentTheme = computed<string>({
 
 const showAddTransactionButtonInDesktopNavbar = computed<boolean>(() => settingsStore.appSettings.showAddTransactionButtonInDesktopNavbar);
 const isEnableApplicationLock = computed<boolean>(() => settingsStore.appSettings.applicationLock);
+const showAmountGlobally = computed<boolean>({
+    get: () => settingsStore.appSettings.showAmountInHomePage &&
+        settingsStore.appSettings.showAccountBalance &&
+        settingsStore.appSettings.showTotalAmountInTransactionListPage,
+    set: (value: boolean) => {
+        settingsStore.setShowAmountInHomePage(value);
+        settingsStore.setShowAccountBalance(value);
+        settingsStore.setShowTotalAmountInTransactionListPage(value);
+    }
+});
 
 function handleNavScroll(e: Event): void {
     isVerticalNavScrolled.value = (e.target as HTMLElement).scrollTop > 0;

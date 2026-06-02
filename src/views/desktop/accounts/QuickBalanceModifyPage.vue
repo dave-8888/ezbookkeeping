@@ -146,7 +146,7 @@
 
                         <template #item.balance="{ item }">
                             <span :class="item.isAsset ? 'text-income' : 'text-expense'">
-                                {{ formatCurrency(item.balance, item.currency) }}
+                                {{ formatAccountBalance(item.balance, item.currency) }}
                             </span>
                         </template>
 
@@ -208,7 +208,7 @@
                     <div class="text-body-2">
                         {{ tt('Current Balance') }}:
                         <span :class="currentAccount?.isAsset ? 'text-income' : 'text-expense'">
-                            {{ formatCurrency(currentAccount?.balance || 0, currentAccount?.currency || 'USD') }}
+                            {{ formatAccountBalance(currentAccount?.balance || 0, currentAccount?.currency || 'USD') }}
                         </span>
                     </div>
                 </div>
@@ -309,10 +309,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/locales/helpers.ts';
 import { useAccountsStore } from '@/stores/account.ts';
+import { useSettingsStore } from '@/stores/setting.ts';
 import logger from '@/lib/logger.ts';
 import services from '@/lib/services.ts';
 import { evaluateExpressionToAmount } from '@/lib/evaluator.ts';
 import { AccountCategory } from '@/core/account.ts';
+import { DISPLAY_HIDDEN_AMOUNT } from '@/consts/numeral.ts';
+import type { HiddenAmount } from '@/core/numeral.ts';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 import AssetSummaryCard from '@/views/desktop/overview/cards/AssetSummaryCard.vue';
 
@@ -344,6 +347,7 @@ interface AccountItem {
 const router = useRouter();
 const { tt, formatAmountToLocalizedNumeralsWithCurrency } = useI18n();
 const accountsStore = useAccountsStore();
+const settingsStore = useSettingsStore();
 
 // 状态变量
 const loading = ref<boolean>(false);
@@ -394,6 +398,16 @@ const summaryAccountCount = computed<number>(() => {
 });
 
 // 辅助函数
+const showQuickBalanceAmount = computed<boolean>(() =>
+    settingsStore.appSettings.showAmountInHomePage &&
+    settingsStore.appSettings.showAccountBalance
+);
+
+function formatAccountBalance(amount: number, currency: string): string {
+    const displayAmount: number | HiddenAmount = showQuickBalanceAmount.value ? amount : DISPLAY_HIDDEN_AMOUNT;
+    return formatAmountToLocalizedNumeralsWithCurrency(displayAmount, currency);
+}
+
 function formatCurrency(amount: number, currency: string): string {
     return formatAmountToLocalizedNumeralsWithCurrency(amount, currency);
 }

@@ -388,6 +388,12 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/accounts/balance/batch_modify.json", bindApi(api.AccountBalances.BatchModifyAccountBalancesHandler))
 			apiV1Route.GET("/accounts/balance/history.json", bindApi(api.AccountBalances.GetAccountBalanceHistoryHandler))
 
+			// Asset Plans
+			apiV1Route.GET("/asset_plans/get.json", bindApi(api.AssetPlans.AssetPlanGetHandler))
+			apiV1Route.POST("/asset_plans/add.json", bindApi(api.AssetPlans.AssetPlanCreateHandler))
+			apiV1Route.POST("/asset_plans/modify.json", bindApi(api.AssetPlans.AssetPlanModifyHandler))
+			apiV1Route.POST("/asset_plans/delete.json", bindApi(api.AssetPlans.AssetPlanDeleteHandler))
+
 			// Transactions
 			apiV1Route.GET("/transactions/count.json", bindApi(api.Transactions.TransactionCountHandler))
 			apiV1Route.GET("/transactions/list.json", bindApi(api.Transactions.TransactionListHandler))

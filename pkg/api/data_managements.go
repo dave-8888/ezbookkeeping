@@ -32,6 +32,7 @@ type DataManagementsApi struct {
 	pictures                *services.TransactionPictureService
 	templates               *services.TransactionTemplateService
 	userCustomExchangeRates *services.UserCustomExchangeRatesService
+	assetPlans              *services.AssetPlanService
 }
 
 // Initialize a data management api singleton instance
@@ -49,6 +50,7 @@ var (
 		pictures:                services.TransactionPictures,
 		templates:               services.TransactionTemplates,
 		userCustomExchangeRates: services.UserCustomExchangeRates,
+		assetPlans:              services.AssetPlans,
 	}
 )
 
@@ -154,6 +156,13 @@ func (a *DataManagementsApi) ClearAllDataHandler(c *core.WebContext) (any, *errs
 
 	if user.FeatureRestriction.Contains(core.USER_FEATURE_RESTRICTION_TYPE_CLEAR_ALL_DATA) {
 		return nil, errs.ErrNotPermittedToPerformThisAction
+	}
+
+	err = a.assetPlans.DeleteAssetPlanIfExists(c, uid)
+
+	if err != nil {
+		log.Errorf(c, "[data_managements.ClearAllDataHandler] failed to delete asset plan, because %s", err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
 	err = a.templates.DeleteAllTemplates(c, uid)

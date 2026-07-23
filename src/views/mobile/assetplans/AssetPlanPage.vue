@@ -47,6 +47,7 @@
                     <asset-plan-chart
                         :actual-points="actualTrendPoints"
                         :currency="currency"
+                        :dark="isDarkMode"
                         :plan="plan"
                         :show-plan="selectedMetric === 'net_worth'"
                     />
@@ -153,10 +154,13 @@ import AssetPlanChart from '@/components/common/AssetPlanChart.vue';
 import { useI18n } from '@/locales/helpers.ts';
 import { useI18nUIComponents } from '@/lib/ui/mobile.ts';
 import { useAssetPlanPageBase } from '@/views/base/AssetPlanPageBase.ts';
+import { useEnvironmentsStore } from '@/stores/environment.ts';
 
 const { tt } = useI18n();
 const { showToast, showConfirm } = useI18nUIComponents();
+const environmentsStore = useEnvironmentsStore();
 const showAmountInput = ref<boolean>(false);
+const isDarkMode = computed<boolean>(() => environmentsStore.framework7DarkMode || false);
 
 const {
     loading,

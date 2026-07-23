@@ -268,7 +268,13 @@ func (a *AssetPlansApi) buildAssetPlanResponse(c core.Context, plan *models.Asse
 		return nil, err
 	}
 
-	difference := actual - planned
+	differenceValue := new(big.Int).Sub(big.NewInt(actual), big.NewInt(planned))
+
+	if !differenceValue.IsInt64() {
+		return nil, errs.ErrNumberInvalid
+	}
+
+	difference := differenceValue.Int64()
 	comparisonStatus := models.ASSET_PLAN_COMPARISON_STATUS_ON_TRACK
 
 	if difference > 0 {

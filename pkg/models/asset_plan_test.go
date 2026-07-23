@@ -52,6 +52,27 @@ func TestCalculateAssetPlanValue(t *testing.T) {
 	assert.Equal(t, int64(200), afterTargetValue)
 }
 
+func TestCalculateAssetPlanValueAcrossLeapDayWithStableRounding(t *testing.T) {
+	plan := &AssetPlan{
+		StartAmount:  -100,
+		StartDate:    20280228,
+		TargetAmount: 101,
+		TargetDate:   20280302,
+	}
+
+	leapDayValue, err := CalculateAssetPlanValue(plan, 20280229, time.UTC)
+	require.NoError(t, err)
+	assert.Equal(t, int64(-33), leapDayValue)
+
+	dayBeforeTargetValue, err := CalculateAssetPlanValue(plan, 20280301, time.UTC)
+	require.NoError(t, err)
+	assert.Equal(t, int64(34), dayBeforeTargetValue)
+
+	targetValue, err := CalculateAssetPlanValue(plan, 20280302, time.UTC)
+	require.NoError(t, err)
+	assert.Equal(t, int64(101), targetValue)
+}
+
 func TestCalculateAssetPlanValueDoesNotOverflowIntermediateResult(t *testing.T) {
 	plan := &AssetPlan{
 		StartAmount:  -9_000_000_000_000_000_000,

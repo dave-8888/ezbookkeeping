@@ -71,6 +71,7 @@
                     <asset-plan-chart
                         :actual-points="actualTrendPoints"
                         :currency="currency"
+                        :dark="isDarkMode"
                         :plan="plan"
                         :show-plan="selectedMetric === 'net_worth'"
                     />
@@ -183,12 +184,14 @@
 
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue';
+import { useTheme } from 'vuetify';
 
 import AssetPlanChart from '@/components/common/AssetPlanChart.vue';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 
 import { useI18n } from '@/locales/helpers.ts';
 import { useAssetPlanPageBase } from '@/views/base/AssetPlanPageBase.ts';
+import { ThemeType } from '@/core/theme.ts';
 
 import {
     mdiDeleteOutline,
@@ -201,8 +204,10 @@ import {
 type SnackBarType = InstanceType<typeof SnackBar>;
 
 const { tt } = useI18n();
+const theme = useTheme();
 const snackbar = useTemplateRef<SnackBarType>('snackbar');
 const showDeleteConfirm = ref<boolean>(false);
+const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
 
 const {
     loading,

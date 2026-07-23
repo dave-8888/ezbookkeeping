@@ -23,6 +23,7 @@ func TestAssetPlanServiceCRUDAndUserIsolation(t *testing.T) {
 	}
 	require.NoError(t, datastore.InitializeDataStore(config))
 	require.NoError(t, datastore.Container.UserDataStore.SyncStructs(new(models.AssetPlan)))
+	require.NoError(t, datastore.Container.UserDataStore.SyncStructs(new(models.AssetPlan)))
 
 	service := AssetPlans
 	context := core.NewNullContext()
@@ -49,6 +50,10 @@ func TestAssetPlanServiceCRUDAndUserIsolation(t *testing.T) {
 
 	actual.TargetAmount = 2500
 	actual.TargetDate = 20270131
+	actual.StartAmount = 9999
+	actual.StartDate = 20260202
+	actual.Currency = "USD"
+	actual.SetExcludedAccountIds([]int64{56})
 	require.NoError(t, service.ModifyAssetPlan(context, actual))
 
 	modified, err := service.GetAssetPlanByUid(context, 101)
@@ -57,6 +62,9 @@ func TestAssetPlanServiceCRUDAndUserIsolation(t *testing.T) {
 	assert.Equal(t, int64(2500), modified.TargetAmount)
 	assert.Equal(t, int32(20270131), modified.TargetDate)
 	assert.Equal(t, int64(1000), modified.StartAmount)
+	assert.Equal(t, int32(20260101), modified.StartDate)
+	assert.Equal(t, "CNY", modified.Currency)
+	assert.Equal(t, []int64{12, 34}, modified.GetExcludedAccountIds())
 
 	otherUserPlan := *modified
 	otherUserPlan.Uid = 202

@@ -37,6 +37,7 @@ const props = defineProps<{
     currency: string;
     plan?: AssetPlanInfoResponse | null;
     showPlan?: boolean;
+    dark?: boolean;
 }>();
 
 const {
@@ -84,6 +85,9 @@ const chartOptions = computed(() => ({
     },
     legend: {
         top: 4,
+        textStyle: {
+            color: props.dark ? '#eee' : '#333'
+        },
         data: props.showPlan && props.plan
             ? [tt('Actual'), tt('Plan')]
             : [tt('Actual')]
@@ -91,6 +95,11 @@ const chartOptions = computed(() => ({
     tooltip: {
         trigger: 'axis',
         confine: true,
+        backgroundColor: props.dark ? '#333' : '#fff',
+        borderColor: props.dark ? '#333' : '#fff',
+        textStyle: {
+            color: props.dark ? '#eee' : '#333'
+        },
         formatter: (rawItems: unknown) => {
             const items = (Array.isArray(rawItems) ? rawItems : [rawItems]) as TooltipItem[];
             const first = items[0];
@@ -107,14 +116,26 @@ const chartOptions = computed(() => ({
     xAxis: {
         type: 'time',
         axisLabel: {
+            color: props.dark ? '#aaa' : '#666',
             hideOverlap: true
+        },
+        axisLine: {
+            lineStyle: {
+                color: props.dark ? '#666' : '#aaa'
+            }
         }
     },
     yAxis: {
         type: 'value',
         scale: true,
         axisLabel: {
+            color: props.dark ? '#aaa' : '#666',
             formatter: (value: number) => formatAmountToLocalizedNumeralsWithCurrency(Math.trunc(value), props.currency)
+        },
+        splitLine: {
+            lineStyle: {
+                color: props.dark ? '#4f4f4f' : '#e1e6f2'
+            }
         }
     },
     series: [
@@ -157,7 +178,8 @@ const chartOptions = computed(() => ({
     min-height: 300px;
     align-items: center;
     justify-content: center;
-    color: rgba(var(--v-theme-on-surface), 0.6);
+    color: inherit;
+    opacity: 0.6;
     text-align: center;
 }
 

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -253,6 +254,29 @@ func TestBuildAssetPlanResponseComparisonStatuses(t *testing.T) {
 			assert.Equal(t, models.ASSET_PLAN_STATUS_IN_PROGRESS, response.Status)
 		})
 	}
+}
+
+func TestBuildAssetPlanResponseRejectsDifferenceOverflow(t *testing.T) {
+	plan := &models.AssetPlan{
+		Uid:          42,
+		StartAmount:  math.MinInt64,
+		StartDate:    20260101,
+		TargetAmount: math.MaxInt64,
+		TargetDate:   20260103,
+		Currency:     "CNY",
+	}
+	api := &AssetPlansApi{
+		netWorth: &fakeAssetPlanNetWorthProvider{
+			values: map[int32]int64{20260101: math.MaxInt64},
+		},
+		now: func() time.Time {
+			return time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+		},
+	}
+
+	response, err := api.buildAssetPlanResponse(core.NewNullContext(), plan, time.UTC, nil)
+	require.ErrorIs(t, err, errs.ErrNumberInvalid)
+	assert.Nil(t, response)
 }
 
 func TestConvertAssetPlanAmountUsesExactDecimalRatesAndTruncates(t *testing.T) {

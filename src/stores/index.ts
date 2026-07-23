@@ -13,6 +13,7 @@ import { useStatisticsStore } from './statistics.ts';
 import { useExploresStore } from './explore.ts';
 import { useExchangeRatesStore } from './exchangeRates.ts';
 import { useUserLLMSettingsStore } from './userLLMSetting.ts';
+import { useAssetPlanStore } from './assetPlan.ts';
 
 import type { AuthResponse, RegisterResponse } from '@/models/auth_response.ts';
 import type {
@@ -54,6 +55,7 @@ export const useRootStore = defineStore('root', () => {
     const exploresStore = useExploresStore();
     const exchangeRatesStore = useExchangeRatesStore();
     const userLLMSettingsStore = useUserLLMSettingsStore();
+    const assetPlanStore = useAssetPlanStore();
 
     const currentNotification = ref<string | null>(null);
 
@@ -73,6 +75,7 @@ export const useRootStore = defineStore('root', () => {
         transactionTemplatesStore.resetTransactionTemplates();
         accountsStore.resetAccounts();
         userLLMSettingsStore.resetUserLLMSetting();
+        assetPlanStore.resetAssetPlan();
 
         if (resetUserInfoAndSettings) {
             userStore.resetUserBasicInfo();
@@ -544,6 +547,8 @@ export const useRootStore = defineStore('root', () => {
                     statisticsStore.updateTransactionStatisticsInvalidState(true);
                 }
 
+                assetPlanStore.resetAssetPlan();
+
                 resolve(data.result);
             }).catch(error => {
                 logger.error('failed to clear user data', error);
@@ -582,6 +587,8 @@ export const useRootStore = defineStore('root', () => {
                 if (!statisticsStore.transactionStatisticsStateInvalid) {
                     statisticsStore.updateTransactionStatisticsInvalidState(true);
                 }
+
+                assetPlanStore.resetAssetPlan();
 
                 resolve(data.result);
             }).catch(error => {
@@ -629,6 +636,8 @@ export const useRootStore = defineStore('root', () => {
                 if (!statisticsStore.transactionStatisticsStateInvalid) {
                     statisticsStore.updateTransactionStatisticsInvalidState(true);
                 }
+
+                assetPlanStore.resetAssetPlan();
 
                 resolve(data.result);
             }).catch(error => {

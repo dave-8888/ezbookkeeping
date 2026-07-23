@@ -162,7 +162,7 @@ export function useAssetPlanPageBase() {
 
         return Promise.all([
             accountsStore.loadAllAccounts({ force: false }),
-            assetPlanStore.loadAssetPlan({ force: false })
+            assetPlanStore.loadAssetPlan()
         ]).then(() => {
             configureTrends();
             return loadTrends(false);
@@ -181,7 +181,7 @@ export function useAssetPlanPageBase() {
 
         return Promise.all([
             accountsStore.loadAllAccounts({ force: true }),
-            assetPlanStore.loadAssetPlan({ force: true })
+            assetPlanStore.loadAssetPlan()
         ]).then(() => {
             configureTrends();
             return loadTrends(true);

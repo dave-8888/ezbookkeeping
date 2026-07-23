@@ -243,7 +243,7 @@ function parseTransactionTime(text: string, currentUnixTime?: number): number | 
     let day = baseDate.getDate();
     let hour = 0;
     let minute = 0;
-    let second = 0;
+    const second = 0;
 
     const explicitDateMatch = text.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})[日号]?/);
 

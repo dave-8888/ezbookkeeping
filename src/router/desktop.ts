@@ -22,6 +22,7 @@ import InsightsExplorePage from '@/views/desktop/insights/ExplorePage.vue';
 
 import AccountListPage from '@/views/desktop/accounts/ListPage.vue';
 import QuickBalanceModifyPage from '@/views/desktop/accounts/QuickBalanceModifyPage.vue';
+import AssetPlanPage from '@/views/desktop/assetplans/AssetPlanPage.vue';
 
 import TransactionCategoryListPage from '@/views/desktop/categories/ListPage.vue';
 
@@ -159,6 +160,11 @@ const router = createRouter({
                 {
                     path: '/account/quick_balance_modify',
                     component: QuickBalanceModifyPage,
+                    beforeEnter: checkLogin
+                },
+                {
+                    path: '/asset-planning',
+                    component: AssetPlanPage,
                     beforeEnter: checkLogin
                 },
                 {

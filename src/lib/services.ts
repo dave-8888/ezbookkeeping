@@ -161,6 +161,11 @@ import type {
     RecognizedReceiptImageResponse,
     RecognizedTransactionResponse
 } from '@/models/large_language_model.ts';
+import type {
+    AssetPlanCreateRequest,
+    AssetPlanModifyRequest,
+    AssetPlanInfoResponse
+} from '@/models/asset_plan.ts';
 
 import {
     getCurrentToken,
@@ -594,6 +599,18 @@ export default {
         }
 
         return axios.get<ApiResponse<TransactionStatisticAssetTrendsResponseItem[]>>('v1/transactions/statistics/asset_trends.json' + (queryParams.length ? '?' + queryParams.join('&') : ''));
+    },
+    getAssetPlan: (): ApiResponsePromise<AssetPlanInfoResponse | null> => {
+        return axios.get<ApiResponse<AssetPlanInfoResponse | null>>('v1/asset_plans/get.json');
+    },
+    createAssetPlan: (req: AssetPlanCreateRequest): ApiResponsePromise<AssetPlanInfoResponse> => {
+        return axios.post<ApiResponse<AssetPlanInfoResponse>>('v1/asset_plans/add.json', req);
+    },
+    modifyAssetPlan: (req: AssetPlanModifyRequest): ApiResponsePromise<AssetPlanInfoResponse> => {
+        return axios.post<ApiResponse<AssetPlanInfoResponse>>('v1/asset_plans/modify.json', req);
+    },
+    deleteAssetPlan: (): ApiResponsePromise<boolean> => {
+        return axios.post<ApiResponse<boolean>>('v1/asset_plans/delete.json');
     },
     getTransactionAmounts: (params: TransactionAmountsRequestParams, excludeAccountIds: string[], excludeCategoryIds: string[]): ApiResponsePromise<TransactionAmountsResponse> => {
         const req = TransactionAmountsRequest.of(params);

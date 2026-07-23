@@ -45,6 +45,12 @@ import 'line-awesome/dist/line-awesome/css/line-awesome.css';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import { GridComponent, LegendComponent, TooltipComponent, AriaComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+import VChart from 'vue-echarts';
+
 import { getI18nOptions } from '@/locales/helpers.ts';
 
 import PinCodeInput from '@/components/common/PinCodeInput.vue';
@@ -135,11 +141,22 @@ Framework7.use([
 const app = createApp(App);
 const pinia = createPinia();
 const i18n = createI18n(getI18nOptions());
+
+echarts.use([
+    LineChart,
+    GridComponent,
+    LegendComponent,
+    TooltipComponent,
+    AriaComponent,
+    CanvasRenderer
+]);
+
 registerComponents(app);
 app.use(pinia);
 app.use(i18n);
 
 app.component('VueDatePicker', VueDatePicker);
+app.component('VChart', VChart);
 
 app.component('PinCodeInput', PinCodeInput);
 app.component('MapView', MapView);

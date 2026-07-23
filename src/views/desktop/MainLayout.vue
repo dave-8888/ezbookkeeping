@@ -91,6 +91,12 @@
                         <span class="nav-item-title">{{ tt('Scheduled Transactions') }}</span>
                     </router-link>
                 </li>
+                <li class="nav-link">
+                    <router-link to="/asset-planning">
+                        <v-icon class="nav-item-icon" :icon="mdiTarget"/>
+                        <span class="nav-item-title">{{ tt('Asset Planning') }}</span>
+                    </router-link>
+                </li>
                 <li class="nav-section-title">
                     <div class="title-wrapper">
                         <span class="title-text">{{ tt('Miscellaneous') }}</span>
@@ -249,6 +255,7 @@ import {
     mdiTagOutline,
     mdiClipboardTextOutline,
     mdiClipboardTextClockOutline,
+    mdiTarget,
     mdiChartPieOutline,
     mdiCompassOutline,
     mdiSwapHorizontal,

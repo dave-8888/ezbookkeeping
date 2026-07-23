@@ -15,6 +15,15 @@
             <f7-list-button :class="{ 'disabled': logouting }" @click="logout">{{ tt('Log Out') }}</f7-list-button>
         </f7-list>
 
+        <f7-block-title>{{ tt('Planning') }}</f7-block-title>
+        <f7-list strong inset dividers>
+            <f7-list-item :title="tt('Asset Planning')" link="/asset-planning">
+                <template #media>
+                    <f7-icon f7="scope"></f7-icon>
+                </template>
+            </f7-list-item>
+        </f7-list>
+
         <f7-block-title>{{ tt('Application') }}</f7-block-title>
         <f7-list strong inset dividers class="settings-list">
             <f7-list-item

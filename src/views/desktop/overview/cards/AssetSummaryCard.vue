@@ -6,7 +6,7 @@
 
         <v-card-text>
             <div class="mb-8">
-                <span class="text-body-1" v-if="!loading || hasDisplayAccounts">{{ tt('format.misc.youHaveAccounts', { count: displayAccountCount }) }}</span>
+                <span class="text-body-1" v-if="!loading || hasDisplayAccounts">{{ tt('format.misc.youHaveAccounts', { count: displayAccountCountText }) }}</span>
                 <v-skeleton-loader class="skeleton-no-margin mt-1 mb-2 pb-1" width="200px" type="text" :loading="true" v-else-if="loading && !hasDisplayAccounts"></v-skeleton-loader>
             </div>
 
@@ -95,7 +95,7 @@ const {
 const numeralSystem = computed(() => getCurrentNumeralSystemType());
 const displayAccountCountValue = computed<number>(() => props.displayAccountCount ?? allAccounts.value?.length ?? 0);
 const hasDisplayAccounts = computed<boolean>(() => displayAccountCountValue.value > 0);
-const displayAccountCount = computed<string>(() => numeralSystem.value.formatNumber(displayAccountCountValue.value));
+const displayAccountCountText = computed<string>(() => numeralSystem.value.formatNumber(displayAccountCountValue.value));
 const netAssets = computed<string>(() => {
     return formatAmountToLocalizedNumeralsWithCurrency(
         accountsStore.getNetAssets(showAmountInHomePage.value, props.includeHiddenAccounts),

@@ -39,6 +39,7 @@ Live Demo: [https://financially_free-demo.mayswind.net](https://financially_free
     - Attach images to transactions
     - Location tracking with maps
     - Recurring transactions
+    - Net-worth goal planning with planned and actual trends
     - Advanced filtering, search, visualization, and analysis
 - **Localization & Globalization**
     - Multi-language and multi-currency support
@@ -171,6 +172,7 @@ Don't see your language? Help us add it.
 ## Documentation
 1. [English](https://financially_free.mayswind.net)
 1. [中文 (简体)](https://financially_free.mayswind.net/zh_Hans)
+1. [资产规划交付、迁移与回滚说明](docs/资产规划交付说明.md)
 
 ## License
 [MIT](https://github.com/mayswind/financially_free/blob/master/LICENSE)

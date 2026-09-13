@@ -2502,5 +2502,22 @@
     "An error occurred": "發生錯誤",
     "Parameter Invalid": "參數無效",
     "Numeric Overflow": "數值溢位",
-    "Click to close": "點選關閉"
+    "Click to close": "點選關閉",
+    "Expense Analysis": "支出分析",
+    "Filters Applied": "已篩選",
+    "Filter": "篩選",
+    "Previous Period": "上一時段",
+    "Next Period": "下一時段",
+    "Filtered Total Expense": "篩選後的總支出",
+    "View Expense Transactions": "查看支出明細",
+    "Where Your Money Goes": "錢花在哪裡",
+    "By Main Category": "按大類",
+    "By Subcategory": "按子類",
+    "Category Ranking": "分類排行",
+    "Loading Expense Data": "正在載入支出…",
+    "No Expense In This Period": "這段時間暫無支出",
+    "Try Another Period Or Filter": "試試切換時間，或調整篩選條件。",
+    "Try Another Period For Expenses": "切換時間，查看其他時段的支出。",
+    "Tap A Category To View Transactions": "點擊分類，查看每一筆支出",
+    "Retry": "重試"
 }

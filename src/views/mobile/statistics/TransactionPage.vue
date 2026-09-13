@@ -3,13 +3,17 @@
         <f7-navbar>
             <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
             <f7-nav-title>
-                <f7-link popover-open=".chart-data-type-popover-menu">
+                <span v-if="isExpenseBreakdown">{{ tt('Expense Analysis') }}</span>
+                <f7-link popover-open=".chart-data-type-popover-menu" v-else>
                     <span class="statistics-page-title">{{ queryChartDataTypeName }}</span>
                     <f7-icon class="page-title-bar-icon" color="gray" style="opacity: 0.5" f7="chevron_down_circle_fill"></f7-icon>
                 </f7-link>
             </f7-nav-title>
             <f7-nav-right>
-                <f7-link icon-f7="ellipsis" @click="showMoreActionSheet = true"></f7-link>
+                <f7-link v-if="isExpenseBreakdown" @click="showMoreActionSheet = true">
+                    {{ tt(hasExpenseFilters ? 'Filters Applied' : 'Filter') }}
+                </f7-link>
+                <f7-link icon-f7="ellipsis" @click="showMoreActionSheet = true" v-else></f7-link>
             </f7-nav-right>
         </f7-navbar>
 
@@ -58,7 +62,97 @@
             </f7-list>
         </f7-popover>
 
-        <f7-card v-if="analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.categoricalChartType === CategoricalChartType.Pie.type">
+        <section class="expense-breakdown" v-if="isExpenseBreakdown" :aria-busy="loading || reloading">
+            <div class="expense-period">
+                <f7-button type="button" :disabled="loading || reloading || !canShiftDateRange" :aria-label="tt('Previous Period')" @click="shiftDateRange(-1)">
+                    <f7-icon aria-hidden="true" class="icon-with-direction" f7="chevron_left"></f7-icon>
+                </f7-button>
+                <f7-link class="expense-period-label" :class="{ disabled: loading || reloading }" popover-open=".date-popover-menu">
+                    <span>{{ expensePeriodLabel }}</span>
+                    <f7-icon aria-hidden="true" f7="chevron_down" size="14"></f7-icon>
+                </f7-link>
+                <f7-button type="button" :disabled="loading || reloading || !canShiftDateRange" :aria-label="tt('Next Period')" @click="shiftDateRange(1)">
+                    <f7-icon aria-hidden="true" class="icon-with-direction" f7="chevron_right"></f7-icon>
+                </f7-button>
+            </div>
+
+            <div class="expense-summary" aria-live="polite">
+                <p class="expense-summary-label">{{ tt(hasExpenseFilters ? 'Filtered Total Expense' : 'Total Expense') }}</p>
+                <div class="expense-summary-amount" :class="{ 'skeleton-text': loading || reloading }">
+                    {{ loading || reloading ? '***.**' : expenseLoadFailed ? '—' : getDisplayAmount(categoricalAnalysisData.totalAmount, defaultCurrency) }}
+                </div>
+                <f7-link class="expense-all-transactions" :class="{ disabled: loading || reloading || expenseLoadFailed || !categoricalAnalysisData.items.length }" :href="getTransactionItemLinkUrl('')">
+                    {{ tt('View Expense Transactions') }}
+                    <f7-icon aria-hidden="true" class="icon-with-direction" f7="chevron_right" size="12"></f7-icon>
+                </f7-link>
+            </div>
+
+            <div class="expense-section-heading">
+                <h2>{{ tt('Where Your Money Goes') }}</h2>
+                <f7-link popover-open=".chart-data-type-popover-menu">
+                    {{ tt(query.chartDataType === ChartDataType.ExpenseByPrimaryCategory.type ? 'By Main Category' : 'By Subcategory') }}
+                    <f7-icon aria-hidden="true" f7="chevron_down" size="12"></f7-icon>
+                </f7-link>
+            </div>
+            <div class="expense-view-controls">
+                <f7-segmented strong>
+                    <f7-button type="button" :active="!showExpensePie" :aria-pressed="!showExpensePie" @click="showExpensePie = false">{{ tt('Category Ranking') }}</f7-button>
+                    <f7-button type="button" :active="showExpensePie" :aria-pressed="showExpensePie" @click="showExpensePie = true">{{ tt('Pie Chart') }}</f7-button>
+                </f7-segmented>
+                <f7-link class="expense-sort" popover-open=".sorting-type-popover-menu" :aria-label="`${tt('Sort by')} ${querySortingTypeName}`">
+                    {{ tt('Sort by') }} {{ querySortingTypeName }}
+                    <f7-icon aria-hidden="true" f7="chevron_down" size="12"></f7-icon>
+                </f7-link>
+            </div>
+
+            <div class="expense-details">
+                <div class="expense-loading" role="status" v-if="loading || reloading">
+                    <f7-preloader></f7-preloader>
+                    <span>{{ tt('Loading Expense Data') }}</span>
+                </div>
+                <div class="expense-empty" role="alert" v-else-if="expenseLoadFailed">
+                    <h3>{{ tt('Unable to retrieve transaction statistics') }}</h3>
+                    <f7-button type="button" @click="reload()">{{ tt('Retry') }}</f7-button>
+                </div>
+                <div class="expense-empty" v-else-if="!categoricalAnalysisData.items.length">
+                    <f7-icon aria-hidden="true" f7="tray" size="32"></f7-icon>
+                    <h3>{{ tt('No Expense In This Period') }}</h3>
+                    <p>{{ tt(hasExpenseFilters ? 'Try Another Period Or Filter' : 'Try Another Period For Expenses') }}</p>
+                </div>
+                <template v-else>
+                    <pie-chart v-if="showExpensePie" class="expense-pie"
+                               :items="expenseItems" :min-valid-percent="0.0001"
+                               :show-value="true" :show-percent="true" :show-center-text="false"
+                               :show-selected-item-info="true" :enable-click-item="true"
+                               :amount-value="true" :default-currency="defaultCurrency"
+                               name-field="name" value-field="totalAmount" percent-field="percent" hidden-field="hidden"
+                               @click="onClickPieChartItem">
+                    </pie-chart>
+                    <p class="expense-list-hint">{{ tt('Tap A Category To View Transactions') }}</p>
+                    <f7-list class="expense-category-list">
+                        <f7-list-item :link="getTransactionItemLinkUrl(item.id)" :key="item.id" v-for="item in expenseItems">
+                            <template #media>
+                                <ItemIcon :icon-type="queryChartDataCategory" :icon-id="item.icon" :color="item.color" v-if="item.icon"></ItemIcon>
+                                <f7-icon aria-hidden="true" f7="pencil_ellipsis_rectangle" v-else></f7-icon>
+                            </template>
+                            <template #title>
+                                <div class="expense-category-heading">
+                                    <span class="expense-category-name">{{ item.name }}</span>
+                                    <span class="expense-category-amount">{{ getDisplayAmount(item.totalAmount, defaultCurrency) }}</span>
+                                </div>
+                                <div class="expense-category-share">
+                                    <f7-progressbar :progress="Math.max(0, Math.min(100, item.percent))"
+                                                    :style="{ '--f7-progressbar-progress-color': getTransactionCategoricalAnalysisDataItemDisplayColor(item) }"></f7-progressbar>
+                                    <span>{{ item.percent >= 0 ? formatPercentToLocalizedNumerals(item.percent, 2, '&lt;0.01') : '—' }}</span>
+                                </div>
+                            </template>
+                        </f7-list-item>
+                    </f7-list>
+                </template>
+            </div>
+        </section>
+
+        <f7-card v-else-if="analysisType === StatisticsAnalysisType.CategoricalAnalysis && query.categoricalChartType === CategoricalChartType.Pie.type">
             <f7-card-header class="no-border display-block">
                 <div :class="{ 'statistics-chart-header': true, 'full-line': true, 'text-align-right': textDirection === TextDirection.LTR, 'text-align-left': textDirection === TextDirection.RTL}">
                     <span style="margin-inline-end: 4px;">{{ tt('Sort by') }}</span>
@@ -290,7 +384,7 @@
             </f7-list>
         </f7-popover>
 
-        <f7-toolbar tabbar bottom class="toolbar-item-auto-size">
+        <f7-toolbar tabbar bottom class="toolbar-item-auto-size" v-if="!isExpenseBreakdown">
             <f7-link :class="{ 'disabled': reloading || !canShiftDateRange }" @click="shiftDateRange(-1)">
                 <f7-icon class="icon-with-direction" f7="arrow_left_square"></f7-icon>
             </f7-link>
@@ -430,7 +524,8 @@ import {
     getYearMonthLastUnixTime,
     getShiftedDateRangeAndDateType,
     getDateTypeByDateRange,
-    getDateRangeByDateType
+    getDateRangeByDateType,
+    parseDateTimeFromUnixTime
 } from '@/lib/datetime.ts';
 import { scrollToSelectedItem } from '@/lib/ui/common.ts';
 import { type Framework7Dom, useI18nUIComponents } from '@/lib/ui/mobile.ts';
@@ -443,7 +538,9 @@ const {
     tt,
     getCurrentLanguageTextDirection,
     getAllCategoricalChartTypes,
-    formatPercentToLocalizedNumerals
+    formatPercentToLocalizedNumerals,
+    formatDateTimeToLongDate,
+    formatDateTimeToGregorianLikeLongYearMonth
 } = useI18n();
 
 const { showPrompt, showToast, routeBackOnError } = useI18nUIComponents();
@@ -498,6 +595,35 @@ const reloading = ref<boolean>(false);
 const showCustomDateRangeSheet = ref<boolean>(false);
 const showCustomMonthRangeSheet = ref<boolean>(false);
 const showMoreActionSheet = ref<boolean>(false);
+const showExpensePie = ref<boolean>(false);
+const expenseLoadFailed = ref<boolean>(false);
+
+const isExpenseBreakdown = computed(() => analysisType.value === StatisticsAnalysisType.CategoricalAnalysis &&
+    (query.value.chartDataType === ChartDataType.ExpenseByPrimaryCategory.type ||
+        query.value.chartDataType === ChartDataType.ExpenseBySecondaryCategory.type));
+
+const expenseItems = computed(() => categoricalAnalysisData.value.items.filter(item => !item.hidden));
+
+const hasExpenseFilters = computed(() => Object.values(query.value.filterAccountIds).some(Boolean) ||
+    Object.values(query.value.filterCategoryIds).some(Boolean) || !!query.value.tagFilter || !!query.value.keyword);
+
+const expensePeriodLabel = computed(() => {
+    if (query.value.categoricalChartDateType === DateRange.All.type) {
+        return queryDateRangeName.value;
+    }
+
+    const start = query.value.categoricalChartStartTime;
+    const end = query.value.categoricalChartEndTime;
+    const month = getGregorianCalendarYearAndMonthFromUnixTime(start);
+
+    if (start === getYearMonthFirstUnixTime(month) && end === getYearMonthLastUnixTime(month)) {
+        return formatDateTimeToGregorianLikeLongYearMonth(parseDateTimeFromUnixTime(start));
+    }
+
+    const startLabel = formatDateTimeToLongDate(parseDateTimeFromUnixTime(start));
+    const endLabel = formatDateTimeToLongDate(parseDateTimeFromUnixTime(end));
+    return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+});
 
 const textDirection = computed<TextDirection>(() => getCurrentLanguageTextDirection());
 
@@ -555,7 +681,13 @@ function init(): void {
     }).then(() => {
         loading.value = false;
     }).catch(error => {
-        if (error.processed) {
+        if (isExpenseBreakdown.value) {
+            loading.value = false;
+            expenseLoadFailed.value = true;
+            if (!error.processed) {
+                showToast(error.message || error);
+            }
+        } else if (error.processed) {
             loading.value = false;
         } else {
             loadingError.value = error;
@@ -569,6 +701,7 @@ function reload(done?: () => void): void {
     let dispatchPromise: Promise<unknown> | null = null;
 
     reloading.value = true;
+    expenseLoadFailed.value = false;
 
     if (query.value.chartDataType === ChartDataType.OutflowsByAccount.type ||
         query.value.chartDataType === ChartDataType.ExpenseByAccount.type ||
@@ -586,9 +719,10 @@ function reload(done?: () => void): void {
         query.value.chartDataType === ChartDataType.NetIncome.type ||
         query.value.chartDataType === ChartDataType.NetWorth.type) {
         if (analysisType.value === StatisticsAnalysisType.CategoricalAnalysis) {
-            dispatchPromise = statisticsStore.loadCategoricalAnalysis({
-                force: force
-            });
+            dispatchPromise = Promise.all([
+                accountsStore.loadAllAccounts({ force: false }),
+                transactionCategoriesStore.loadAllCategories({ force: false })
+            ]).then(() => statisticsStore.loadCategoricalAnalysis({ force }));
         } else if (analysisType.value === StatisticsAnalysisType.TrendAnalysis) {
             dispatchPromise = statisticsStore.loadTrendAnalysis({
                 force: force
@@ -622,6 +756,7 @@ function reload(done?: () => void): void {
             }
         }).catch(error => {
             reloading.value = false;
+            expenseLoadFailed.value = !error.isUpToDate;
 
             done?.();
 
@@ -946,5 +1081,224 @@ init();
 .chart-data-type-popover-menu .popover-inner {
     max-height: 440px;
     overflow-y: auto;
+}
+
+.expense-breakdown {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 12px 20px calc(32px + var(--f7-safe-area-bottom));
+    color: var(--f7-text-color);
+}
+
+.expense-period,
+.expense-section-heading,
+.expense-view-controls,
+.expense-category-heading,
+.expense-category-share {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.expense-period > .button {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.expense-period-label {
+    min-height: 44px;
+    gap: 8px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--f7-text-color);
+}
+
+.expense-summary {
+    padding: 22px 0 28px;
+}
+
+.expense-summary-label,
+.expense-list-hint,
+.expense-empty p {
+    margin: 0;
+    color: var(--f7-list-item-footer-text-color, #6e6e73);
+    font-size: 13px;
+}
+
+.expense-summary-amount {
+    margin: 6px 0 4px;
+    font-size: clamp(28px, 8vw, 40px);
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.expense-all-transactions {
+    min-height: 44px;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.expense-section-heading h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.expense-section-heading > .link,
+.expense-sort {
+    min-height: 44px;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.expense-view-controls {
+    margin: 8px 0 12px;
+    flex-wrap: wrap;
+}
+
+.expense-view-controls .segmented {
+    min-width: 180px;
+    flex: 1;
+    max-width: 300px;
+}
+
+.expense-view-controls .button {
+    height: 40px;
+    font-size: 14px;
+}
+
+.expense-details {
+    border-radius: 16px;
+    background: var(--f7-list-strong-bg-color);
+    overflow: hidden;
+}
+
+.expense-list-hint {
+    padding: 16px 16px 0;
+}
+
+.expense-category-list {
+    margin: 0;
+    --f7-list-bg-color: transparent;
+    --f7-list-item-padding-horizontal: 16px;
+    --f7-list-item-media-margin: 12px;
+    --f7-list-item-border-color: rgba(128, 128, 128, 0.14);
+}
+
+.expense-category-list .item-inner {
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.expense-category-list .item-title {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+}
+
+.expense-category-heading {
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.expense-category-name {
+    flex: 1 1 80px;
+    overflow-wrap: anywhere;
+}
+
+.expense-category-amount {
+    margin-inline-start: auto;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.expense-category-share {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--f7-list-item-footer-text-color, #6e6e73);
+    font-variant-numeric: tabular-nums;
+}
+
+.expense-category-share .progressbar {
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    --f7-progressbar-bg-color: rgba(128, 128, 128, 0.12);
+}
+
+.expense-category-share > span {
+    min-width: 52px;
+    text-align: end;
+}
+
+.expense-empty,
+.expense-loading {
+    padding: 36px 20px;
+    text-align: center;
+}
+
+.expense-empty > .icon {
+    color: var(--f7-color-gray);
+}
+
+.expense-empty h3 {
+    margin: 12px 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.expense-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.expense-pie {
+    padding: 20px 16px 0;
+}
+
+.expense-pie .pie-chart {
+    display: block;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+}
+
+.expense-pie .pie-chart-toolbox-button {
+    display: none;
+}
+
+.expense-pie .pie-chart-toolbox {
+    justify-content: center;
+}
+
+.expense-breakdown a:focus-visible,
+.expense-breakdown button:focus-visible {
+    outline: 2px solid var(--f7-theme-color);
+    outline-offset: 2px;
+}
+
+@media (max-width: 360px) {
+    .expense-breakdown {
+        padding-inline: 12px;
+    }
+
+    .expense-section-heading h2 {
+        font-size: 18px;
+    }
 }
 </style>

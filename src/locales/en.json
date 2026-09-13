@@ -2503,5 +2503,22 @@
     "An error occurred": "An error occurred",
     "Parameter Invalid": "Parameter Invalid",
     "Numeric Overflow": "Numeric Overflow",
-    "Click to close": "Click to close"
+    "Click to close": "Click to close",
+    "Expense Analysis": "Expense Analysis",
+    "Filters Applied": "Filters Applied",
+    "Filter": "Filter",
+    "Previous Period": "Previous Period",
+    "Next Period": "Next Period",
+    "Filtered Total Expense": "Filtered Total Expense",
+    "View Expense Transactions": "View Expense Transactions",
+    "Where Your Money Goes": "Where Your Money Goes",
+    "By Main Category": "By Main Category",
+    "By Subcategory": "By Subcategory",
+    "Category Ranking": "Category Ranking",
+    "Loading Expense Data": "Loading Expense Data",
+    "No Expense In This Period": "No Expense In This Period",
+    "Try Another Period Or Filter": "Try Another Period Or Filter",
+    "Try Another Period For Expenses": "Try Another Period For Expenses",
+    "Tap A Category To View Transactions": "Tap A Category To View Transactions",
+    "Retry": "Retry"
 }

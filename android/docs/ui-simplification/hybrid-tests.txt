@@ -1,0 +1,8 @@
+
+net.ezbookkeeping.chat.HybridFlowTest:.
+net.ezbookkeeping.chat.LoginHistoryTest:...
+net.ezbookkeeping.chat.StorageTest:.
+
+Time: 3.248
+
+OK (5 tests)

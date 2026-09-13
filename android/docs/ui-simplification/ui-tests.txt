@@ -1,0 +1,8 @@
+
+net.ezbookkeeping.chat.ChatFlowTest:.
+net.ezbookkeeping.chat.AppearanceTest:....
+net.ezbookkeeping.chat.TransactionEditorUiTest:..
+
+Time: 14.403
+
+OK (7 tests)

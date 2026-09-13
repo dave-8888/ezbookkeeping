@@ -168,7 +168,9 @@
                 <f7-icon f7="creditcard"></f7-icon>
                 <span class="tabbar-label">{{ tt('Accounts') }}</span>
             </f7-link>
-            <f7-link id="homepage-add-button" class="link" href="/transaction/add" @taphold="openTransactionTemplatePopover">
+            <f7-link id="homepage-add-button" class="link" :href="isNativeApp() ? undefined : '/transaction/add'"
+                     :aria-label="tt('Add Transaction')" @click="isNativeApp() && openTransactionTemplatePopover()"
+                     @taphold="openTransactionTemplatePopover">
                 <f7-icon f7="plus_square" class="ebk-tarbar-big-icon"></f7-icon>
             </f7-link>
             <f7-link class="link" href="/statistic/transaction">
@@ -184,6 +186,12 @@
         <f7-popover class="template-popover-menu" target-el="#homepage-add-button"
                     v-model:opened="showTransactionTemplatePopover">
             <f7-list dividers v-if="allTransactionTemplates">
+                <f7-list-item v-if="isNativeApp()" title="对话记账" link="#" @click="openChatBookkeeping">
+                    <template #media><f7-icon f7="chat_bubble_2"></f7-icon></template>
+                </f7-list-item>
+                <f7-list-item v-if="isNativeApp()" :title="tt('Add Transaction')" link="/transaction/add" @click="showTransactionTemplatePopover = false">
+                    <template #media><f7-icon f7="pencil"></f7-icon></template>
+                </f7-list-item>
                 <f7-list-item key="VoiceInput" :title="tt('Voice Input')"
                               @click="addByVoiceInput"
                               v-if="isSpeechRecognitionSupported()">
@@ -233,6 +241,7 @@ import { TemplateType } from '@/core/template.ts';
 import { TransactionTemplate } from '@/models/transaction_template.ts';
 import type { RecognizedReceiptImageResponse } from '@/models/large_language_model.ts';
 
+import { isNativeApp, notifyNative } from '@/lib/native_app.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
 import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
@@ -272,9 +281,14 @@ const allTransactionTemplates = computed<TransactionTemplate[]>(() => {
 });
 
 function openTransactionTemplatePopover(): void {
-    if (isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
+    if (isNativeApp() || isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
         showTransactionTemplatePopover.value = true;
     }
+}
+
+function openChatBookkeeping(): void {
+    showTransactionTemplatePopover.value = false;
+    notifyNative('chat');
 }
 
 function init(): void {

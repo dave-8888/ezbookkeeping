@@ -18,6 +18,7 @@
         <f7-block-title>{{ tt('Application') }}</f7-block-title>
         <f7-list strong inset dividers class="settings-list">
             <f7-list-item
+                v-if="!isNativeApp()"
                 link="#"
                 :title="tt('Theme')"
                 :after="findNameByValue(allThemes, currentTheme)"
@@ -35,6 +36,8 @@
                                            v-model="currentTheme">
                 </list-item-selection-popup>
             </f7-list-item>
+
+            <f7-list-item v-if="isNativeApp()" :title="tt('Theme')" :after="tt('System Default')" />
 
             <f7-list-item :title="tt('Text Size')" link="/settings/textsize"></f7-list-item>
 
@@ -64,7 +67,7 @@
                 </list-item-selection-popup>
             </f7-list-item>
 
-            <f7-list-item :title="tt('Application Lock')" :after="isEnableApplicationLock ? tt('Enabled') : tt('Disabled')" link="/app_lock"></f7-list-item>
+            <f7-list-item v-if="!isNativeApp()" :title="tt('Application Lock')" :after="isEnableApplicationLock ? tt('Enabled') : tt('Disabled')" link="/app_lock"></f7-list-item>
 
             <f7-list-item :title="tt('Exchange Rates Data')" :after="exchangeRatesLastUpdateDate" link="/exchange_rates"></f7-list-item>
 
@@ -117,6 +120,7 @@
 </template>
 
 <script setup lang="ts">
+import { isNativeApp } from '@/lib/native_app.ts';
 import { ref, computed } from 'vue';
 import type { Router } from 'framework7/types';
 

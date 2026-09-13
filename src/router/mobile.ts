@@ -1,4 +1,5 @@
 import type { Router } from 'framework7/types';
+import { isNativeApp } from '@/lib/native_app.ts';
 
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 
@@ -257,7 +258,7 @@ const routes: Router.RouteParameters[] = [
     {
         path: '/app_lock',
         async: asyncResolve(ApplicationLockPage),
-        beforeEnter: [checkLogin]
+        beforeEnter: [checkLogin, ({ reject, resolve }: Router.RouteCallbackCtx) => { if (isNativeApp()) reject(); else resolve(); }]
     },
     {
         path: '/exchange_rates',

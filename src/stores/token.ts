@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { isNativeApp } from '@/lib/native_app.ts';
 
 import { useSettingsStore } from './setting.ts';
 import { useUserStore } from './user.ts';
@@ -61,7 +62,7 @@ export const useTokensStore = defineStore('tokens', () => {
                 if (data && data.success && data.result && data.result.newToken) {
                     updateCurrentToken(data.result.newToken);
 
-                    if (data.result.oldTokenId) {
+                    if (data.result.oldTokenId && !isNativeApp()) {
                         revokeToken({
                             tokenId: data.result.oldTokenId,
                             ignoreError: true

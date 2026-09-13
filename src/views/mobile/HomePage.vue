@@ -1,9 +1,5 @@
 <template>
-    <f7-page ptr @ptr:refresh="reload" @page:afterin="onPageAfterIn">
-        <f7-navbar>
-            <f7-nav-title :title="tt('global.app.title')"></f7-nav-title>
-        </f7-navbar>
-
+    <f7-page no-navbar ptr @ptr:refresh="reload" @page:afterin="onPageAfterIn">
         <f7-card class="home-summary-card no-margin-top" :class="{ 'skeleton-text': loading }">
             <f7-card-header class="display-block" style="padding-top: 120px;">
                 <p class="no-margin">

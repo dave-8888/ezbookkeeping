@@ -2531,5 +2531,22 @@
     "An error occurred": "发生错误",
     "Parameter Invalid": "参数错误",
     "Numeric Overflow": "数值溢出",
-    "Click to close": "点击关闭"
+    "Click to close": "点击关闭",
+    "Expense Analysis": "支出分析",
+    "Filters Applied": "已筛选",
+    "Filter": "筛选",
+    "Previous Period": "上一时段",
+    "Next Period": "下一时段",
+    "Filtered Total Expense": "筛选后的总支出",
+    "View Expense Transactions": "查看支出明细",
+    "Where Your Money Goes": "钱花在哪里",
+    "By Main Category": "按大类",
+    "By Subcategory": "按子类",
+    "Category Ranking": "分类排行",
+    "Loading Expense Data": "正在加载支出…",
+    "No Expense In This Period": "这段时间暂无支出",
+    "Try Another Period Or Filter": "试试切换时间，或调整筛选条件。",
+    "Try Another Period For Expenses": "切换时间，查看其他时段的支出。",
+    "Tap A Category To View Transactions": "点击分类，查看每一笔支出",
+    "Retry": "重试"
 }

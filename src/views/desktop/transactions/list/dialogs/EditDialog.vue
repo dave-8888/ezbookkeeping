@@ -464,23 +464,25 @@
                 </v-window>
             </v-card-text>
             <v-card-text>
-                <div class="w-100 d-flex justify-center flex-wrap mt-sm-1 mt-md-2 gap-4">
-                    <v-tooltip :disabled="!inputIsEmpty" :text="inputEmptyProblemMessage ? tt(inputEmptyProblemMessage) : ''">
+                <div class="w-100 d-flex justify-center flex-wrap mt-sm-1 mt-md-2 gap-4"
+                     :class="{ 'transaction-detail-actions': mode === TransactionEditPageMode.View }">
+                    <v-tooltip v-if="mode !== TransactionEditPageMode.View" :disabled="!inputIsEmpty" :text="inputEmptyProblemMessage ? tt(inputEmptyProblemMessage) : ''">
                         <template v-slot:activator="{ props }">
                             <div v-bind="props" class="d-inline-block">
                                 <v-btn :disabled="inputIsEmpty || loading || submitting"
-                                       v-if="mode !== TransactionEditPageMode.View" @click="save">
+                                       @click="save">
                                     {{ tt(saveButtonTitle) }}
                                     <v-progress-circular indeterminate size="22" class="ms-2" v-if="submitting"></v-progress-circular>
                                 </v-btn>
                             </div>
                         </template>
                     </v-tooltip>
-                    <v-btn-group variant="tonal" density="comfortable"
+                    <v-btn-group class="transaction-detail-copy" variant="tonal" density="comfortable"
                                  v-if="mode === TransactionEditPageMode.View && transaction.type !== TransactionType.ModifyBalance">
                         <v-btn :disabled="loading || submitting"
                                @click="duplicate(false, false)">{{ tt('Duplicate') }}</v-btn>
-                        <v-btn density="compact" :disabled="loading || submitting" :icon="true">
+                        <v-btn class="transaction-detail-copy-menu" density="compact" :disabled="loading || submitting" :icon="true"
+                               :aria-label="tt('Duplicate')">
                             <v-icon :icon="mdiMenuDown" size="24" />
                             <v-menu activator="parent">
                                 <v-list>
@@ -496,16 +498,16 @@
                             </v-menu>
                         </v-btn>
                     </v-btn-group>
-                    <v-btn color="warning" variant="tonal" :disabled="loading || submitting"
-                           v-if="mode === TransactionEditPageMode.View && originalTransactionEditable"
-                           @click="edit">{{ tt('Edit') }}</v-btn>
-                    <v-btn color="error" variant="tonal" :disabled="loading || submitting"
+                    <v-btn class="transaction-detail-delete" color="error" variant="text" :disabled="loading || submitting"
                            v-if="mode === TransactionEditPageMode.View && originalTransactionEditable" @click="remove">
                         {{ tt('Delete') }}
                         <v-progress-circular indeterminate size="22" class="ms-2" v-if="submitting"></v-progress-circular>
                     </v-btn>
-                    <v-btn color="secondary" variant="tonal" :disabled="loading || submitting"
+                    <v-btn class="transaction-detail-close" color="secondary" variant="tonal" :disabled="loading || submitting"
                            @click="cancel">{{ tt(cancelButtonTitle) }}</v-btn>
+                    <v-btn color="primary" variant="flat" :disabled="loading || submitting"
+                           v-if="mode === TransactionEditPageMode.View && originalTransactionEditable"
+                           @click="edit">{{ tt('Edit') }}</v-btn>
                 </div>
             </v-card-text>
         </v-card>
@@ -1403,6 +1405,73 @@ defineExpose({
 
     .transaction-picture-add-icon {
         color: rgba(var(--v-theme-grey-700));
+    }
+}
+</style>
+
+<style scoped>
+.transaction-detail-actions {
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    margin-top: 8px !important;
+    padding-top: 20px;
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.transaction-detail-actions :deep(.v-btn) {
+    height: 36px;
+    min-width: 76px;
+    padding-inline: 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    box-shadow: none;
+}
+
+.transaction-detail-copy {
+    height: 36px;
+    border-radius: 9px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+    overflow: hidden;
+}
+
+.transaction-detail-copy :deep(.v-btn) {
+    height: 34px;
+    border-radius: 0;
+}
+
+.transaction-detail-copy :deep(.transaction-detail-copy-menu) {
+    min-width: 32px;
+    width: 32px;
+    padding: 0;
+    border-inline-start: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+}
+
+.transaction-detail-actions .transaction-detail-close {
+    margin-inline-start: auto;
+}
+
+.transaction-detail-actions :deep(.v-btn:focus-visible) {
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+    .transaction-detail-actions {
+        gap: 8px !important;
+    }
+
+    .transaction-detail-actions :deep(.v-btn) {
+        min-width: 60px;
+        padding-inline: 12px;
+    }
+
+    .transaction-detail-copy :deep(.transaction-detail-copy-menu) {
+        min-width: 28px;
+        width: 28px;
+        padding: 0;
     }
 }
 </style>

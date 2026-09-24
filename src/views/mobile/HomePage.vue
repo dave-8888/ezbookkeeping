@@ -5,60 +5,58 @@
         </f7-navbar>
 
         <f7-card class="home-summary-card no-margin-top" :class="{ 'skeleton-text': loading }">
-            <f7-card-header class="display-block" style="padding-top: 120px;">
-                <p class="no-margin">
-                    <span class="card-header-content" v-if="loading">
-                        <span class="home-summary-month">Month</span>
-                        <span>·</span>
-                        <small>Expense</small>
-                    </span>
-                    <span class="card-header-content" v-else-if="!loading">
-                        <span class="home-summary-month">{{ displayDateRange?.thisMonth?.displayTime }}</span>
-                        <span>·</span>
-                        <small>{{ tt('Expense') }}</small>
-                    </span>
-                </p>
-                <p class="no-margin">
-                    <span class="month-expense" v-if="loading">0.00 USD</span>
-                    <span class="month-expense" v-else-if="!loading">{{ transactionOverview && transactionOverview.thisMonth ? getDisplayExpenseAmount(transactionOverview.thisMonth) : '-' }}</span>
-                    <f7-link class="display-inline-flex margin-inline-start-half" @click="showAmountInHomePage = !showAmountInHomePage">
-                        <f7-icon class="ebk-hide-icon" :f7="showAmountInHomePage ? 'eye_slash_fill' : 'eye_fill'"></f7-icon>
-                    </f7-link>
-                </p>
-                <p class="no-margin">
-                    <small class="home-summary-misc" v-if="loading">Monthly income 0.00 USD</small>
-                    <small class="home-summary-misc" v-else-if="!loading">
-                        <span>{{ tt('Monthly income') }}</span>
-                        <span>{{ transactionOverview && transactionOverview.thisMonth ? getDisplayIncomeAmount(transactionOverview.thisMonth) : '-' }}</span>
-                    </small>
-                </p>
+            <f7-card-header class="display-block home-summary-header">
+                <f7-link class="home-summary-details" :href="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.ThisMonth.type })}`"
+                         :aria-label="`${tt('This Month')} · ${tt('Details')}`">
+                    <p class="no-margin">
+                        <span class="card-header-content" v-if="loading">
+                            <span class="home-summary-month">Month</span>
+                            <span>·</span>
+                            <small>Expense</small>
+                        </span>
+                        <span class="card-header-content" v-else-if="!loading">
+                            <span class="home-summary-month">{{ displayDateRange?.thisMonth?.displayTime }}</span>
+                            <span>·</span>
+                            <small>{{ tt('Expense') }}</small>
+                        </span>
+                    </p>
+                    <p class="no-margin">
+                        <span class="month-expense" v-if="loading">0.00 USD</span>
+                        <span class="month-expense" v-else-if="!loading">{{ transactionOverview && transactionOverview.thisMonth ? getDisplayExpenseAmount(transactionOverview.thisMonth) : '-' }}</span>
+                    </p>
+                    <p class="no-margin">
+                        <small class="home-summary-misc" v-if="loading">Monthly income 0.00 USD</small>
+                        <small class="home-summary-misc" v-else-if="!loading">
+                            <span>{{ tt('Monthly income') }}</span>
+                            <span>{{ transactionOverview && transactionOverview.thisMonth ? getDisplayIncomeAmount(transactionOverview.thisMonth) : '-' }}</span>
+                        </small>
+                    </p>
+                </f7-link>
+                <button type="button" class="home-amount-toggle"
+                        :aria-label="tt(showAmountInHomePage ? 'Hide Amount' : 'Show Amount')"
+                        @click="showAmountInHomePage = !showAmountInHomePage">
+                    <f7-icon class="ebk-hide-icon" :f7="showAmountInHomePage ? 'eye_slash_fill' : 'eye_fill'"></f7-icon>
+                </button>
             </f7-card-header>
         </f7-card>
 
         <f7-list strong inset dividers class="margin-top overview-transaction-list" :class="{ 'skeleton-text': loading }">
             <f7-list-item :link="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.Today.type })}`" chevron-center>
-                <template #media>
-                    <f7-icon f7="calendar_today"></f7-icon>
-                </template>
                 <template #title>
                     <div class="padding-top-half">
                         <span v-if="loading">Today</span>
                         <span v-else-if="!loading">{{ tt('Today') }}</span>
                     </div>
                 </template>
-                <template #footer>
-                    <div class="overview-transaction-footer padding-bottom-half">
-                        <span v-if="loading">MM/DD/YYYY</span>
-                        <span v-else-if="!loading">{{ displayDateRange?.today?.displayTime }}</span>
-                    </div>
-                </template>
                 <template #after>
                     <div class="overview-transaction-amount">
                         <div class="text-income text-align-right">
+                            <small class="overview-amount-label">{{ tt('Income') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.today && transactionOverview.today.valid">{{ getDisplayIncomeAmount(transactionOverview.today) }}</small>
                         </div>
                         <div class="text-expense text-align-right">
+                            <small class="overview-amount-label">{{ tt('Expense') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.today && transactionOverview.today.valid">{{ getDisplayExpenseAmount(transactionOverview.today) }}</small>
                         </div>
@@ -67,9 +65,6 @@
             </f7-list-item>
 
             <f7-list-item :link="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.ThisWeek.type })}`" chevron-center>
-                <template #media>
-                    <f7-icon f7="calendar"></f7-icon>
-                </template>
                 <template #title>
                     <div class="padding-top-half">
                         <span v-if="loading">This Week</span>
@@ -88,10 +83,12 @@
                 <template #after>
                     <div class="overview-transaction-amount">
                         <div class="text-income text-align-right">
+                            <small class="overview-amount-label">{{ tt('Income') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.thisWeek && transactionOverview.thisWeek.valid">{{ getDisplayIncomeAmount(transactionOverview.thisWeek) }}</small>
                         </div>
                         <div class="text-expense text-align-right">
+                            <small class="overview-amount-label">{{ tt('Expense') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.thisWeek && transactionOverview.thisWeek.valid">{{ getDisplayExpenseAmount(transactionOverview.thisWeek) }}</small>
                         </div>
@@ -99,62 +96,22 @@
                 </template>
             </f7-list-item>
 
-            <f7-list-item :link="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.ThisMonth.type })}`" chevron-center>
-                <template #media>
-                    <f7-icon f7="calendar"></f7-icon>
-                </template>
-                <template #title>
-                    <div class="padding-top-half">
-                        <span v-if="loading">This Month</span>
-                        <span v-else-if="!loading">{{ tt('This Month') }}</span>
-                    </div>
-                </template>
-                <template #footer>
-                    <div class="overview-transaction-footer padding-bottom-half">
-                        <span v-if="loading">MM/DD</span>
-                        <span v-else-if="!loading">{{ displayDateRange?.thisMonth?.startTime }}</span>
-                        <span>-</span>
-                        <span v-if="loading">MM/DD</span>
-                        <span v-else-if="!loading">{{ displayDateRange?.thisMonth?.endTime }}</span>
-                    </div>
-                </template>
-                <template #after>
-                    <div class="overview-transaction-amount">
-                        <div class="text-income text-align-right">
-                            <small v-if="loading">0.00 USD</small>
-                            <small v-else-if="!loading && transactionOverview.thisMonth && transactionOverview.thisMonth.valid">{{ getDisplayIncomeAmount(transactionOverview.thisMonth) }}</small>
-                        </div>
-                        <div class="text-expense text-align-right">
-                            <small v-if="loading">0.00 USD</small>
-                            <small v-else-if="!loading && transactionOverview.thisMonth && transactionOverview.thisMonth.valid">{{ getDisplayExpenseAmount(transactionOverview.thisMonth) }}</small>
-                        </div>
-                    </div>
-                </template>
-            </f7-list-item>
-
             <f7-list-item :link="`/transaction/list?${overviewStore.getTransactionListPageParams({ dateType: DateRange.ThisYear.type })}`" chevron-center>
-                <template #media>
-                    <f7-icon f7="square_stack_3d_up"></f7-icon>
-                </template>
                 <template #title>
                     <div class="padding-top-half">
                         <span v-if="loading">This Year</span>
                         <span v-else-if="!loading">{{ tt('This Year') }}</span>
                     </div>
                 </template>
-                <template #footer>
-                    <div class="overview-transaction-footer padding-bottom-half">
-                        <span v-if="loading">YYYY</span>
-                        <span v-else-if="!loading">{{ displayDateRange?.thisYear?.displayTime }}</span>
-                    </div>
-                </template>
                 <template #after>
                     <div class="overview-transaction-amount">
                         <div class="text-income text-align-right">
+                            <small class="overview-amount-label">{{ tt('Income') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.thisYear && transactionOverview.thisYear.valid">{{ getDisplayIncomeAmount(transactionOverview.thisYear) }}</small>
                         </div>
                         <div class="text-expense text-align-right">
+                            <small class="overview-amount-label">{{ tt('Expense') }}</small>
                             <small v-if="loading">0.00 USD</small>
                             <small v-else-if="!loading && transactionOverview.thisYear && transactionOverview.thisYear.valid">{{ getDisplayExpenseAmount(transactionOverview.thisYear) }}</small>
                         </div>
@@ -172,7 +129,9 @@
                 <f7-icon f7="creditcard"></f7-icon>
                 <span class="tabbar-label">{{ tt('Accounts') }}</span>
             </f7-link>
-            <f7-link id="homepage-add-button" class="link" href="/transaction/add" @taphold="openTransactionTemplatePopover">
+            <f7-link id="homepage-add-button" class="link" :href="isNativeApp() ? undefined : '/transaction/add'"
+                     :aria-label="tt('Add Transaction')" @click="isNativeApp() && openTransactionTemplatePopover()"
+                     @taphold="openTransactionTemplatePopover">
                 <f7-icon f7="plus_square" class="ebk-tarbar-big-icon"></f7-icon>
             </f7-link>
             <f7-link class="link" href="/statistic/transaction">
@@ -188,6 +147,15 @@
         <f7-popover class="template-popover-menu" target-el="#homepage-add-button"
                     v-model:opened="showTransactionTemplatePopover">
             <f7-list dividers v-if="allTransactionTemplates">
+                <f7-list-item v-if="isNativeApp()" title="对话记账" link="#" @click="openChatBookkeeping">
+                    <template #media><f7-icon f7="chat_bubble_2"></f7-icon></template>
+                </f7-list-item>
+                <f7-list-item v-if="isNativeApp()" :title="tt('Add Transaction')" link="/transaction/add" @click="showTransactionTemplatePopover = false">
+                    <template #media><f7-icon f7="pencil"></f7-icon></template>
+                </f7-list-item>
+                <f7-list-item key="SocialGift" :title="tt('Record Social Gift')" link="/social-gifts?new=1" @click="showTransactionTemplatePopover = false">
+                    <template #media><f7-icon f7="gift"></f7-icon></template>
+                </f7-list-item>
                 <f7-list-item key="VoiceInput" :title="tt('Voice Input')"
                               @click="addByVoiceInput"
                               v-if="isSpeechRecognitionSupported()">
@@ -237,6 +205,7 @@ import { TemplateType } from '@/core/template.ts';
 import { TransactionTemplate } from '@/models/transaction_template.ts';
 import type { RecognizedReceiptImageResponse } from '@/models/large_language_model.ts';
 
+import { isNativeApp, notifyNative } from '@/lib/native_app.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
 import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
@@ -276,9 +245,14 @@ const allTransactionTemplates = computed<TransactionTemplate[]>(() => {
 });
 
 function openTransactionTemplatePopover(): void {
-    if (isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
+    if (isNativeApp() || isSpeechRecognitionSupported() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
         showTransactionTemplatePopover.value = true;
     }
+}
+
+function openChatBookkeeping(): void {
+    showTransactionTemplatePopover.value = false;
+    notifyNative('chat');
 }
 
 function init(): void {
@@ -373,7 +347,8 @@ init();
 
 <style>
 .home-summary-card {
-    background-color: var(--f7-color-yellow);
+    background-color: var(--f7-card-bg-color);
+    box-shadow: none;
 }
 
 .home-summary-card .home-summary-month {
@@ -396,11 +371,57 @@ init();
     margin-inline-end: 0;
 }
 
-.dark .home-summary-card {
-    background-color: var(--f7-theme-color);
+.home-summary-card .home-summary-header {
+    position: relative;
+    padding: 0;
 }
 
-.dark .home-summary-card a {
+.home-summary-card .home-summary-details {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding-block: 24px;
+    padding-inline: 20px 64px;
+    color: var(--f7-text-color);
+    white-space: normal;
+}
+
+.home-summary-card .home-amount-toggle {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--f7-text-color);
+    cursor: pointer;
+}
+
+.home-summary-details:focus-visible,
+.home-amount-toggle:focus-visible {
+    outline: 2px solid var(--f7-theme-color);
+    outline-offset: -2px;
+}
+
+.home-summary-card.card,
+.ios .home-summary-card.card,
+.overview-transaction-list.list.inset > ul,
+.ios .overview-transaction-list.list.inset > ul {
+    box-shadow: none;
+}
+
+.overview-transaction-list .item-inner {
+    min-height: 76px;
+}
+
+.overview-transaction-list .overview-amount-label {
+    margin-inline-end: 8px;
     color: var(--f7-text-color);
     opacity: 0.6;
 }

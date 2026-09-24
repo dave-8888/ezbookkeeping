@@ -145,9 +145,14 @@
                         </template>
 
                         <template #item.balance="{ item }">
-                            <span :class="item.isAsset ? 'text-income' : 'text-expense'">
-                                {{ formatAccountBalance(item.balance, item.currency) }}
-                            </span>
+                            <div class="d-flex flex-column align-start">
+                                <span :class="item.isAsset ? 'text-income' : 'text-expense'">
+                                    {{ formatAccountBalance(item.balance, item.currency) }}
+                                </span>
+                                <span class="text-caption text-medium-emphasis" v-if="item.currency !== cnyCurrencyCode">
+                                    {{ getCurrencyName(cnyCurrencyCode) }}: {{ formatCnyEquivalent(item.balance, item.currency, !showQuickBalanceAmount) }}
+                                </span>
+                            </div>
                         </template>
 
                         <template #item.actions="{ item }">
@@ -211,6 +216,10 @@
                             {{ formatAccountBalance(currentAccount?.balance || 0, currentAccount?.currency || 'USD') }}
                         </span>
                     </div>
+                    <div class="text-body-2 text-medium-emphasis" v-if="currentAccount && currentAccount.currency !== cnyCurrencyCode">
+                        {{ getCurrencyName(cnyCurrencyCode) }}:
+                        {{ formatCnyEquivalent(currentAccount?.balance || 0, currentAccount?.currency || 'USD', !showQuickBalanceAmount) }}
+                    </div>
                 </div>
 
                 <v-text-field
@@ -220,6 +229,8 @@
                     :placeholder="'1000+200-35.5'"
                     :prefix="getCurrencySymbol(currentAccount?.currency || 'USD')"
                     :rules="[newBalanceRule]"
+                    :hint="newBalanceCnyHint"
+                    :persistent-hint="!!newBalanceCnyHint"
                     hide-details="auto"
                     @update:model-value="updateNewBalanceFromExpression"
                     @blur="normalizeNewBalanceExpression"
@@ -309,6 +320,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from '@/locales/helpers.ts';
 import { useAccountsStore } from '@/stores/account.ts';
+import { useExchangeRatesStore } from '@/stores/exchangeRates.ts';
 import { useSettingsStore } from '@/stores/setting.ts';
 import logger from '@/lib/logger.ts';
 import services from '@/lib/services.ts';
@@ -345,9 +357,12 @@ interface AccountItem {
 }
 
 const router = useRouter();
-const { tt, formatAmountToLocalizedNumeralsWithCurrency } = useI18n();
+const { tt, getCurrencyName, formatAmountToLocalizedNumeralsWithCurrency } = useI18n();
 const accountsStore = useAccountsStore();
+const exchangeRatesStore = useExchangeRatesStore();
 const settingsStore = useSettingsStore();
+
+const cnyCurrencyCode = 'CNY';
 
 // 状态变量
 const loading = ref<boolean>(false);
@@ -397,6 +412,25 @@ const summaryAccountCount = computed<number>(() => {
     return accounts.value.filter(account => !account.hidden).length;
 });
 
+const newBalanceCnyHint = computed<string>(() => {
+    if (!currentAccount.value || currentAccount.value.currency === cnyCurrencyCode) {
+        return '';
+    }
+
+    const calculatedBalance = parseNewBalanceExpression(newBalanceExpression.value);
+
+    if (calculatedBalance === undefined) {
+        return '';
+    }
+
+    const cnyEquivalent = formatCnyEquivalent(
+        Math.round(calculatedBalance * 100),
+        currentAccount.value.currency
+    );
+
+    return `${getCurrencyName(cnyCurrencyCode)}: ${cnyEquivalent}`;
+});
+
 // 辅助函数
 const showQuickBalanceAmount = computed<boolean>(() =>
     settingsStore.appSettings.showAmountInHomePage &&
@@ -412,6 +446,20 @@ function formatCurrency(amount: number, currency: string): string {
     return formatAmountToLocalizedNumeralsWithCurrency(amount, currency);
 }
 
+function formatCnyEquivalent(amount: number, currency: string, hidden: boolean = false): string {
+    if (hidden) {
+        return formatAmountToLocalizedNumeralsWithCurrency(DISPLAY_HIDDEN_AMOUNT, cnyCurrencyCode);
+    }
+
+    const exchangedAmount = exchangeRatesStore.getExchangedAmount(amount, currency, cnyCurrencyCode);
+
+    if (exchangedAmount === null) {
+        return '—';
+    }
+
+    return formatAmountToLocalizedNumeralsWithCurrency(Math.trunc(exchangedAmount), cnyCurrencyCode);
+}
+
 function getCurrencySymbol(currency: string): string {
     const currencySymbols: Record<string, string> = {
         'USD': '$',
@@ -425,7 +473,7 @@ function getCurrencySymbol(currency: string): string {
     return currencySymbols[currency] || currency;
 }
 
-const requiredRule = (value: any) => !!value || tt('This field is required');
+const requiredRule = (value: unknown) => !!value || tt('This field is required');
 const newBalanceRule = (value: string) => parseNewBalanceExpression(value) !== undefined || tt('Formula is invalid');
 
 // 方法
@@ -433,15 +481,28 @@ function goBack(): void {
     router.back();
 }
 
+function isUpToDateError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null &&
+        'isUpToDate' in error && error.isUpToDate === true;
+}
+
 async function refreshAccountsStore(force: boolean): Promise<void> {
     try {
         await accountsStore.loadAllAccounts({ force });
-    } catch (error: any) {
-        if (error?.isUpToDate) {
+    } catch (error: unknown) {
+        if (isUpToDateError(error)) {
             return;
         }
 
         logger.warn('failed to refresh accounts store in quick balance modify page', error);
+    }
+}
+
+async function refreshExchangeRates(): Promise<void> {
+    try {
+        await exchangeRatesStore.getLatestExchangeRates({ silent: true, force: false });
+    } catch (error: unknown) {
+        logger.warn('failed to refresh exchange rates in quick balance modify page', error);
     }
 }
 
@@ -450,7 +511,7 @@ async function loadAccounts(): Promise<void> {
 
     try {
         const response = await services.getAllAccounts({ visibleOnly: false });
-        accounts.value = response.data.result.map((account: any) => ({
+        accounts.value = response.data.result.map(account => ({
             id: BigInt(account.id),  // 使用BigInt处理大整数ID
             name: account.name,
             category: account.category,
@@ -459,13 +520,13 @@ async function loadAccounts(): Promise<void> {
             currency: account.currency,
             balance: account.balance,
             hidden: account.hidden,
-            isAsset: account.isAsset,
-            isLiability: account.isLiability
+            isAsset: account.isAsset || false,
+            isLiability: account.isLiability || false
         }));
 
         filterAccounts();
         await refreshAccountsStore(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
         SnackBar['showNetworkError'](error);
     } finally {
         loading.value = false;
@@ -594,7 +655,7 @@ async function modifySingleAccount(): Promise<void> {
         await loadAccounts();
         showModifyDialog.value = false;
         SnackBar['showSuccess'](tt('Account balance updated successfully'));
-    } catch (error: any) {
+    } catch (error: unknown) {
         SnackBar['showNetworkError'](error);
     } finally {
         modifying.value = false;
@@ -617,7 +678,7 @@ async function modifyBatchAccounts(): Promise<void> {
 
         // 更新本地数据
         if (response.data && response.data.result) {
-            response.data.result.forEach((modifiedAccount: any) => {
+            response.data.result.forEach(modifiedAccount => {
                 const accountIndex = accounts.value.findIndex(a => a.id.toString() === modifiedAccount.id);
                 if (accountIndex !== -1) {
                     const accountToUpdate = accounts.value[accountIndex];
@@ -632,7 +693,7 @@ async function modifyBatchAccounts(): Promise<void> {
         selectedAccounts.value = []; // 清空选择
         showBatchModifyDialog.value = false;
         SnackBar['showSuccess'](tt('Batch account balances updated successfully'));
-    } catch (error: any) {
+    } catch (error: unknown) {
         SnackBar['showNetworkError'](error);
     } finally {
         batchModifying.value = false;
@@ -642,6 +703,7 @@ async function modifyBatchAccounts(): Promise<void> {
 // 组件挂载时加载数据
 onMounted(() => {
     loadAccounts();
+    refreshExchangeRates();
 });
 </script>
 

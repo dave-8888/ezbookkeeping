@@ -193,7 +193,11 @@
                 </tree-view-selection-sheet>
             </f7-list-item>
 
+            <f7-list-input v-if="transaction.isCashFlow" type="select" :label="tt('Currency')" :disabled="loading || submitting || mode === TransactionEditPageMode.View" v-model:value="transaction.currency">
+                <option v-for="currency in cashFlowCurrencies" :key="currency.currencyCode" :value="currency.currencyCode">{{ currency.displayName }}</option>
+            </f7-list-input>
             <f7-list-item
+                v-if="!transaction.isCashFlow"
                 class="list-item-with-header-and-title"
                 link="#" no-chevron
                 :class="{ 'disabled': !allVisibleAccounts.length || (mode === TransactionEditPageMode.Edit && transaction.type === TransactionType.ModifyBalance), 'readonly': mode === TransactionEditPageMode.View }"
@@ -542,6 +546,7 @@ const query = props.f7route.query;
 const pageTypeAndMode = getPageTypeNameMode();
 
 const {
+    getAllCurrencies,
     tt,
     getMultiMonthdayShortNames,
     getMultiWeekdayLongNames,
@@ -551,6 +556,7 @@ const {
     parseAmountFromLocalizedNumerals,
     getCurrentLanguageInfo
 } = useI18n();
+const cashFlowCurrencies = computed(() => getAllCurrencies());
 const { showAlert, showConfirm, showToast, routeBackOnError } = useI18nUIComponents();
 
 const {

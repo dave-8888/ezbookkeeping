@@ -241,7 +241,7 @@
                                                 </div>
                                             </div>
                                             <div class="item-after">
-                                                <div class="transaction-amount" v-if="transaction.sourceAccount"
+                                                <div class="transaction-amount" v-if="transaction.isCashFlow || transaction.sourceAccount"
                                                      :class="{ 'text-expense': transaction.type === TransactionType.Expense, 'text-income': transaction.type === TransactionType.Income }">
                                                     <span>{{ getDisplayAmount(transaction) }}</span>
                                                 </div>

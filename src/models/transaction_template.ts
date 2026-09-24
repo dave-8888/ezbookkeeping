@@ -29,6 +29,7 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
     }
 
     public fillFrom(other: TransactionTemplate): void {
+        this.currency = other.currency;
         this.templateType = other.templateType;
         this.name = other.name;
 
@@ -48,7 +49,8 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
             name: this.name,
             type: this.type,
             categoryId: this.getCategoryId(),
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.isCashFlow ? '0' : this.sourceAccountId,
+            currency: this.currency,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             sourceAmount: this.sourceAmount,
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -70,7 +72,8 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
             name: this.name,
             type: this.type,
             categoryId: this.getCategoryId(),
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.isCashFlow ? '0' : this.sourceAccountId,
+            currency: this.currency,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             sourceAmount: this.sourceAmount,
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -86,7 +89,7 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
     }
 
     public static createNewTransactionTemplate(transaction: Transaction): TransactionTemplate {
-        return new TransactionTemplate(
+        const template = new TransactionTemplate(
             transaction.id,
             0, // templateType
             '', // name
@@ -110,10 +113,12 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
             0,
             false
         );
+        template.currency = transaction.currency || '';
+        return template;
     }
 
     public static ofTemplate(templateResponse: TransactionTemplateInfoResponse): TransactionTemplate {
-        return new TransactionTemplate(
+        const template = new TransactionTemplate(
             templateResponse.id,
             templateResponse.templateType,
             templateResponse.name,
@@ -137,6 +142,8 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
             templateResponse.displayOrder,
             templateResponse.hidden
         );
+        template.currency = templateResponse.currency || '';
+        return template;
     }
 
     public static ofMultiTemplates(templateResponses: TransactionTemplateInfoResponse[]): TransactionTemplate[] {
@@ -151,6 +158,7 @@ export class TransactionTemplate extends Transaction implements TransactionTempl
 }
 
 export interface TransactionTemplateCreateRequest {
+    readonly currency?: string;
     readonly templateType: number;
     readonly name: string;
     readonly type: number;
@@ -171,6 +179,7 @@ export interface TransactionTemplateCreateRequest {
 }
 
 export interface TransactionTemplateModifyRequest {
+    readonly currency?: string;
     readonly id: string;
     readonly name: string;
     readonly type: number;

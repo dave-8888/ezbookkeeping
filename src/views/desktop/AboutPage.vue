@@ -113,7 +113,7 @@
                             <v-divider/>
                             <br/>
                             <p>
-                                <span>financially_free's codebase and localization translation rely on contributions from the community. The following people have contributed to financially_free:</span>
+                                <span>财神's codebase and localization translation rely on contributions from the community. The following people have contributed to 财神:</span>
                             </p>
                             <div>
                                 <strong>Project Maintainer</strong>
@@ -170,7 +170,7 @@
                                 </tbody>
                             </table>
                             <p class="mt-4 mb-4">
-                                <span>financially_free also contains additional third party software and illustration.</span><br/>
+                                <span>财神 also contains additional third party software and illustration.</span><br/>
                                 <span>All the third party software / illustration included or linked is redistributed under the terms and conditions of their original licenses.</span>
                             </p>
                             <p :key="license.name" v-for="license in thirdPartyLicenses">

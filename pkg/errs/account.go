@@ -26,4 +26,5 @@ var (
 	ErrNotSupportedChangeCurrency             = NewNormalError(NormalSubcategoryAccount, 20, http.StatusBadRequest, "not supported to modify account currency")
 	ErrNotSupportedChangeBalance              = NewNormalError(NormalSubcategoryAccount, 21, http.StatusBadRequest, "not supported to modify account balance")
 	ErrNotSupportedChangeBalanceTime          = NewNormalError(NormalSubcategoryAccount, 22, http.StatusBadRequest, "not supported to modify account balance time")
+	ErrAccountBalanceChanged                  = NewNormalError(NormalSubcategoryAccount, 23, http.StatusConflict, "account balance changed; refresh before updating")
 )

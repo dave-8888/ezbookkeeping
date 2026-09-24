@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/mayswind/financially_free/pkg/core"
@@ -34,6 +35,7 @@ const (
 
 // OllamaChatRequest defines the structure of Ollama chat request
 type OllamaChatRequest struct {
+	Tools    []any                       `json:"tools,omitempty"`
 	Model    string                      `json:"model"`
 	Stream   bool                        `json:"stream"`
 	Messages []*OllamaChatRequestMessage `json:"messages"`
@@ -42,9 +44,11 @@ type OllamaChatRequest struct {
 
 // OllamaChatRequestMessage defines the structure of Ollama chat request message
 type OllamaChatRequestMessage struct {
-	Role    OllamaMessageRole `json:"role"`
-	Content string            `json:"content"`
-	Images  []string          `json:"images,omitempty"`
+	ToolCalls []any             `json:"tool_calls,omitempty"`
+	ToolName  string            `json:"tool_name,omitempty"`
+	Role      OllamaMessageRole `json:"role"`
+	Content   string            `json:"content"`
+	Images    []string          `json:"images,omitempty"`
 }
 
 // OllamaChatResponse defines the structure of Ollama chat response
@@ -54,7 +58,13 @@ type OllamaChatResponse struct {
 
 // OllamaChatResponseMessage defines the structure of Ollama chat response message
 type OllamaChatResponseMessage struct {
-	Content *string `json:"content"`
+	Content   *string `json:"content"`
+	ToolCalls []struct {
+		Function struct {
+			Name      string          `json:"name"`
+			Arguments json.RawMessage `json:"arguments"`
+		} `json:"function"`
+	} `json:"tool_calls"`
 }
 
 // BuildTextualRequest returns the http request by Ollama large language model adapter
@@ -86,13 +96,21 @@ func (p *OllamaLargeLanguageModelAdapter) ParseTextualResponse(c core.Context, u
 		return nil, errs.ErrFailedToRequestRemoteApi
 	}
 
-	if chatResponse == nil || chatResponse.Message == nil || chatResponse.Message.Content == nil {
+	if chatResponse == nil || chatResponse.Message == nil || (chatResponse.Message.Content == nil && len(chatResponse.Message.ToolCalls) == 0) {
 		log.Errorf(c, "[ollama_large_language_model_adapter.ParseTextualResponse] chat response is invalid for user \"uid:%d\"", uid)
 		return nil, errs.ErrFailedToRequestRemoteApi
 	}
 
-	textualResponse := &data.LargeLanguageModelTextualResponse{
-		Content: *chatResponse.Message.Content,
+	message := &data.ChatMessage{Role: "assistant"}
+	if chatResponse.Message.Content != nil {
+		message.Content = *chatResponse.Message.Content
+	}
+	for i, call := range chatResponse.Message.ToolCalls {
+		message.ToolCalls = append(message.ToolCalls, data.ToolCall{ID: fmt.Sprintf("call_%d", i), Name: call.Function.Name, Arguments: call.Function.Arguments})
+	}
+	textualResponse := &data.LargeLanguageModelTextualResponse{Content: message.Content}
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		textualResponse.Message = message
 	}
 
 	return textualResponse, nil
@@ -131,6 +149,18 @@ func (p *OllamaLargeLanguageModelAdapter) buildJsonRequestBody(c core.Context, u
 		}
 	}
 
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		for _, message := range request.Messages {
+			item := &OllamaChatRequestMessage{Role: OllamaMessageRole(message.Role), Content: message.Content, ToolName: message.ToolName}
+			for _, call := range message.ToolCalls {
+				item.ToolCalls = append(item.ToolCalls, map[string]any{"function": map[string]any{"name": call.Name, "arguments": call.Arguments}})
+			}
+			chatRequest.Messages = append(chatRequest.Messages, item)
+		}
+		for _, tool := range request.Tools {
+			chatRequest.Tools = append(chatRequest.Tools, map[string]any{"type": "function", "function": tool})
+		}
+	}
 	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_JSON {
 		chatRequest.Format = "json"
 	}
@@ -142,7 +172,9 @@ func (p *OllamaLargeLanguageModelAdapter) buildJsonRequestBody(c core.Context, u
 		return nil, errs.ErrOperationFailed
 	}
 
-	log.Debugf(c, "[ollama_large_language_model_adapter.buildJsonRequestBody] request body is %s", requestBodyBytes)
+	if responseType != data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		log.Debugf(c, "[ollama_large_language_model_adapter.buildJsonRequestBody] request body is %s", requestBodyBytes)
+	}
 	return requestBodyBytes, nil
 }
 

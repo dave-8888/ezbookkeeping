@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import { isNativeApp, getNativeSession, setNativeToken, setNativeUser, clearNativeSession } from './native_app.ts';
 
 import type { ApplicationLockState, WebAuthnConfig } from '@/core/setting.ts';
 import type { UserBasicInfo } from '@/models/user.ts';
@@ -36,6 +37,7 @@ function getDecryptedToken(encryptedToken: string, appLockState: ApplicationLock
 }
 
 export function isUserLogined(): boolean {
+    if (isNativeApp()) return !!getNativeSession()?.token;
     return !!localStorage.getItem(tokenLocalStorageKey);
 }
 
@@ -163,6 +165,7 @@ export function isCorrectPinCode(pinCode: string): boolean {
 }
 
 export function getCurrentToken(): string | null {
+    if (isNativeApp()) return getNativeSession()?.token || null;
     if (isEnableApplicationLock()) {
         const usedEncryptedToken = sessionStorage.getItem(encryptedTokenSessionStorageKey);
         const currentEncryptedToken = localStorage.getItem(tokenLocalStorageKey);
@@ -196,6 +199,7 @@ export function getCurrentToken(): string | null {
 }
 
 export function updateCurrentToken(token: string): void {
+    if (isNativeApp()) { setNativeToken(token); return; }
     if (isString(token)) {
         if (isEnableApplicationLock() && hasUserAppLockState()) {
             const appLockState = getUserAppLockState();
@@ -239,6 +243,7 @@ export function clearWebAuthnConfig(): void {
 }
 
 export function getCurrentUserInfo(): UserBasicInfo | null {
+    if (isNativeApp()) return getNativeSession()?.user || null;
     const data = localStorage.getItem(userInfoLocalStorageKey);
 
     if (!data) {
@@ -249,6 +254,7 @@ export function getCurrentUserInfo(): UserBasicInfo | null {
 }
 
 export function updateCurrentUserInfo(user: UserBasicInfo): void {
+    if (isNativeApp()) { setNativeUser(user); return; }
     if (isObject(user)) {
         localStorage.setItem(userInfoLocalStorageKey, JSON.stringify(user));
     }
@@ -309,6 +315,7 @@ export function clearCurrentSessionToken(): void {
 }
 
 export function clearCurrentTokenAndUserInfo(clearAppLockState: boolean): void {
+    if (isNativeApp()) clearNativeSession();
     if (clearAppLockState) {
         sessionStorage.removeItem(appLockStateSessionStorageKey);
     }

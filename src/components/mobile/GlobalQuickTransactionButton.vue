@@ -50,7 +50,6 @@ import type { RecognizedTransactionResponse } from '@/models/large_language_mode
 
 import { useDraggableEdgeFloatingButton } from '@/components/base/DraggableEdgeFloatingButtonBase.ts';
 import { useQuickTransactionTextInput } from '@/components/base/QuickTransactionTextInputBase.ts';
-import { isTransactionFromAIImageRecognitionEnabled } from '@/lib/server_settings.ts';
 import { getRecognizedTransactionQueryParams } from '@/lib/transaction_text.ts';
 import { isUserUnlocked } from '@/lib/userstate.ts';
 
@@ -71,7 +70,7 @@ const buttonEl = ref<HTMLElement | null>(null);
 const expanded = ref<boolean>(false);
 const routeVersion = ref<number>(0);
 
-const isVisible = computed<boolean>(() => routeVersion.value >= 0 && isTransactionFromAIImageRecognitionEnabled() && !!userStore.currentUserBasicInfo && isUserUnlocked());
+const isVisible = computed<boolean>(() => routeVersion.value >= 0 && aiEnabled.value && !!userStore.currentUserBasicInfo && isUserUnlocked());
 const {
     edge,
     top,
@@ -114,6 +113,7 @@ const panelStyle = computed<CSSProperties>(() => {
 });
 
 const {
+    aiEnabled,
     transactionText,
     recognizingByText,
     clearTransactionText,

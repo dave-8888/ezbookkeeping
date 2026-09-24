@@ -23,6 +23,7 @@ import InsightsExplorePage from '@/views/desktop/insights/ExplorePage.vue';
 import AccountListPage from '@/views/desktop/accounts/ListPage.vue';
 import QuickBalanceModifyPage from '@/views/desktop/accounts/QuickBalanceModifyPage.vue';
 import AssetPlanPage from '@/views/desktop/assetplans/AssetPlanPage.vue';
+import SocialGiftPage from '@/views/desktop/socialgifts/SocialGiftPage.vue';
 
 import TransactionCategoryListPage from '@/views/desktop/categories/ListPage.vue';
 
@@ -165,6 +166,11 @@ const router = createRouter({
                 {
                     path: '/asset-planning',
                     component: AssetPlanPage,
+                    beforeEnter: checkLogin
+                },
+                {
+                    path: '/social-gifts',
+                    component: SocialGiftPage,
                     beforeEnter: checkLogin
                 },
                 {

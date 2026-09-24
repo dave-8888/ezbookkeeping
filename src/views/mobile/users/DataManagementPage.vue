@@ -10,6 +10,8 @@
             <f7-list-item title="Transaction Pictures" after="Count"></f7-list-item>
             <f7-list-item title="Transaction Templates" after="Count"></f7-list-item>
             <f7-list-item title="Scheduled Transactions" after="Count"></f7-list-item>
+            <f7-list-item title="Social Gift Contacts" after="Count"></f7-list-item>
+            <f7-list-item title="Social Gift Records" after="Count"></f7-list-item>
         </f7-list>
 
         <f7-list strong inset dividers class="margin-vertical" v-else-if="!loading">
@@ -20,6 +22,8 @@
             <f7-list-item :title="tt('Transaction Pictures')" :after="displayDataStatistics ? displayDataStatistics.totalTransactionPictureCount : '-'"></f7-list-item>
             <f7-list-item :title="tt('Transaction Templates')" :after="displayDataStatistics ? displayDataStatistics.totalTransactionTemplateCount : '-'"></f7-list-item>
             <f7-list-item :title="tt('Scheduled Transactions')" :after="displayDataStatistics ? displayDataStatistics.totalScheduledTransactionCount : '-'"></f7-list-item>
+            <f7-list-item :title="tt('Social Gift Contacts')" :after="displayDataStatistics ? displayDataStatistics.totalSocialGiftContactCount : '-'"></f7-list-item>
+            <f7-list-item :title="tt('Social Gift Records')" :after="displayDataStatistics ? displayDataStatistics.totalSocialGiftRecordCount : '-'"></f7-list-item>
         </f7-list>
 
         <f7-list strong inset dividers class="margin-vertical" :class="{ 'disabled': loading }">

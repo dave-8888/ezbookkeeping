@@ -41,16 +41,12 @@ interface CategoryMatch {
 }
 
 export async function recognizeTransactionByText(text: string, context: TransactionTextRecognitionContext): Promise<RecognizedTransactionResponse> {
-    if (context.recognizeTransactionText) {
-        try {
-            const recognized = await context.recognizeTransactionText(text);
-            return withRecognizedTextComment(recognized, text);
-        } catch {
-            // Fall back to deterministic local parsing when the LLM route is disabled or fails.
-        }
+    if (!context.recognizeTransactionText) {
+        throw new Error('llm provider is not enabled');
     }
 
-    return parseTransactionTextLocally(text, context);
+    const recognized = await context.recognizeTransactionText(text);
+    return withRecognizedTextComment(recognized, text);
 }
 
 export function parseTransactionTextLocally(text: string, context: TransactionTextParseContext): RecognizedTransactionResponse {

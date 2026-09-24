@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -52,6 +53,7 @@ const (
 
 // OpenAIChatCompletionsRequest defines the structure of OpenAI chat completions request
 type OpenAIChatCompletionsRequest struct {
+	Tools          []any                                       `json:"tools,omitempty"`
 	Model          string                                      `json:"model"`
 	Stream         bool                                        `json:"stream"`
 	Messages       []any                                       `json:"messages"`
@@ -93,7 +95,15 @@ type OpenAIChatCompletionsResponseChoice struct {
 
 // OpenAIChatCompletionsResponseMessage defines the structure of OpenAI chat completions response message
 type OpenAIChatCompletionsResponseMessage struct {
-	Content *string `json:"content"`
+	ReasoningContent *string `json:"reasoning_content"`
+	Content          *string `json:"content"`
+	ToolCalls        []struct {
+		ID       string `json:"id"`
+		Function struct {
+			Name      string `json:"name"`
+			Arguments string `json:"arguments"`
+		} `json:"function"`
+	} `json:"tool_calls"`
 }
 
 // BuildTextualRequest returns the http request by OpenAI common compatible adapter
@@ -128,13 +138,31 @@ func (p *CommonOpenAIChatCompletionsAPILargeLanguageModelAdapter) ParseTextualRe
 
 	if chatCompletionsResponse == nil || chatCompletionsResponse.Choices == nil || len(chatCompletionsResponse.Choices) < 1 ||
 		chatCompletionsResponse.Choices[0].Message == nil ||
-		chatCompletionsResponse.Choices[0].Message.Content == nil {
+		(chatCompletionsResponse.Choices[0].Message.Content == nil && len(chatCompletionsResponse.Choices[0].Message.ToolCalls) == 0) {
 		log.Errorf(c, "[openai_common_compatible_large_language_model_adapter.ParseTextualResponse] chat completions response is invalid for user \"uid:%d\"", uid)
 		return nil, errs.ErrFailedToRequestRemoteApi
 	}
 
-	textualResponse := &data.LargeLanguageModelTextualResponse{
-		Content: *chatCompletionsResponse.Choices[0].Message.Content,
+	message := &data.ChatMessage{Role: "assistant"}
+	source := chatCompletionsResponse.Choices[0].Message
+	message.ReasoningContent = source.ReasoningContent
+	if source.Content != nil {
+		message.Content = *source.Content
+	}
+	for i, call := range source.ToolCalls {
+		id := call.ID
+		if id == "" {
+			id = fmt.Sprintf("call_%d", i)
+		}
+		args := json.RawMessage(call.Function.Arguments)
+		if !json.Valid(args) {
+			return nil, errs.ErrFailedToRequestRemoteApi
+		}
+		message.ToolCalls = append(message.ToolCalls, data.ToolCall{ID: id, Name: call.Function.Name, Arguments: args})
+	}
+	textualResponse := &data.LargeLanguageModelTextualResponse{Content: message.Content}
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		textualResponse.Message = message
 	}
 
 	return textualResponse, nil
@@ -180,6 +208,28 @@ func (p *CommonOpenAIChatCompletionsAPILargeLanguageModelAdapter) buildJsonReque
 		}
 	}
 
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		for _, message := range request.Messages {
+			item := map[string]any{"role": message.Role, "content": message.Content}
+			if message.ReasoningContent != nil && message.Role == "assistant" {
+				item["reasoning_content"] = *message.ReasoningContent
+			}
+			if len(message.ToolCalls) > 0 {
+				calls := make([]any, 0, len(message.ToolCalls))
+				for _, call := range message.ToolCalls {
+					calls = append(calls, map[string]any{"id": call.ID, "type": "function", "function": map[string]any{"name": call.Name, "arguments": string(call.Arguments)}})
+				}
+				item["tool_calls"] = calls
+			}
+			if message.Role == "tool" {
+				item["tool_call_id"] = message.ToolCallID
+			}
+			chatCompletionsRequest.Messages = append(chatCompletionsRequest.Messages, item)
+		}
+		for _, tool := range request.Tools {
+			chatCompletionsRequest.Tools = append(chatCompletionsRequest.Tools, map[string]any{"type": "function", "function": tool})
+		}
+	}
 	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_JSON {
 		if request.ResponseJsonObjectType != nil {
 			schemeGenerator := jsonschema.Reflector{
@@ -209,7 +259,9 @@ func (p *CommonOpenAIChatCompletionsAPILargeLanguageModelAdapter) buildJsonReque
 		return nil, errs.ErrOperationFailed
 	}
 
-	log.Debugf(c, "[openai_common_compatible_large_language_model_adapter.buildJsonRequestBody] request body is %s", requestBodyBytes)
+	if responseType != data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		log.Debugf(c, "[openai_common_compatible_large_language_model_adapter.buildJsonRequestBody] request body is %s", requestBodyBytes)
+	}
 	return requestBodyBytes, nil
 }
 

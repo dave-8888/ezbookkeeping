@@ -6,7 +6,7 @@ import (
 
 var en = &LocaleTextItems{
 	GlobalTextItems: &GlobalTextItems{
-		AppName: "financially_free",
+		AppName: "财神",
 	},
 	DefaultTypes: &DefaultTypes{
 		DecimalSeparator:    core.DECIMAL_SEPARATOR_DOT,

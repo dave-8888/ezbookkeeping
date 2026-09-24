@@ -7,6 +7,7 @@ import { Account, type AccountInfoResponse } from './account.ts';
 import { TransactionCategory, type TransactionCategoryInfoResponse } from './transaction_category.ts';
 import { TransactionTag, type TransactionTagInfoResponse } from './transaction_tag.ts';
 import { TransactionPicture, type TransactionPictureInfoBasicResponse } from './transaction_picture_info.ts';
+import type { SocialGiftImportMetadata } from './social_gift.ts';
 
 export class Transaction implements TransactionInfoResponse {
     public id: string;
@@ -18,6 +19,8 @@ export class Transaction implements TransactionInfoResponse {
     public time: number;
     public timeZone?: string; // only in new transaction
     public utcOffset: number;
+    public currency: string = '';
+    public get isCashFlow(): boolean { return this.type === TransactionType.Income || this.type === TransactionType.Expense; }
     public sourceAccountId: string;
     public destinationAccountId: string;
     public sourceAmount: number;
@@ -232,7 +235,8 @@ export class Transaction implements TransactionInfoResponse {
             categoryId: this.getCategoryId(),
             time: this.time,
             utcOffset: this.utcOffset,
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.isCashFlow ? '0' : this.sourceAccountId,
+            currency: this.currency,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             sourceAmount: this.sourceAmount,
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -257,7 +261,8 @@ export class Transaction implements TransactionInfoResponse {
             categoryId: categoryId,
             time: this.time,
             utcOffset: this.utcOffset,
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.isCashFlow ? '0' : this.sourceAccountId,
+            currency: this.currency,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             sourceAmount: this.sourceAmount,
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -279,7 +284,8 @@ export class Transaction implements TransactionInfoResponse {
         return {
             type: this.type,
             categoryId: this.getCategoryId(),
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.isCashFlow ? '0' : this.sourceAccountId,
+            currency: this.currency,
             sourceAmount: this.sourceAmount,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -328,6 +334,8 @@ export class Transaction implements TransactionInfoResponse {
             transactionResponse.comment,
             transactionResponse.editable
         );
+
+        transaction.currency = transactionResponse.currency || transactionResponse.sourceAccount?.currency || '';
 
         if (transactionResponse.category) {
             transaction.setCategory(TransactionCategory.of(transactionResponse.category));
@@ -400,6 +408,8 @@ export class Transaction implements TransactionInfoResponse {
             transactionDraft.comment ?? '', // comment
             true // editable
         );
+
+        transaction.currency = transactionDraft.currency || '';
 
         if (transactionDraft.pictures) {
             const pictures: TransactionPicture[] = [];
@@ -508,6 +518,7 @@ export class TransactionTagFilter {
 }
 
 export interface TransactionDraft {
+    readonly currency?: string;
     readonly type?: number;
     readonly categoryId?: string;
     readonly sourceAccountId?: string;
@@ -526,6 +537,7 @@ export interface TransactionGeoLocationRequest {
 }
 
 export interface TransactionCreateRequest {
+    readonly currency?: string;
     readonly type: number;
     readonly categoryId: string;
     readonly time: number;
@@ -540,9 +552,11 @@ export interface TransactionCreateRequest {
     readonly comment: string;
     readonly geoLocation?: TransactionGeoLocationRequest;
     readonly clientSessionId: string;
+    readonly socialGift?: SocialGiftImportMetadata;
 }
 
 export interface TransactionModifyRequest {
+    readonly currency?: string;
     readonly id: string;
     readonly categoryId: string;
     readonly time: number;
@@ -611,6 +625,7 @@ export interface TransactionReconciliationStatementRequest {
 export type TransactionGeoLocationResponse = Coordinate;
 
 export interface TransactionInfoResponse {
+    readonly currency?: string;
     readonly id: string;
     readonly timeSequenceId: string;
     readonly type: number;
@@ -789,6 +804,7 @@ export interface TransactionStatisticResponse {
 }
 
 export interface TransactionStatisticResponseItem {
+    readonly currency?: string;
     readonly categoryId: string;
     readonly accountId: string;
     readonly relatedAccountId?: string;
@@ -834,6 +850,7 @@ export interface SortableTransactionStatisticDataItem {
 }
 
 export interface TransactionStatisticResponseItemWithInfo extends TransactionStatisticResponseItem {
+    readonly currency?: string;
     categoryId: string;
     accountId: string;
     relatedAccountId?: string;
@@ -962,7 +979,7 @@ export interface TransactionInsightDataItem extends TransactionInfoResponse {
     readonly primaryCategoryName: string;
     readonly secondaryCategory: TransactionCategoryInfoResponse;
     readonly secondaryCategoryName: string;
-    readonly sourceAccount: AccountInfoResponse;
+    readonly sourceAccount?: AccountInfoResponse;
     readonly sourceAccountName: string;
     readonly destinationAccount?: AccountInfoResponse;
     readonly destinationAccountName?: string;

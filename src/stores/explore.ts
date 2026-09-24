@@ -264,7 +264,7 @@ export const useExploresStore = defineStore('explores', () => {
                 categoryIdType: TransactionExploreDimensionType.Account
             };
         } else if (dimension === TransactionExploreDataDimension.SourceAccountCategory) {
-            const accountCategory = AccountCategory.valueOf(transaction.sourceAccount.category);
+            const accountCategory = AccountCategory.valueOf(transaction.sourceAccount?.category ?? 0);
 
             return {
                 categoryName: accountCategory?.name || 'Unknown',
@@ -274,9 +274,9 @@ export const useExploresStore = defineStore('explores', () => {
             };
         } else if (dimension === TransactionExploreDataDimension.SourceAccountCurrency) {
             return {
-                categoryName: transaction.sourceAccount.currency || 'Unknown',
-                categoryNameNeedI18n: !transaction.sourceAccount.currency,
-                categoryId: transaction.sourceAccount.currency || 'unknown',
+                categoryName: (transaction.currency || transaction.sourceAccount?.currency) || 'Unknown',
+                categoryNameNeedI18n: !(transaction.currency || transaction.sourceAccount?.currency),
+                categoryId: (transaction.currency || transaction.sourceAccount?.currency) || 'unknown',
                 categoryIdType: TransactionExploreDimensionType.Other
             };
         }  else if (dimension === TransactionExploreDataDimension.DestinationAccount) {
@@ -394,7 +394,7 @@ export const useExploresStore = defineStore('explores', () => {
         for (const transaction of transactionExploreAllData.value) {
             const sourceAccount: Account | undefined = accountsStore.allAccountsMap[transaction.sourceAccountId];
 
-            if (!sourceAccount) {
+            if (!sourceAccount && transaction.type !== TransactionType.Income && transaction.type !== TransactionType.Expense) {
                 continue;
             }
 
@@ -441,7 +441,7 @@ export const useExploresStore = defineStore('explores', () => {
                 secondaryCategory: secondaryCategory,
                 secondaryCategoryName: secondaryCategory.name,
                 sourceAccount: sourceAccount,
-                sourceAccountName: sourceAccount.name,
+                sourceAccountName: sourceAccount?.name || '',
                 destinationAccount: destinationAccount,
                 destinationAccountName: destinationAccount?.name,
                 sourceAmount: transaction.sourceAmount,
@@ -565,8 +565,8 @@ export const useExploresStore = defineStore('explores', () => {
                 for (const transaction of seriesedTransactions.trasactions) {
                     let amountInDefaultCurrency: number = transaction.sourceAmount;
 
-                    if (transaction.sourceAccount.currency !== defaultCurrency) {
-                        const amount = exchangeRatesStore.getExchangedAmount(transaction.sourceAmount, transaction.sourceAccount.currency, defaultCurrency);
+                    if ((transaction.currency || transaction.sourceAccount?.currency) !== defaultCurrency) {
+                        const amount = exchangeRatesStore.getExchangedAmount(transaction.sourceAmount, transaction.currency || transaction.sourceAccount?.currency || defaultCurrency, defaultCurrency);
 
                         if (isNumber(amount)) {
                             amountInDefaultCurrency = Math.trunc(amount);

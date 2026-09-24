@@ -12,7 +12,7 @@
                 </template>
             </f7-list-item>
 
-            <f7-list-item link="#" :title="tt('Large Language Model Provider')" :after="findNameByValue(allLLMProviders, form.llmProvider)" :disabled="!form.enabled" @click="showProviderPopup = true">
+            <f7-list-item link="#" :title="tt('Large Language Model Provider')" :after="findNameByValue(allLLMProviders, selectedProvider)" :disabled="!form.enabled" @click="showProviderPopup = true">
                 <list-item-selection-popup value-type="item"
                                            key-field="value" value-field="value"
                                            title-field="name"
@@ -22,10 +22,15 @@
                                            :filter-no-items-text="tt('No results')"
                                            :items="allLLMProviders"
                                            v-model:show="showProviderPopup"
-                                           v-model="form.llmProvider">
+                                           v-model="selectedProvider">
                 </list-item-selection-popup>
             </f7-list-item>
+            <f7-list-item link="#" :title="tt('Refresh providers')" :disabled="loadingProviders || saving" @click="refreshProviders">
+                <template #after><f7-preloader v-if="loadingProviders" :size="16" /></template>
+            </f7-list-item>
+            <f7-list-item v-if="selectedPreset?.docsUrl" :title="tt('Provider documentation')" :link="selectedPreset.docsUrl" external target="_blank" />
         </f7-list>
+        <f7-block v-if="providerError" class="text-color-red">{{ tt(providerError) }}</f7-block>
 
         <f7-list strong inset form dividers v-if="form.enabled">
             <template v-if="form.llmProvider === LLMProvider.OpenAI">
@@ -33,16 +38,14 @@
                                :label="secretLabel('OpenAI API Key', llmSetting?.openAIAPIKeySet)"
                                :placeholder="secretPlaceholder(llmSetting?.openAIAPIKeySet)"
                                v-model:value="form.openAIAPIKey"></f7-list-input>
-                <f7-list-input type="text" :label="tt('OpenAI Model ID')" :placeholder="tt('OpenAI Model ID')" v-model:value="form.openAIModelID"></f7-list-input>
             </template>
 
             <template v-if="form.llmProvider === LLMProvider.OpenAICompatible">
                 <f7-list-input type="text" :label="tt('OpenAI Compatible Base URL')" :placeholder="tt('OpenAI Compatible Base URL')" v-model:value="form.openAICompatibleBaseURL"></f7-list-input>
                 <f7-list-input type="password" autocomplete="off"
-                               :label="secretLabel('OpenAI Compatible API Key', llmSetting?.openAICompatibleAPIKeySet)"
-                               :placeholder="secretPlaceholder(llmSetting?.openAICompatibleAPIKeySet)"
+                               :label="secretLabel('OpenAI Compatible API Key', compatibleKeyConfigured)"
+                               :placeholder="secretPlaceholder(compatibleKeyConfigured)"
                                v-model:value="form.openAICompatibleAPIKey"></f7-list-input>
-                <f7-list-input type="text" :label="tt('OpenAI Compatible Model ID')" :placeholder="tt('OpenAI Compatible Model ID')" v-model:value="form.openAICompatibleModelID"></f7-list-input>
             </template>
 
             <template v-if="form.llmProvider === LLMProvider.OpenRouter">
@@ -50,12 +53,10 @@
                                :label="secretLabel('OpenRouter API Key', llmSetting?.openRouterAPIKeySet)"
                                :placeholder="secretPlaceholder(llmSetting?.openRouterAPIKeySet)"
                                v-model:value="form.openRouterAPIKey"></f7-list-input>
-                <f7-list-input type="text" :label="tt('OpenRouter Model ID')" :placeholder="tt('OpenRouter Model ID')" v-model:value="form.openRouterModelID"></f7-list-input>
             </template>
 
             <template v-if="form.llmProvider === LLMProvider.Ollama">
                 <f7-list-input type="text" :label="tt('Ollama Server URL')" :placeholder="tt('Ollama Server URL')" v-model:value="form.ollamaServerURL"></f7-list-input>
-                <f7-list-input type="text" :label="tt('Ollama Model ID')" :placeholder="tt('Ollama Model ID')" v-model:value="form.ollamaModelID"></f7-list-input>
             </template>
 
             <template v-if="form.llmProvider === LLMProvider.GoogleAI">
@@ -63,8 +64,18 @@
                                :label="secretLabel('Google AI API Key', llmSetting?.googleAIAPIKeySet)"
                                :placeholder="secretPlaceholder(llmSetting?.googleAIAPIKeySet)"
                                v-model:value="form.googleAIAPIKey"></f7-list-input>
-                <f7-list-input type="text" :label="tt('Google AI Model ID')" :placeholder="tt('Google AI Model ID')" v-model:value="form.googleAIModelID"></f7-list-input>
             </template>
+
+            <f7-list-input type="text" autocomplete="off" :label="tt('Model ID')" :placeholder="tt('Enter a model ID')" v-model:value="modelId"></f7-list-input>
+            <f7-list-item link="#" :title="tt('Refresh models')" :disabled="loadingModels || saving" @click="refreshModels">
+                <template #after><f7-preloader v-if="loadingModels" :size="16" /></template>
+            </f7-list-item>
+            <f7-list-item v-if="models.length" link="#" :title="tt('Select a model')" :after="modelId" @click="showModelPopup = true">
+                <list-item-selection-popup value-type="item" key-field="value" value-field="value" title-field="name"
+                    :title="tt('Select a model')" :enable-filter="true" :filter-placeholder="tt('Model ID')" :filter-no-items-text="tt('No results')"
+                    :items="models.map(id => ({ name: id, value: id }))" v-model:show="showModelPopup" v-model="modelId" />
+            </f7-list-item>
+            <f7-list-item v-if="modelStatus"><span role="status" class="text-color-gray">{{ tt(modelStatus) }}</span></f7-list-item>
 
             <f7-list-input type="number" min="0" :label="tt('Request Timeout')" :placeholder="tt('Request Timeout')" v-model:value="form.largeLanguageModelAPIRequestTimeout"></f7-list-input>
             <f7-list-input type="text" :label="tt('Proxy')" :placeholder="tt('Proxy')" v-model:value="form.largeLanguageModelAPIProxy"></f7-list-input>
@@ -93,6 +104,8 @@ import { ref, reactive, computed } from 'vue';
 import { useI18n } from '@/locales/helpers.ts';
 import { useI18nUIComponents, showLoading, hideLoading } from '@/lib/ui/mobile.ts';
 
+import { useAIProviderSettings } from '@/components/base/AIProviderSettingsBase.ts';
+
 import { useUserLLMSettingsStore } from '@/stores/userLLMSetting.ts';
 
 import type { NameValue } from '@/core/base.ts';
@@ -116,15 +129,10 @@ const userLLMSettingsStore = useUserLLMSettingsStore();
 const loading = ref<boolean>(false);
 const saving = ref<boolean>(false);
 const showProviderPopup = ref<boolean>(false);
+const showModelPopup = ref(false);
 const llmSetting = ref<UserLLMSettingResponse | null>(null);
 
-const allLLMProviders = computed<NameValue[]>(() => [
-    { name: tt('OpenAI'), value: LLMProvider.OpenAI },
-    { name: tt('OpenAI Compatible'), value: LLMProvider.OpenAICompatible },
-    { name: tt('OpenRouter'), value: LLMProvider.OpenRouter },
-    { name: tt('Ollama'), value: LLMProvider.Ollama },
-    { name: tt('Google AI'), value: LLMProvider.GoogleAI }
-]);
+
 
 const form = reactive<UserLLMSettingUpdateRequest>({
     enabled: false,
@@ -144,6 +152,16 @@ const form = reactive<UserLLMSettingUpdateRequest>({
     largeLanguageModelAPIProxy: 'system',
     largeLanguageModelAPISkipTLSVerify: false
 });
+
+const {
+    selectedProvider, selectedPreset, providerOptions, modelId, models,
+    compatibleKeyConfigured, loadingProviders, loadingModels, providerError, modelStatus,
+    refreshProviders, refreshModels
+} = useAIProviderSettings(form, llmSetting);
+const allLLMProviders = computed<NameValue[]>(() => providerOptions.value.map(provider => ({
+    ...provider, name: tt(provider.name)
+})));
+
 
 function secretLabel(label: string, configured?: boolean): string {
     if (configured) {
@@ -211,5 +229,6 @@ function save(): void {
     });
 }
 
+refreshProviders();
 load();
 </script>

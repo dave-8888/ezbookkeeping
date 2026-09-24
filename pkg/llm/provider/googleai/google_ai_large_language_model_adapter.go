@@ -90,6 +90,9 @@ func (p *GoogleAILargeLanguageModelAdapter) BuildTextualRequest(c core.Context, 
 
 // ParseTextualResponse returns the textual response by Google AI large language model adapter
 func (p *GoogleAILargeLanguageModelAdapter) ParseTextualResponse(c core.Context, uid int64, body []byte, responseType data.LargeLanguageModelResponseFormat) (*data.LargeLanguageModelTextualResponse, error) {
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		return parseToolResponse(body)
+	}
 	generateContentResponse := &GoogleAIGenerateContentResponse{}
 	err := json.Unmarshal(body, &generateContentResponse)
 
@@ -113,6 +116,9 @@ func (p *GoogleAILargeLanguageModelAdapter) ParseTextualResponse(c core.Context,
 }
 
 func (p *GoogleAILargeLanguageModelAdapter) buildJsonRequestBody(c core.Context, uid int64, request *data.LargeLanguageModelRequest, responseType data.LargeLanguageModelResponseFormat) ([]byte, error) {
+	if responseType == data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		return p.buildToolRequest(request)
+	}
 	if p.GoogleAIModelID == "" {
 		return nil, errs.ErrInvalidLLMModelId
 	}

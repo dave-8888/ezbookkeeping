@@ -1,4 +1,5 @@
 import { keys } from '@/core/base.ts';
+import { isNativeApp } from './native_app.ts';
 
 import type {
     ApplicationSettingKey,
@@ -36,7 +37,11 @@ export function getApplicationSettings(): ApplicationSettings {
         }
     }
 
-    return Object.assign({}, DEFAULT_APPLICATION_SETTINGS, storedApplicationSettings);
+    const settings = Object.assign({}, DEFAULT_APPLICATION_SETTINGS, storedApplicationSettings);
+    // The web PIN locks browser storage only; it cannot protect the native chat.
+    // Do not present it as an app-wide lock in the Android host.
+    if (isNativeApp()) { settings.applicationLock = false; settings.theme = 'system'; }
+    return settings;
 }
 
 export function getLocaleDefaultSettings(): LocaleDefaultSettings {

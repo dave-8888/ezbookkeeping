@@ -38,17 +38,17 @@ export function useAccountListPageBase() {
     const allAccountCount = computed<number>(() => accountsStore.allAvailableAccountsCount);
 
     const netAssets = computed<string>(() => {
-        const netAssets: number | HiddenAmount | NumberWithSuffix = accountsStore.getNetAssets(showAccountBalance.value);
+        const netAssets: number | HiddenAmount | NumberWithSuffix = accountsStore.getNetAssets(showAccountBalance.value, showHidden.value);
         return formatAmountToLocalizedNumeralsWithCurrency(netAssets, defaultCurrency.value);
     });
 
     const totalAssets = computed<string>(() => {
-        const totalAssets: number | HiddenAmount | NumberWithSuffix = accountsStore.getTotalAssets(showAccountBalance.value);
+        const totalAssets: number | HiddenAmount | NumberWithSuffix = accountsStore.getTotalAssets(showAccountBalance.value, showHidden.value);
         return formatAmountToLocalizedNumeralsWithCurrency(totalAssets, defaultCurrency.value);
     });
 
     const totalLiabilities = computed<string>(() => {
-        const totalLiabilities: number | HiddenAmount | NumberWithSuffix = accountsStore.getTotalLiabilities(showAccountBalance.value);
+        const totalLiabilities: number | HiddenAmount | NumberWithSuffix = accountsStore.getTotalLiabilities(showAccountBalance.value, showHidden.value);
         return formatAmountToLocalizedNumeralsWithCurrency(totalLiabilities, defaultCurrency.value);
     });
 
@@ -57,7 +57,7 @@ export function useAccountListPageBase() {
             return '';
         }
 
-        const totalBalance: number | HiddenAmount | NumberWithSuffix = accountsStore.getAccountCategoryTotalBalance(showAccountBalance.value, accountCategory);
+        const totalBalance: number | HiddenAmount | NumberWithSuffix = accountsStore.getAccountCategoryTotalBalance(showAccountBalance.value, accountCategory, showHidden.value);
         return formatAmountToLocalizedNumeralsWithCurrency(totalBalance, defaultCurrency.value);
     }
 

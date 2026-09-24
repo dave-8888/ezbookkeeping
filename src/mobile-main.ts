@@ -46,7 +46,7 @@ import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 
 import * as echarts from 'echarts/core';
-import { LineChart } from 'echarts/charts';
+import { LineChart, ScatterChart } from 'echarts/charts';
 import { GridComponent, LegendComponent, TooltipComponent, AriaComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import VChart from 'vue-echarts';
@@ -144,6 +144,7 @@ const i18n = createI18n(getI18nOptions());
 
 echarts.use([
     LineChart,
+    ScatterChart,
     GridComponent,
     LegendComponent,
     TooltipComponent,

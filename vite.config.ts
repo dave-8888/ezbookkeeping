@@ -82,7 +82,7 @@ function injectFramework7CssFile({ htmlFileName, placeHolders }: { htmlFileName:
 export default defineConfig(() => {
     const licenseContent = fs.readFileSync('./LICENSE', { encoding: 'utf-8' });
     const buildUnixTime = process.env['buildUnixTime'] || '';
-    const backendPort = getPortFromEnv('BACKEND_PORT', getPortFromEnv('APP_PORT', 8888));
+    const backendPort = getPortFromEnv('BACKEND_PORT', getPortFromEnv('APP_PORT', 18888));
     const frontendHost = process.env['FRONTEND_HOST'] || '0.0.0.0';
     const frontendPort = getPortFromEnv('FRONTEND_PORT', 8889);
     const backendTarget = `http://127.0.0.1:${backendPort}/`;
@@ -137,9 +137,9 @@ export default defineConfig(() => {
                 strategies: 'generateSW',
                 injectRegister: false,
                 manifest: {
-                    name: 'financially_free',
-                    short_name: 'financially_free',
-                    description: 'A lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features.',
+                    name: '财神',
+                    short_name: '财神',
+                    description: '财神是一款轻量、自托管、界面友好的个人财务管理应用。',
                     theme_color: '#0071E3',
                     background_color: '#F5F5F7',
                     start_url: './',
@@ -150,12 +150,12 @@ export default defineConfig(() => {
                     prefer_related_applications: false,
                     icons: [
                         {
-                            src: 'img/financially_free-192.png',
+                            src: 'img/caishen-192.png',
                             sizes: '192x192',
                             type: 'image/png'
                         },
                         {
-                            src: 'img/financially_free-512.png',
+                            src: 'img/caishen-512.png',
                             sizes: '512x512',
                             type: 'image/png'
                         }

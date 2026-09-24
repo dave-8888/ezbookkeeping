@@ -253,6 +253,8 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
     const sourceAccountCurrency = computed<string>(() => {
         const sourceAccount = allAccountsMap.value[transaction.value.sourceAccountId];
 
+        if (transaction.value.isCashFlow) { return transaction.value.currency || defaultCurrency.value; }
+
         if (sourceAccount) {
             return sourceAccount.currency;
         }
@@ -295,17 +297,13 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
                 return 'Transaction category cannot be blank';
             }
 
-            if (!transaction.value.sourceAccountId || transaction.value.sourceAccountId === '') {
-                return 'Transaction account cannot be blank';
-            }
+
         } else if (transaction.value.type === TransactionType.Income) {
             if (!transaction.value.incomeCategoryId || transaction.value.incomeCategoryId === '') {
                 return 'Transaction category cannot be blank';
             }
 
-            if (!transaction.value.sourceAccountId || transaction.value.sourceAccountId === '') {
-                return 'Transaction account cannot be blank';
-            }
+
         } else if (transaction.value.type === TransactionType.Transfer) {
             if (!transaction.value.transferCategoryId || transaction.value.transferCategoryId === '') {
                 return 'Transaction category cannot be blank';
@@ -355,6 +353,7 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
             newTransaction = TransactionTemplate.createNewTransactionTemplate(newTransaction);
         }
 
+        newTransaction.currency = userStore.currentUserDefaultCurrency;
         return newTransaction;
     }
 
@@ -402,6 +401,14 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
     function getTransactionPictureUrl(pictureInfo?: TransactionPictureInfoBasicResponse | null): string | undefined {
         return transactionsStore.getTransactionPictureUrl(pictureInfo);
     }
+
+    watch(() => [transaction.value.type, transaction.value.sourceAccountId, transaction.value.currency], () => {
+        if (transaction.value.isCashFlow) {
+            transaction.value.currency ||= userStore.currentUserDefaultCurrency;
+            transaction.value.sourceAccountId = '0';
+            transaction.value.destinationAccountId = '0';
+        }
+    }, { immediate: true });
 
     watch(() => transaction.value.sourceAmount, (newValue, oldValue) => {
         if (mode.value === TransactionEditPageMode.View || loading.value) {

@@ -78,6 +78,7 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 	allNewSubIncomeCategories := make([]*models.TransactionCategory, 0)
 	allNewSubTransferCategories := make([]*models.TransactionCategory, 0)
 	allNewTags := make([]*models.TransactionTag, 0)
+	socialGiftContacts := make(map[string]*models.SocialGiftImportMetadata)
 
 	dataRowIterator := dataTable.TransactionRowIterator()
 	dataRowIndex := 0
@@ -200,19 +201,27 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 
 		account, exists := accountMap[accountName]
 
-		if !exists {
-			account = c.createNewAccountModel(user.Uid, accountName, accountCurrency)
-			allNewAccounts = append(allNewAccounts, account)
-			accountMap[accountName] = account
-		}
-
-		if dataTable.HasColumn(datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY) && dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY) != "" {
-			if account.Name != "" && account.Currency != accountCurrency {
-				log.Errorf(ctx, "[data_table_transaction_data_importer.ParseImportedData] currency \"%s\" in data row \"index:%d\" not equals currency \"%s\" of the account for user \"uid:%d\"", accountCurrency, dataRowIndex, account.Currency, user.Uid)
-				return nil, nil, nil, nil, nil, nil, errs.ErrAccountCurrencyInvalid
+		if accountName == "" && (transactionDbType == models.TRANSACTION_DB_TYPE_INCOME || transactionDbType == models.TRANSACTION_DB_TYPE_EXPENSE) {
+			if exists && dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY) == "" {
+				accountCurrency = account.Currency
 			}
-		} else if exists {
-			accountCurrency = account.Currency
+			account = &models.Account{Currency: accountCurrency}
+		} else {
+			if !exists {
+				account = c.createNewAccountModel(user.Uid, accountName, accountCurrency)
+				allNewAccounts = append(allNewAccounts, account)
+				accountMap[accountName] = account
+			}
+
+			if dataTable.HasColumn(datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY) && dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY) != "" {
+				if account.Name != "" && account.Currency != accountCurrency {
+					log.Errorf(ctx, "[data_table_transaction_data_importer.ParseImportedData] currency \"%s\" in data row \"index:%d\" not equals currency \"%s\" of the account for user \"uid:%d\"", accountCurrency, dataRowIndex, account.Currency, user.Uid)
+					return nil, nil, nil, nil, nil, nil, errs.ErrAccountCurrencyInvalid
+				}
+			} else if exists {
+				accountCurrency = account.Currency
+			}
+
 		}
 
 		amount, err := utils.ParseAmount(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_AMOUNT))
@@ -368,6 +377,55 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 			description = dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_PAYEE)
 		}
 
+		var socialGift *models.SocialGiftImportMetadata
+		if dataTable.HasColumn(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT) {
+			contactName := strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT))
+			if contactName != "" {
+				relationship := strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_RELATIONSHIP))
+				contactKey := strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_KEY))
+				generatedContactKey := contactKey == ""
+				if contactKey == "" {
+					contactKey = "normalized:" + strings.ToLower(strings.Join(strings.Fields(contactName), " ")) + "\x00" + strings.ToLower(strings.Join(strings.Fields(relationship), " "))
+				}
+				socialGift = &models.SocialGiftImportMetadata{
+					ContactKey:   contactKey,
+					ContactName:  contactName,
+					Relationship: relationship,
+					ContactNote:  strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_NOTE)),
+					EventType:    strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_TYPE)),
+					EventName:    strings.TrimSpace(dataRow.GetData(datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_NAME)),
+				}
+				if socialGift.EventType == "" {
+					socialGift.EventType = models.SOCIAL_GIFT_EVENT_OTHER
+				}
+				if transactionDbType != models.TRANSACTION_DB_TYPE_EXPENSE && transactionDbType != models.TRANSACTION_DB_TYPE_INCOME {
+					return nil, nil, nil, nil, nil, nil, errs.ErrSocialGiftDirectionInvalid
+				}
+				if !isValidImportedSocialGiftEventType(socialGift.EventType) {
+					return nil, nil, nil, nil, nil, nil, errs.ErrSocialGiftEventTypeInvalid
+				}
+				if socialGift.EventType == models.SOCIAL_GIFT_EVENT_OTHER && socialGift.EventName == "" {
+					return nil, nil, nil, nil, nil, nil, errs.ErrSocialGiftEventNameRequired
+				}
+				if previous := socialGiftContacts[contactKey]; previous != nil {
+					if !generatedContactKey && (previous.ContactName != socialGift.ContactName || previous.Relationship != socialGift.Relationship || previous.ContactNote != socialGift.ContactNote) {
+						return nil, nil, nil, nil, nil, nil, errs.ErrSocialGiftImportContactConflict
+					}
+					if generatedContactKey && previous.ContactNote != "" && socialGift.ContactNote != "" && previous.ContactNote != socialGift.ContactNote {
+						return nil, nil, nil, nil, nil, nil, errs.ErrSocialGiftImportContactConflict
+					}
+					if previous.ContactNote == "" {
+						previous.ContactNote = socialGift.ContactNote
+					}
+					socialGift.ContactName = previous.ContactName
+					socialGift.Relationship = previous.Relationship
+					socialGift.ContactNote = previous.ContactNote
+				} else {
+					socialGiftContacts[contactKey] = socialGift
+				}
+			}
+		}
+
 		transaction := &models.ImportTransaction{
 			Transaction: &models.Transaction{
 				Uid:                  user.Uid,
@@ -376,6 +434,7 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 				TransactionTime:      utils.GetMinTransactionTimeFromUnixTime(transactionTime.Unix()),
 				TimezoneUtcOffset:    utils.GetTimezoneOffsetMinutes(transactionTime.Unix(), timezone),
 				AccountId:            account.AccountId,
+				Currency:             accountCurrency,
 				Amount:               amount,
 				HideAmount:           false,
 				RelatedAccountId:     relatedAccountId,
@@ -392,6 +451,7 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 			OriginalDestinationAccountName:     account2Name,
 			OriginalDestinationAccountCurrency: account2Currency,
 			OriginalTagNames:                   tagNames,
+			SocialGift:                         socialGift,
 		}
 
 		allNewTransactions = append(allNewTransactions, transaction)
@@ -405,6 +465,17 @@ func (c *DataTableTransactionDataImporter) ParseImportedData(ctx core.Context, u
 	sort.Sort(allNewTransactions)
 
 	return allNewTransactions, allNewAccounts, allNewSubExpenseCategories, allNewSubIncomeCategories, allNewSubTransferCategories, allNewTags, nil
+}
+
+func isValidImportedSocialGiftEventType(eventType string) bool {
+	switch eventType {
+	case models.SOCIAL_GIFT_EVENT_WEDDING, models.SOCIAL_GIFT_EVENT_NEWBORN, models.SOCIAL_GIFT_EVENT_BIRTHDAY,
+		models.SOCIAL_GIFT_EVENT_HOUSEWARMING, models.SOCIAL_GIFT_EVENT_EDUCATION, models.SOCIAL_GIFT_EVENT_FUNERAL,
+		models.SOCIAL_GIFT_EVENT_OTHER:
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *DataTableTransactionDataImporter) buildTransactionTypeNameDbTypeMap() (map[string]models.TransactionDbType, error) {

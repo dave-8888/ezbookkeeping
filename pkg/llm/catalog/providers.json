@@ -1,0 +1,15 @@
+[
+  {"id":"deepseek","name":"DeepSeek（深度求索）","protocol":"openai_compatible","baseUrl":"https://api.deepseek.com/v1","docsUrl":"https://api-docs.deepseek.com/"},
+  {"id":"bailian","name":"阿里云百炼（通义千问）","protocol":"openai_compatible","baseUrl":"https://dashscope.aliyuncs.com/compatible-mode/v1","docsUrl":"https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope"},
+  {"id":"volcengine","name":"火山引擎（豆包）","protocol":"openai_compatible","baseUrl":"https://ark.cn-beijing.volces.com/api/v3","docsUrl":"https://www.volcengine.com/docs/82379/"},
+  {"id":"hunyuan","name":"腾讯混元","protocol":"openai_compatible","baseUrl":"https://api.hunyuan.cloud.tencent.com/v1","docsUrl":"https://cloud.tencent.com/document/product/1729/111007"},
+  {"id":"qianfan","name":"百度千帆","protocol":"openai_compatible","baseUrl":"https://qianfan.baidubce.com/v2","docsUrl":"https://cloud.baidu.com/doc/qianfan-api/s/Dmba8k71y"},
+  {"id":"zhipu","name":"智谱（GLM）","protocol":"openai_compatible","baseUrl":"https://open.bigmodel.cn/api/paas/v4","docsUrl":"https://docs.bigmodel.cn/cn/guide/develop/openai/introduction"},
+  {"id":"moonshot","name":"月之暗面（Kimi）","protocol":"openai_compatible","baseUrl":"https://api.moonshot.cn/v1","docsUrl":"https://platform.moonshot.cn/docs/"},
+  {"id":"minimax","name":"MiniMax","protocol":"openai_compatible","baseUrl":"https://api.minimaxi.com/v1","docsUrl":"https://platform.minimaxi.com/docs/guides/text-generation"},
+  {"id":"openai","name":"OpenAI","protocol":"openai","baseUrl":"","docsUrl":""},
+  {"id":"openai_compatible","name":"OpenAI Compatible","protocol":"openai_compatible","baseUrl":"","docsUrl":""},
+  {"id":"openrouter","name":"OpenRouter","protocol":"openrouter","baseUrl":"","docsUrl":""},
+  {"id":"ollama","name":"Ollama","protocol":"ollama","baseUrl":"","docsUrl":""},
+  {"id":"google_ai","name":"Google AI","protocol":"google_ai","baseUrl":"","docsUrl":""}
+]

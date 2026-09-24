@@ -81,9 +81,13 @@ func (s *AssetPlanService) ModifyAssetPlan(c core.Context, plan *models.AssetPla
 	}
 
 	plan.UpdatedUnixTime = time.Now().Unix()
+	columns := []string{"target_amount", "target_date", "updated_unix_time"}
+	if plan.MonthlySchedule != "" {
+		columns = append(columns, "monthly_schedule", "start_date", "actual_tracking")
+	}
 	updatedRows, err := s.UserDataDB(plan.Uid).NewSession(c).
 		ID(plan.Uid).
-		Cols("target_amount", "target_date", "updated_unix_time").
+		Cols(columns...).
 		Update(plan)
 
 	if err != nil {
@@ -120,4 +124,19 @@ func (s *AssetPlanService) DeleteAssetPlanIfExists(c core.Context, uid int64) er
 
 	_, err := s.UserDataDB(uid).NewSession(c).ID(uid).Delete(&models.AssetPlan{})
 	return err
+}
+
+// SaveActualTracking updates observations without overwriting the user's plan.
+func (s *AssetPlanService) SaveActualTracking(c core.Context, uid int64, tracking string) error {
+	if uid <= 0 {
+		return errs.ErrUserIdInvalid
+	}
+	rows, err := s.UserDataDB(uid).NewSession(c).ID(uid).Cols("actual_tracking").Update(&models.AssetPlan{ActualTracking: tracking})
+	if err != nil {
+		return err
+	}
+	if rows < 1 {
+		return errs.ErrAssetPlanNotFound
+	}
+	return nil
 }

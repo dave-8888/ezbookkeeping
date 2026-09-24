@@ -111,19 +111,23 @@ describe('recognizeTransactionByText', () => {
         expect(hasRecognizedTransactionFields(result)).toBe(true);
     });
 
-    test('falls back to local parsing when LLM recognition fails', async () => {
-        const result = await recognizeTransactionByText('工资 100 招商银行', {
+    test('rejects when AI recognition fails instead of parsing locally', async () => {
+        await expect(recognizeTransactionByText('工资 100 招商银行', {
             allCategories: createCategories(),
             allVisibleAccounts: createAccounts(),
             allTags: createTags(),
             recognizeTransactionText: async () => {
                 throw new Error('disabled');
             }
-        });
+        })).rejects.toThrow('disabled');
+    });
 
-        expect(result.type).toBe(TransactionType.Income);
-        expect(result.sourceAmount).toBe(10000);
-        expect(result.sourceAccountId).toBe('account_cmb');
+    test('rejects when no AI recognizer is configured', async () => {
+        await expect(recognizeTransactionByText('工资 100 招商银行', {
+            allCategories: createCategories(),
+            allVisibleAccounts: createAccounts(),
+            allTags: createTags()
+        })).rejects.toThrow('llm provider is not enabled');
     });
 });
 
@@ -142,7 +146,7 @@ describe('createTransactionFromRecognizedResult', () => {
 
         expect(transaction.type).toBe(TransactionType.Expense);
         expect(transaction.categoryId).toBe('category_lunch');
-        expect(transaction.sourceAccountId).toBe('account_alipay');
+        expect(transaction.toCreateRequest('').sourceAccountId).toBe('0');
         expect(transaction.sourceAmount).toBe(3800);
         expect(getRecognizedTransactionAutoCreateMissingFields({
             type: TransactionType.Expense,

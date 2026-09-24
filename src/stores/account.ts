@@ -566,12 +566,12 @@ export const useAccountsStore = defineStore('accounts', () => {
         }
     }
 
-    function getAccountCategoryTotalBalance(showAccountBalance: boolean, accountCategory: AccountCategory): number | HiddenAmount | NumberWithSuffix {
+    function getAccountCategoryTotalBalance(showAccountBalance: boolean, accountCategory: AccountCategory, includeHidden: boolean = false): number | HiddenAmount | NumberWithSuffix {
         if (!showAccountBalance) {
             return DISPLAY_HIDDEN_AMOUNT;
         }
 
-        const accountsBalance = getAllFilteredAccountsBalance(allCategorizedAccountsMap.value, account => account.category === accountCategory.type);
+        const accountsBalance = getAllFilteredAccountsBalance(allCategorizedAccountsMap.value, account => account.category === accountCategory.type, includeHidden);
         let totalBalance = 0;
         let hasUnCalculatedAmount = false;
 

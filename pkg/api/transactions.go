@@ -535,6 +535,7 @@ func (a *TransactionsApi) TransactionStatisticsHandler(c *core.WebContext) (any,
 		statisticResp.Items[i] = &models.TransactionStatisticResponseItem{
 			CategoryId:  totalAmountItem.CategoryId,
 			AccountId:   totalAmountItem.AccountId,
+			Currency:    totalAmountItem.Currency,
 			TotalAmount: totalAmountItem.Amount,
 		}
 
@@ -605,6 +606,7 @@ func (a *TransactionsApi) TransactionStatisticsTrendsHandler(c *core.WebContext)
 			monthlyStatisticResp.Items[i] = &models.TransactionStatisticResponseItem{
 				CategoryId:  totalAmountItem.CategoryId,
 				AccountId:   totalAmountItem.AccountId,
+				Currency:    totalAmountItem.Currency,
 				TotalAmount: totalAmountItem.Amount,
 			}
 
@@ -742,14 +744,6 @@ func (a *TransactionsApi) TransactionAmountsHandler(c *core.WebContext) (any, *e
 
 	uid := c.GetCurrentUid()
 
-	accounts, err := a.accounts.GetAllAccountsByUid(c, uid)
-	accountMap := a.accounts.GetAccountMapByList(accounts)
-
-	if err != nil {
-		log.Errorf(c, "[transactions.TransactionAmountsHandler] failed to get all accounts for user \"uid:%d\", because %s", uid, err.Error())
-		return nil, errs.Or(err, errs.ErrOperationFailed)
-	}
-
 	amountsResp := orderedmap.New[string, *models.TransactionAmountsResponseItem]()
 
 	for i := 0; i < len(requestItems); i++ {
@@ -764,48 +758,36 @@ func (a *TransactionsApi) TransactionAmountsHandler(c *core.WebContext) (any, *e
 
 		amountsMap := make(map[string]*models.TransactionAmountsResponseItemAmountInfo)
 
-		for accountId, incomeAmount := range incomeAmounts {
-			account, exists := accountMap[accountId]
+		for currency, incomeAmount := range incomeAmounts {
 
-			if !exists {
-				log.Warnf(c, "[transactions.TransactionAmountsHandler] cannot find account for account \"id:%d\" of user \"uid:%d\"", accountId, uid)
-				continue
-			}
-
-			totalAmounts, exists := amountsMap[account.Currency]
+			totalAmounts, exists := amountsMap[currency]
 
 			if !exists {
 				totalAmounts = &models.TransactionAmountsResponseItemAmountInfo{
-					Currency:      account.Currency,
+					Currency:      currency,
 					IncomeAmount:  0,
 					ExpenseAmount: 0,
 				}
 			}
 
 			totalAmounts.IncomeAmount += incomeAmount
-			amountsMap[account.Currency] = totalAmounts
+			amountsMap[currency] = totalAmounts
 		}
 
-		for accountId, expenseAmount := range expenseAmounts {
-			account, exists := accountMap[accountId]
+		for currency, expenseAmount := range expenseAmounts {
 
-			if !exists {
-				log.Warnf(c, "[transactions.TransactionAmountsHandler] cannot find account for account \"id:%d\" of user \"uid:%d\"", accountId, uid)
-				continue
-			}
-
-			totalAmounts, exists := amountsMap[account.Currency]
+			totalAmounts, exists := amountsMap[currency]
 
 			if !exists {
 				totalAmounts = &models.TransactionAmountsResponseItemAmountInfo{
-					Currency:      account.Currency,
+					Currency:      currency,
 					IncomeAmount:  0,
 					ExpenseAmount: 0,
 				}
 			}
 
 			totalAmounts.ExpenseAmount += expenseAmount
-			amountsMap[account.Currency] = totalAmounts
+			amountsMap[currency] = totalAmounts
 		}
 
 		allTotalAmounts := make(models.TransactionAmountsResponseItemAmountInfoSlice, 0)
@@ -875,7 +857,7 @@ func (a *TransactionsApi) TransactionGetHandler(c *core.WebContext) (any, *errs.
 
 	accountMap, err := a.accounts.GetAccountsByAccountIds(c, uid, accountIds)
 
-	if _, exists := accountMap[transaction.AccountId]; !exists {
+	if _, exists := accountMap[transaction.AccountId]; !exists && !transaction.IsCashFlow() {
 		log.Warnf(c, "[transactions.TransactionGetHandler] account of transaction \"id:%d\" does not exist for user \"uid:%d\"", transaction.TransactionId, uid)
 		return nil, errs.ErrTransactionNotFound
 	}
@@ -1192,6 +1174,7 @@ func (a *TransactionsApi) TransactionModifyHandler(c *core.WebContext) (any, *er
 		TransactionTime:   utils.GetMinTransactionTimeFromUnixTime(transactionModifyReq.Time),
 		TimezoneUtcOffset: transactionModifyReq.UtcOffset,
 		AccountId:         transactionModifyReq.SourceAccountId,
+		Currency:          transactionModifyReq.Currency,
 		Amount:            transactionModifyReq.SourceAmount,
 		HideAmount:        transactionModifyReq.HideAmount,
 		Comment:           transactionModifyReq.Comment,
@@ -1207,7 +1190,8 @@ func (a *TransactionsApi) TransactionModifyHandler(c *core.WebContext) (any, *er
 		newTransaction.GeoLatitude = transactionModifyReq.GeoLocation.Latitude
 	}
 
-	if newTransaction.CategoryId == transaction.CategoryId &&
+	if newTransaction.Currency == transaction.Currency &&
+		newTransaction.CategoryId == transaction.CategoryId &&
 		utils.GetUnixTimeFromTransactionTime(newTransaction.TransactionTime) == utils.GetUnixTimeFromTransactionTime(transaction.TransactionTime) &&
 		newTransaction.TimezoneUtcOffset == transaction.TimezoneUtcOffset &&
 		newTransaction.AccountId == transaction.AccountId &&
@@ -1826,9 +1810,14 @@ func (a *TransactionsApi) TransactionImportHandler(c *core.WebContext) (any, *er
 		newTransactions[i] = transaction
 	}
 
-	err = a.transactions.BatchCreateTransactions(c, user.Uid, newTransactions, newTransactionTagIdsMap, func(currentProcess float64) {
+	importHook, err := services.SocialGifts.BuildImportHook(user.Uid, transactionImportReq.Transactions, newTransactions)
+	if err != nil {
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
+	err = a.transactions.BatchCreateTransactionsWithHook(c, user.Uid, newTransactions, newTransactionTagIdsMap, func(currentProcess float64) {
 		a.SetSubmissionRemarkIfEnable(duplicatechecker.DUPLICATE_CHECKER_TYPE_IMPORT_TRANSACTIONS, uid, transactionImportReq.ClientSessionId, fmt.Sprintf("processing:%.2f", currentProcess))
-	})
+	}, importHook)
 	count := len(newTransactions)
 
 	if err != nil {
@@ -1900,7 +1889,7 @@ func (a *TransactionsApi) filterTransactions(c *core.WebContext, uid int64, tran
 	for i := 0; i < len(transactions); i++ {
 		transaction := transactions[i]
 
-		if _, exists := accountMap[transaction.AccountId]; !exists {
+		if _, exists := accountMap[transaction.AccountId]; !exists && !transaction.IsCashFlow() {
 			log.Warnf(c, "[transactions.filterTransactions] account of transaction \"id:%d\" does not exist for user \"uid:%d\"", transaction.TransactionId, uid)
 			continue
 		}
@@ -2071,6 +2060,7 @@ func (a *TransactionsApi) createNewTransactionModel(uid int64, transactionCreate
 		TransactionTime:   utils.GetMinTransactionTimeFromUnixTime(transactionCreateReq.Time),
 		TimezoneUtcOffset: transactionCreateReq.UtcOffset,
 		AccountId:         transactionCreateReq.SourceAccountId,
+		Currency:          transactionCreateReq.Currency,
 		Amount:            transactionCreateReq.SourceAmount,
 		HideAmount:        transactionCreateReq.HideAmount,
 		Comment:           transactionCreateReq.Comment,

@@ -19,16 +19,22 @@ func TestDefaultTransactionDataCSVFileConverterToExportedContent(t *testing.T) {
 
 	transactions := make([]*models.Transaction, 3)
 	transactions[0] = &models.Transaction{
-		TransactionId:     1,
-		TransactionTime:   1725165296000,
-		Type:              models.TRANSACTION_DB_TYPE_INCOME,
-		TimezoneUtcOffset: 480,
-		CategoryId:        2,
-		AccountId:         1,
-		Amount:            12345,
-		GeoLongitude:      123.45,
-		GeoLatitude:       45.67,
-		Comment:           "Hello,World",
+		TransactionId:          1,
+		TransactionTime:        1725165296000,
+		Type:                   models.TRANSACTION_DB_TYPE_INCOME,
+		TimezoneUtcOffset:      480,
+		CategoryId:             2,
+		AccountId:              1,
+		Amount:                 12345,
+		GeoLongitude:           123.45,
+		GeoLatitude:            45.67,
+		Comment:                "Hello,World",
+		SocialGiftContactKey:   "contact-1",
+		SocialGiftContact:      "Alice",
+		SocialGiftRelationship: "Friend",
+		SocialGiftContactNote:  "College",
+		SocialGiftEventType:    models.SOCIAL_GIFT_EVENT_WEDDING,
+		SocialGiftEventName:    "Wedding banquet",
 	}
 	transactions[1] = &models.Transaction{
 		TransactionId:     2,
@@ -117,10 +123,10 @@ func TestDefaultTransactionDataCSVFileConverterToExportedContent(t *testing.T) {
 	allTagIndexes[2] = []int64{3, 1, 4}
 	allTagIndexes[3] = []int64{2, 3}
 
-	expectedContent := "Time,Timezone,Type,Category,Sub Category,Account,Account Currency,Amount,Account2,Account2 Currency,Account2 Amount,Geographic Location,Tags,Description\n" +
-		"2024-09-01 12:34:56,+08:00,Income,Test Category,Test Sub Category,Test Account,CNY,123.45,,,,123.450000 45.670000,Test Tag;Test Tag2,Hello World\n" +
-		"2024-09-01 12:34:56,+00:00,Expense,Test Category2,Test Sub Category2,Test Account,CNY,-0.10,,,,,Test Tag,Foo#Bar\n" +
-		"2024-09-01 12:34:56,-05:00,Transfer,Test Category3,Test Sub Category3,Test Account,CNY,123.45,Test Account2,USD,17.35,,Test Tag2,T\te s t test\n"
+	expectedContent := "Time,Timezone,Type,Category,Sub Category,Account,Account Currency,Amount,Account2,Account2 Currency,Account2 Amount,Geographic Location,Tags,Description,Social Gift Contact Key,Social Gift Contact,Social Gift Relationship,Social Gift Contact Note,Social Gift Event Type,Social Gift Event Name\n" +
+		"2024-09-01 12:34:56,+08:00,Income,Test Category,Test Sub Category,Test Account,CNY,123.45,,,,123.450000 45.670000,Test Tag;Test Tag2,Hello World,contact-1,Alice,Friend,College,wedding,Wedding banquet\n" +
+		"2024-09-01 12:34:56,+00:00,Expense,Test Category2,Test Sub Category2,Test Account,CNY,-0.10,,,,,Test Tag,Foo#Bar,,,,,,\n" +
+		"2024-09-01 12:34:56,-05:00,Transfer,Test Category3,Test Sub Category3,Test Account,CNY,123.45,Test Account2,USD,17.35,,Test Tag2,T\te s t test,,,,,,\n"
 	actualContent, err := exporter.ToExportedContent(context, 123, transactions, accountMap, categoryMap, tagMap, allTagIndexes)
 
 	assert.Nil(t, err)
@@ -179,6 +185,7 @@ func TestDefaultTransactionDataCSVFileConverterParseImportedData_MinimumValidDat
 	assert.Equal(t, "Test Account", allNewTransactions[3].OriginalSourceAccountName)
 	assert.Equal(t, "Test Account2", allNewTransactions[3].OriginalDestinationAccountName)
 	assert.Equal(t, "Test Category3", allNewTransactions[3].OriginalCategoryName)
+	assert.Nil(t, allNewTransactions[3].SocialGift)
 
 	assert.Equal(t, int64(1234567890), allNewAccounts[0].Uid)
 	assert.Equal(t, "Test Account", allNewAccounts[0].Name)
@@ -196,6 +203,36 @@ func TestDefaultTransactionDataCSVFileConverterParseImportedData_MinimumValidDat
 
 	assert.Equal(t, int64(1234567890), allNewSubTransferCategories[0].Uid)
 	assert.Equal(t, "Test Category3", allNewSubTransferCategories[0].Name)
+}
+
+func TestDefaultTransactionDataCSVFileConverterParseImportedData_SocialGift(t *testing.T) {
+	importer := DefaultTransactionDataCSVFileConverter
+	context := core.NewNullContext()
+	user := &models.User{Uid: 1234567890, DefaultCurrency: "CNY"}
+	content := "Time,Type,Sub Category,Account,Amount,Account2,Account2 Amount,Social Gift Contact Key,Social Gift Contact,Social Gift Relationship,Social Gift Contact Note,Social Gift Event Type,Social Gift Event Name\n" +
+		"2024-09-01 01:00:00,Expense,Gifts,Cash,100.00,,,person-1,Alice,Friend,College,wedding,Wedding\n" +
+		"2024-09-02 01:00:00,Income,Gifts,Cash,50.00,,,person-1,Alice,Friend,College,birthday,"
+
+	transactions, _, _, _, _, _, err := importer.ParseImportedData(context, user, []byte(content), time.UTC, converter.DefaultImporterOptions, nil, nil, nil, nil, nil)
+	assert.NoError(t, err)
+	if assert.Len(t, transactions, 2) {
+		assert.Equal(t, "person-1", transactions[0].SocialGift.ContactKey)
+		assert.Equal(t, "Alice", transactions[0].SocialGift.ContactName)
+		assert.Equal(t, models.SOCIAL_GIFT_EVENT_WEDDING, transactions[0].SocialGift.EventType)
+		assert.Equal(t, models.SOCIAL_GIFT_EVENT_BIRTHDAY, transactions[1].SocialGift.EventType)
+	}
+}
+
+func TestDefaultTransactionDataCSVFileConverterParseImportedData_SocialGiftContactConflict(t *testing.T) {
+	importer := DefaultTransactionDataCSVFileConverter
+	context := core.NewNullContext()
+	user := &models.User{Uid: 1234567890, DefaultCurrency: "CNY"}
+	content := "Time,Type,Sub Category,Account,Amount,Account2,Account2 Amount,Social Gift Contact Key,Social Gift Contact,Social Gift Relationship,Social Gift Event Type\n" +
+		"2024-09-01 01:00:00,Expense,Gifts,Cash,100.00,,,person-1,Alice,Friend,wedding\n" +
+		"2024-09-02 01:00:00,Income,Gifts,Cash,50.00,,,person-1,Alicia,Friend,birthday"
+
+	_, _, _, _, _, _, err := importer.ParseImportedData(context, user, []byte(content), time.UTC, converter.DefaultImporterOptions, nil, nil, nil, nil, nil)
+	assert.EqualError(t, err, errs.ErrSocialGiftImportContactConflict.Message)
 }
 
 func TestDefaultTransactionDataCSVFileConverterParseImportedData_ParseInvalidTime(t *testing.T) {

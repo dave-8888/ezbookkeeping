@@ -7,6 +7,7 @@ import (
 	"github.com/mayswind/financially_free/pkg/datastore"
 	"github.com/mayswind/financially_free/pkg/log"
 	"github.com/mayswind/financially_free/pkg/models"
+	"github.com/mayswind/financially_free/pkg/services"
 )
 
 // Database represents the database command
@@ -173,5 +174,17 @@ func updateAllDatabaseTablesStructure(c *core.CliContext) error {
 
 	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] asset plan table maintained successfully")
 
-	return nil
+	err = datastore.Container.UserDataStore.SyncStructs(new(models.SocialGiftContact), new(models.SocialGiftRecord), new(models.SocialGiftPrivacy))
+
+	if err != nil {
+		return err
+	}
+
+	log.BootInfof(c, "[database.updateAllDatabaseTablesStructure] social gift tables maintained successfully")
+
+	if err = datastore.Container.UserDataStore.SyncStructs(new(models.ConversationSession), new(models.ConversationTurn)); err != nil {
+		return err
+	}
+
+	return services.Transactions.DetachCashFlowAccounts(c)
 }

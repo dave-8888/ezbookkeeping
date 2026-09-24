@@ -76,6 +76,12 @@ const (
 	TRANSACTION_DATA_TABLE_MEMBER                   TransactionDataTableColumn = 102
 	TRANSACTION_DATA_TABLE_PROJECT                  TransactionDataTableColumn = 103
 	TRANSACTION_DATA_TABLE_MERCHANT                 TransactionDataTableColumn = 104
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_KEY  TransactionDataTableColumn = 105
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT      TransactionDataTableColumn = 106
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_RELATIONSHIP TransactionDataTableColumn = 107
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_NOTE TransactionDataTableColumn = 108
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_TYPE   TransactionDataTableColumn = 109
+	TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_NAME   TransactionDataTableColumn = 110
 )
 
 // TRANSACTION_DATA_TABLE_TIMEZONE_NOT_AVAILABLE represents the constant for timezone not available

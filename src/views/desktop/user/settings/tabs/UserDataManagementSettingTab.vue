@@ -60,6 +60,18 @@
                                 count: displayDataStatistics ? displayDataStatistics.totalScheduledTransactionCount : '-',
                                 icon: mdiClipboardTextClockOutline,
                                 color: 'success-darken-1'
+                            },
+                            {
+                                title: 'Social Gift Contacts',
+                                count: displayDataStatistics ? displayDataStatistics.totalSocialGiftContactCount : '-',
+                                icon: mdiAccountHeartOutline,
+                                color: 'pink-darken-1'
+                            },
+                            {
+                                title: 'Social Gift Records',
+                                count: displayDataStatistics ? displayDataStatistics.totalSocialGiftRecordCount : '-',
+                                icon: mdiGiftOutline,
+                                color: 'deep-purple-darken-1'
                             }
                         ]">
                             <div class="d-flex align-center">
@@ -187,6 +199,8 @@ import {
     mdiClipboardTextOutline,
     mdiImage,
     mdiClipboardTextClockOutline,
+    mdiAccountHeartOutline,
+    mdiGiftOutline,
     mdiAlert
 } from '@mdi/js';
 

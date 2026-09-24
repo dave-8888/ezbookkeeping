@@ -72,7 +72,7 @@
 
                 <div class="login-page-powered-by margin-top-half">
                     <span>Powered by</span>
-                    <f7-link @click="openExternalUrl('https://github.com/mayswind/financially_free')" target="_blank">financially_free</f7-link>
+                    <f7-link @click="openExternalUrl('https://github.com/mayswind/financially_free')" target="_blank">财神</f7-link>
                     <span>{{ version }}</span>
                 </div>
             </f7-block-footer>
@@ -83,7 +83,7 @@
 
             <div class="login-page-powered-by margin-top-half">
                 <span>Powered by</span>
-                <f7-link @click="openExternalUrl('https://github.com/mayswind/financially_free')" target="_blank">financially_free</f7-link>
+                <f7-link @click="openExternalUrl('https://github.com/mayswind/financially_free')" target="_blank">财神</f7-link>
                 <span>{{ version }}</span>
             </div>
         </f7-toolbar>

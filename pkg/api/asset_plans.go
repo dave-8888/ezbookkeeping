@@ -17,6 +17,7 @@ import (
 )
 
 type assetPlanStore interface {
+	SaveActualTracking(c core.Context, uid int64, tracking string) error
 	GetAssetPlanByUid(c core.Context, uid int64) (*models.AssetPlan, error)
 	CreateAssetPlan(c core.Context, plan *models.AssetPlan) error
 	ModifyAssetPlan(c core.Context, plan *models.AssetPlan) error
@@ -28,6 +29,7 @@ type assetPlanUserProvider interface {
 }
 
 type assetPlanNetWorthProvider interface {
+	CalculateCurrentNetWorth(c core.Context, uid int64, currency string, excludedAccountIds []int64) (int64, error)
 	ResolveExcludedAccountIds(c core.Context, uid int64, accountIds []string) ([]int64, error)
 	CalculateNetWorth(c core.Context, uid int64, date int32, location *time.Location, currency string, excludedAccountIds []int64) (int64, error)
 }
@@ -82,6 +84,7 @@ func (a *AssetPlansApi) AssetPlanGetHandler(c *core.WebContext) (any, *errs.Erro
 		return nil, finalErr
 	}
 
+	previousTracking := plan.ActualTracking
 	response, err := a.buildAssetPlanResponse(c, plan, location, nil)
 
 	if err != nil {
@@ -89,6 +92,16 @@ func (a *AssetPlansApi) AssetPlanGetHandler(c *core.WebContext) (any, *errs.Erro
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
+	if month := c.Query("detail_month"); month != "" && response.Monthly != nil {
+		if err := a.addMonthlyPlanDays(c, plan, response.Monthly, month, location); err != nil {
+			return nil, errs.Or(err, errs.NewIncompleteOrIncorrectSubmissionError(err))
+		}
+	}
+	if plan.ActualTracking != previousTracking {
+		if err := a.assetPlans.SaveActualTracking(c, plan.Uid, plan.ActualTracking); err != nil {
+			return nil, errs.Or(err, errs.ErrOperationFailed)
+		}
+	}
 	return response, nil
 }
 
@@ -115,6 +128,10 @@ func (a *AssetPlansApi) AssetPlanCreateHandler(c *core.WebContext) (any, *errs.E
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	} else if existing != nil {
 		return nil, errs.ErrAssetPlanAlreadyExists
+	}
+
+	if req.Version != 0 || req.StartMonth != "" || req.EndMonth != "" || req.Stages != nil {
+		return a.saveMonthlyAssetPlan(c, nil, models.MonthlyAssetPlanSchedule{Version: req.Version, StartMonth: req.StartMonth, EndMonth: req.EndMonth, Stages: req.Stages, FinalGoal: req.FinalGoal, Goals: req.Goals, Expenses: req.Expenses}, req.ExcludedAccountIds, location)
 	}
 
 	targetDate, err := models.ParseAssetPlanDate(req.TargetDate, location)
@@ -202,6 +219,13 @@ func (a *AssetPlansApi) AssetPlanModifyHandler(c *core.WebContext) (any, *errs.E
 		return nil, errs.ErrAssetPlanNotFound
 	}
 
+	if req.Version != 0 || req.StartMonth != "" || req.EndMonth != "" || req.Stages != nil {
+		return a.saveMonthlyAssetPlan(c, plan, models.MonthlyAssetPlanSchedule{Version: req.Version, StartMonth: req.StartMonth, EndMonth: req.EndMonth, Stages: req.Stages, FinalGoal: req.FinalGoal, Goals: req.Goals, Expenses: req.Expenses}, nil, location)
+	}
+	if plan.MonthlySchedule != "" {
+		return nil, errs.ErrOperationFailed
+	}
+
 	targetDate, err := models.ParseAssetPlanDate(req.TargetDate, location)
 
 	if err != nil {
@@ -248,6 +272,9 @@ func (a *AssetPlansApi) AssetPlanDeleteHandler(c *core.WebContext) (any, *errs.E
 }
 
 func (a *AssetPlansApi) buildAssetPlanResponse(c core.Context, plan *models.AssetPlan, location *time.Location, currentActual *int64) (*models.AssetPlanInfoResponse, error) {
+	if plan.MonthlySchedule != "" {
+		return a.buildMonthlyAssetPlanResponse(c, plan, location)
+	}
 	today := models.AssetPlanNumericDate(a.now().In(location))
 	actual := int64(0)
 	var err error
@@ -415,7 +442,33 @@ func (p *defaultAssetPlanNetWorthProvider) CalculateNetWorth(c core.Context, uid
 		return 0, err
 	}
 
-	accountMap := p.accounts.GetAccountMapByList(accounts)
+	return p.sumAccountNetWorth(c, uid, currency, excludedAccountIds, accounts, balances)
+}
+
+// CalculateCurrentNetWorth includes balance edits that have no ledger entry.
+func (p *defaultAssetPlanNetWorthProvider) CalculateCurrentNetWorth(c core.Context, uid int64, currency string, excludedAccountIds []int64) (int64, error) {
+	accounts, err := p.accounts.GetAllAccountsByUid(c, uid)
+	if err != nil {
+		return 0, err
+	}
+	balances := make([]*models.TransactionWithAccountBalance, 0, len(accounts))
+	for _, account := range accounts {
+		if account.Type != models.ACCOUNT_TYPE_SINGLE_ACCOUNT {
+			continue
+		}
+		balances = append(balances, &models.TransactionWithAccountBalance{
+			Transaction:           &models.Transaction{AccountId: account.AccountId},
+			AccountClosingBalance: account.Balance,
+		})
+	}
+	return p.sumAccountNetWorth(c, uid, currency, excludedAccountIds, accounts, balances)
+}
+
+func (p *defaultAssetPlanNetWorthProvider) sumAccountNetWorth(c core.Context, uid int64, currency string, excludedAccountIds []int64, accounts []*models.Account, balances []*models.TransactionWithAccountBalance) (int64, error) {
+	accountMap := make(map[int64]*models.Account, len(accounts))
+	for _, account := range accounts {
+		accountMap[account.AccountId] = account
+	}
 	excludedMap := make(map[int64]bool, len(excludedAccountIds))
 
 	for i := 0; i < len(excludedAccountIds); i++ {

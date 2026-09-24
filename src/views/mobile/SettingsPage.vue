@@ -9,6 +9,9 @@
             <f7-list-item :title="tt('Transaction Tags')" link="/tag/list"></f7-list-item>
             <f7-list-item :title="tt('Transaction Templates')" link="/template/list"></f7-list-item>
             <f7-list-item :title="tt('Scheduled Transactions')" link="/schedule/list" v-if="isUserScheduledTransactionEnabled()"></f7-list-item>
+            <f7-list-item :title="tt('Social Gifts')" link="/social-gifts">
+                <template #media><f7-icon f7="gift"></f7-icon></template>
+            </f7-list-item>
             <f7-list-item :title="tt('Data Management')" link="/user/data/management"></f7-list-item>
             <f7-list-item :title="tt('Two-Factor Authentication')" link="/user/2fa"></f7-list-item>
             <f7-list-item :title="tt('Device & Sessions')" link="/user/sessions"></f7-list-item>
@@ -27,6 +30,7 @@
         <f7-block-title>{{ tt('Application') }}</f7-block-title>
         <f7-list strong inset dividers class="settings-list">
             <f7-list-item
+                v-if="!isNativeApp()"
                 link="#"
                 :title="tt('Theme')"
                 :after="findNameByValue(allThemes, currentTheme)"
@@ -44,6 +48,8 @@
                                            v-model="currentTheme">
                 </list-item-selection-popup>
             </f7-list-item>
+
+            <f7-list-item v-if="isNativeApp()" :title="tt('Theme')" :after="tt('System Default')" />
 
             <f7-list-item :title="tt('Text Size')" link="/settings/textsize"></f7-list-item>
 
@@ -73,7 +79,7 @@
                 </list-item-selection-popup>
             </f7-list-item>
 
-            <f7-list-item :title="tt('Application Lock')" :after="isEnableApplicationLock ? tt('Enabled') : tt('Disabled')" link="/app_lock"></f7-list-item>
+            <f7-list-item v-if="!isNativeApp()" :title="tt('Application Lock')" :after="isEnableApplicationLock ? tt('Enabled') : tt('Disabled')" link="/app_lock"></f7-list-item>
 
             <f7-list-item :title="tt('Exchange Rates Data')" :after="exchangeRatesLastUpdateDate" link="/exchange_rates"></f7-list-item>
 
@@ -126,6 +132,7 @@
 </template>
 
 <script setup lang="ts">
+import { isNativeApp } from '@/lib/native_app.ts';
 import { ref, computed } from 'vue';
 import type { Router } from 'framework7/types';
 

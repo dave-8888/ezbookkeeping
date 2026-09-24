@@ -26,6 +26,10 @@ type TransactionService struct {
 	ServiceUsingUuid
 }
 
+// TransactionSessionHook runs additional work in the same database transaction
+// as the transaction mutation.
+type TransactionSessionHook func(sess *xorm.Session) error
+
 // Initialize a transaction service singleton instance
 var (
 	Transactions = &TransactionService{
@@ -465,6 +469,11 @@ func (s *TransactionService) GetTransactionCount(c core.Context, uid int64, maxT
 
 // CreateTransaction saves a new transaction to database
 func (s *TransactionService) CreateTransaction(c core.Context, transaction *models.Transaction, tagIds []int64, pictureIds []int64) error {
+	return s.CreateTransactionWithHook(c, transaction, tagIds, pictureIds, nil)
+}
+
+// CreateTransactionWithHook saves a transaction and optional related data atomically.
+func (s *TransactionService) CreateTransactionWithHook(c core.Context, transaction *models.Transaction, tagIds []int64, pictureIds []int64, hook TransactionSessionHook) error {
 	if transaction.Uid <= 0 {
 		return errs.ErrUserIdInvalid
 	}
@@ -531,12 +540,25 @@ func (s *TransactionService) CreateTransaction(c core.Context, transaction *mode
 	userDataDb := s.UserDataDB(transaction.Uid)
 
 	return userDataDb.DoTransaction(c, func(sess *xorm.Session) error {
-		return s.doCreateTransaction(c, userDataDb, sess, transaction, transactionTagIndexes, tagIds, pictureIds, pictureUpdateModel)
+		if err := s.doCreateTransaction(c, userDataDb, sess, transaction, transactionTagIndexes, tagIds, pictureIds, pictureUpdateModel); err != nil {
+			return err
+		}
+
+		if hook != nil {
+			return hook(sess)
+		}
+
+		return nil
 	})
 }
 
 // BatchCreateTransactions saves new transactions to database
 func (s *TransactionService) BatchCreateTransactions(c core.Context, uid int64, transactions []*models.Transaction, allTagIds map[int][]int64, processHandler core.TaskProcessUpdateHandler) error {
+	return s.BatchCreateTransactionsWithHook(c, uid, transactions, allTagIds, processHandler, nil)
+}
+
+// BatchCreateTransactionsWithHook creates transactions and runs the hook in the same database transaction.
+func (s *TransactionService) BatchCreateTransactionsWithHook(c core.Context, uid int64, transactions []*models.Transaction, allTagIds map[int][]int64, processHandler core.TaskProcessUpdateHandler, hook TransactionSessionHook) error {
 	now := time.Now().Unix()
 	currentProcess := float64(0)
 	processUpdateStep := int(math.Max(100.0, float64(len(transactions)/100.0)))
@@ -659,6 +681,9 @@ func (s *TransactionService) BatchCreateTransactions(c core.Context, uid int64, 
 			}
 		}
 
+		if hook != nil {
+			return hook(sess)
+		}
 		return nil
 	})
 }
@@ -775,6 +800,7 @@ func (s *TransactionService) CreateScheduledTransactions(c core.Context, current
 			TransactionTime:   utils.GetMinTransactionTimeFromUnixTime(transactionTime.Unix()),
 			TimezoneUtcOffset: template.ScheduledTimezoneUtcOffset,
 			AccountId:         template.AccountId,
+			Currency:          template.Currency,
 			Amount:            template.Amount,
 			HideAmount:        template.HideAmount,
 			Comment:           template.Comment,
@@ -806,6 +832,11 @@ func (s *TransactionService) CreateScheduledTransactions(c core.Context, current
 
 // ModifyTransaction saves an existed transaction to database
 func (s *TransactionService) ModifyTransaction(c core.Context, transaction *models.Transaction, currentTagIdsCount int, addTagIds []int64, removeTagIds []int64, addPictureIds []int64, removePictureIds []int64) error {
+	return s.ModifyTransactionWithHook(c, transaction, currentTagIdsCount, addTagIds, removeTagIds, addPictureIds, removePictureIds, nil)
+}
+
+// ModifyTransactionWithHook updates a transaction and optional related data atomically.
+func (s *TransactionService) ModifyTransactionWithHook(c core.Context, transaction *models.Transaction, currentTagIdsCount int, addTagIds []int64, removeTagIds []int64, addPictureIds []int64, removePictureIds []int64, hook TransactionSessionHook) error {
 	if transaction.Uid <= 0 {
 		return errs.ErrUserIdInvalid
 	}
@@ -855,6 +886,15 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 		}
 
 		transaction.Type = oldTransaction.Type
+		if transaction.IsCashFlow() && transaction.Currency == "" {
+			transaction.Currency = oldTransaction.Currency
+		}
+		if err := s.prepareCashFlow(c, sess, transaction); err != nil {
+			return err
+		}
+		if transaction.Currency != oldTransaction.Currency {
+			updateCols = append(updateCols, "currency")
+		}
 
 		if transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT {
 			transaction.RelatedId = oldTransaction.RelatedId
@@ -875,11 +915,11 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 			return err
 		}
 
-		if sourceAccount.Hidden || (destinationAccount != nil && destinationAccount.Hidden) {
+		if (sourceAccount != nil && sourceAccount.Hidden) || (destinationAccount != nil && destinationAccount.Hidden) {
 			return errs.ErrCannotModifyTransactionInHiddenAccount
 		}
 
-		if sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
+		if (sourceAccount != nil && sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
 			return errs.ErrCannotModifyTransactionInParentAccount
 		}
 
@@ -900,7 +940,7 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 			return err
 		}
 
-		if oldSourceAccount.Hidden || (oldDestinationAccount != nil && oldDestinationAccount.Hidden) {
+		if (oldSourceAccount != nil && oldSourceAccount.Hidden) || (oldDestinationAccount != nil && oldDestinationAccount.Hidden) {
 			return errs.ErrCannotAddTransactionToHiddenAccount
 		}
 
@@ -1002,7 +1042,7 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 		}
 
 		// Not allow to add transaction before balance modification transaction
-		if transaction.Type != models.TRANSACTION_DB_TYPE_MODIFY_BALANCE {
+		if !transaction.IsCashFlow() && transaction.Type != models.TRANSACTION_DB_TYPE_MODIFY_BALANCE {
 			otherTransactionExists := false
 
 			if destinationAccount != nil && sourceAccount.AccountId != destinationAccount.AccountId {
@@ -1139,76 +1179,6 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 					return errs.ErrDatabaseOperationFailed
 				}
 			}
-		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_INCOME {
-			var oldAccountNewAmount int64 = 0
-			var newAccountNewAmount int64 = 0
-
-			if transaction.AccountId == oldTransaction.AccountId {
-				oldAccountNewAmount = transaction.Amount
-			} else if transaction.AccountId != oldTransaction.AccountId {
-				newAccountNewAmount = transaction.Amount
-			}
-
-			if oldAccountNewAmount != oldTransaction.Amount {
-				oldSourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(oldSourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance-(%d)+(%d)", oldTransaction.Amount, oldAccountNewAmount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", oldSourceAccount.Uid, false).Update(oldSourceAccount)
-
-				if err != nil {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance, because %s", err.Error())
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
-
-			if newAccountNewAmount != 0 {
-				sourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance+(%d)", newAccountNewAmount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-				if err != nil {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance, because %s", err.Error())
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
-		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_EXPENSE {
-			var oldAccountNewAmount int64 = 0
-			var newAccountNewAmount int64 = 0
-
-			if transaction.AccountId == oldTransaction.AccountId {
-				oldAccountNewAmount = transaction.Amount
-			} else if transaction.AccountId != oldTransaction.AccountId {
-				newAccountNewAmount = transaction.Amount
-			}
-
-			if oldAccountNewAmount != oldTransaction.Amount {
-				oldSourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(oldSourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance+(%d)-(%d)", oldTransaction.Amount, oldAccountNewAmount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", oldSourceAccount.Uid, false).Update(oldSourceAccount)
-
-				if err != nil {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance, because %s", err.Error())
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
-
-			if newAccountNewAmount != 0 {
-				sourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance-(%d)", newAccountNewAmount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-				if err != nil {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance, because %s", err.Error())
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.ModifyTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
 		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT {
 			var oldSourceAccountNewAmount int64 = 0
 			var newSourceAccountNewAmount int64 = 0
@@ -1281,6 +1251,10 @@ func (s *TransactionService) ModifyTransaction(c core.Context, transaction *mode
 			}
 		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_IN {
 			return errs.ErrTransactionTypeInvalid
+		}
+
+		if hook != nil {
+			return hook(sess)
 		}
 
 		return nil
@@ -1508,6 +1482,11 @@ func (s *TransactionService) MoveAllTransactionsBetweenAccounts(c core.Context, 
 
 // DeleteTransaction deletes an existed transaction from database
 func (s *TransactionService) DeleteTransaction(c core.Context, uid int64, transactionId int64) error {
+	return s.DeleteTransactionWithHook(c, uid, transactionId, nil)
+}
+
+// DeleteTransactionWithHook deletes a transaction and optional related data atomically.
+func (s *TransactionService) DeleteTransactionWithHook(c core.Context, uid int64, transactionId int64, hook TransactionSessionHook) error {
 	if uid <= 0 {
 		return errs.ErrUserIdInvalid
 	}
@@ -1547,11 +1526,11 @@ func (s *TransactionService) DeleteTransaction(c core.Context, uid int64, transa
 			return err
 		}
 
-		if sourceAccount.Hidden || (destinationAccount != nil && destinationAccount.Hidden) {
+		if (sourceAccount != nil && sourceAccount.Hidden) || (destinationAccount != nil && destinationAccount.Hidden) {
 			return errs.ErrCannotDeleteTransactionInHiddenAccount
 		}
 
-		if sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
+		if (sourceAccount != nil && sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
 			return errs.ErrCannotDeleteTransactionInParentAccount
 		}
 
@@ -1601,30 +1580,6 @@ func (s *TransactionService) DeleteTransaction(c core.Context, uid int64, transa
 					return errs.ErrDatabaseOperationFailed
 				}
 			}
-		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_INCOME {
-			if oldTransaction.Amount != 0 {
-				sourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance-(%d)", oldTransaction.Amount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-				if err != nil {
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.DeleteTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
-		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_EXPENSE {
-			if oldTransaction.Amount != 0 {
-				sourceAccount.UpdatedUnixTime = time.Now().Unix()
-				updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance+(%d)", oldTransaction.Amount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-				if err != nil {
-					return err
-				} else if updatedRows < 1 {
-					log.Errorf(c, "[transactions.DeleteTransaction] failed to update account balance")
-					return errs.ErrDatabaseOperationFailed
-				}
-			}
 		} else if oldTransaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT {
 			if oldTransaction.Amount != 0 {
 				sourceAccount.UpdatedUnixTime = time.Now().Unix()
@@ -1653,7 +1608,21 @@ func (s *TransactionService) DeleteTransaction(c core.Context, uid int64, transa
 			return errs.ErrTransactionTypeInvalid
 		}
 
-		return err
+		socialGiftUpdate := &models.SocialGiftRecord{
+			Deleted:         true,
+			DeletedUnixTime: now,
+			UpdatedUnixTime: now,
+		}
+		_, err = sess.Cols("deleted", "deleted_unix_time", "updated_unix_time").Where("uid=? AND deleted=? AND transaction_id=?", uid, false, oldTransaction.TransactionId).Update(socialGiftUpdate)
+		if err != nil {
+			return err
+		}
+
+		if hook != nil {
+			return hook(sess)
+		}
+
+		return nil
 	})
 }
 
@@ -1680,6 +1649,12 @@ func (s *TransactionService) DeleteAllTransactions(c core.Context, uid int64, de
 		DeletedUnixTime: now,
 	}
 
+	socialGiftUpdateModel := &models.SocialGiftRecord{
+		Deleted:         true,
+		DeletedUnixTime: now,
+		UpdatedUnixTime: now,
+	}
+
 	accountUpdateModel := &models.Account{
 		Balance:         0,
 		Deleted:         deleteAccount,
@@ -1703,6 +1678,13 @@ func (s *TransactionService) DeleteAllTransactions(c core.Context, uid int64, de
 
 		// Update all transaction pictures to deleted
 		_, err = sess.Cols("deleted", "deleted_unix_time").Where("uid=? AND deleted=?", uid, false).Update(pictureUpdateModel)
+
+		if err != nil {
+			return err
+		}
+
+		// Social-gift records derive their lifecycle from transactions.
+		_, err = sess.Cols("deleted", "deleted_unix_time", "updated_unix_time").Where("uid=? AND deleted=?", uid, false).Update(socialGiftUpdateModel)
 
 		if err != nil {
 			return err
@@ -1797,7 +1779,7 @@ func (s *TransactionService) GetRelatedTransferTransaction(originalTransaction *
 }
 
 // GetAccountsTotalIncomeAndExpense returns the every accounts total income and expense amount by specific date range
-func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, uid int64, startUnixTime int64, endUnixTime int64, excludeAccountIds []int64, excludeCategoryIds []int64, clientTimezone *time.Location, useTransactionTimezone bool) (map[int64]int64, map[int64]int64, error) {
+func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, uid int64, startUnixTime int64, endUnixTime int64, excludeAccountIds []int64, excludeCategoryIds []int64, clientTimezone *time.Location, useTransactionTimezone bool) (map[string]int64, map[string]int64, error) {
 	if uid <= 0 {
 		return nil, nil, errs.ErrUserIdInvalid
 	}
@@ -1866,7 +1848,7 @@ func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, ui
 		finalConditionParams = append(finalConditionParams, minTransactionTime)
 		finalConditionParams = append(finalConditionParams, maxTransactionTime)
 
-		err := s.UserDataDB(uid).NewSession(c).Select("type, account_id, transaction_time, timezone_utc_offset, amount").Where(condition, finalConditionParams...).Limit(pageCountForLoadTransactionAmounts, 0).OrderBy("transaction_time desc").Find(&transactions)
+		err := s.UserDataDB(uid).NewSession(c).Select("type, account_id, transaction_time, timezone_utc_offset, amount, currency").Where(condition, finalConditionParams...).Limit(pageCountForLoadTransactionAmounts, 0).OrderBy("transaction_time desc").Find(&transactions)
 
 		if err != nil {
 			return nil, nil, err
@@ -1882,8 +1864,8 @@ func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, ui
 		maxTransactionTime = transactions[len(transactions)-1].TransactionTime - 1
 	}
 
-	incomeAmounts := make(map[int64]int64)
-	expenseAmounts := make(map[int64]int64)
+	incomeAmounts := make(map[string]int64)
+	expenseAmounts := make(map[string]int64)
 
 	for i := 0; i < len(allTransactions); i++ {
 		transaction := allTransactions[i]
@@ -1899,7 +1881,7 @@ func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, ui
 			continue
 		}
 
-		var amountsMap map[int64]int64
+		var amountsMap map[string]int64
 
 		if transaction.Type == models.TRANSACTION_DB_TYPE_INCOME {
 			amountsMap = incomeAmounts
@@ -1907,14 +1889,14 @@ func (s *TransactionService) GetAccountsTotalIncomeAndExpense(c core.Context, ui
 			amountsMap = expenseAmounts
 		}
 
-		totalAmounts, exists := amountsMap[transaction.AccountId]
+		totalAmounts, exists := amountsMap[transaction.Currency]
 
 		if !exists {
 			totalAmounts = 0
 		}
 
 		totalAmounts += transaction.Amount
-		amountsMap[transaction.AccountId] = totalAmounts
+		amountsMap[transaction.Currency] = totalAmounts
 	}
 
 	return incomeAmounts, expenseAmounts, nil
@@ -1975,7 +1957,7 @@ func (s *TransactionService) GetAccountsAndCategoriesTotalInflowAndOutflow(c cor
 			finalConditionParams = append(finalConditionParams, "%%"+keyword+"%%")
 		}
 
-		sess := s.UserDataDB(uid).NewSession(c).Select("type, category_id, account_id, related_account_id, transaction_time, timezone_utc_offset, amount").Where(finalCondition, finalConditionParams...)
+		sess := s.UserDataDB(uid).NewSession(c).Select("type, category_id, account_id, related_account_id, transaction_time, timezone_utc_offset, amount, currency").Where(finalCondition, finalConditionParams...)
 		sess = s.appendFilterTagIdsConditionToQuery(sess, uid, maxTransactionTime, minTransactionTime, tagFilters, noTags)
 
 		err := sess.Limit(pageCountForLoadTransactionAmounts, 0).OrderBy("transaction_time desc").Find(&transactions)
@@ -2010,7 +1992,7 @@ func (s *TransactionService) GetAccountsAndCategoriesTotalInflowAndOutflow(c cor
 			continue
 		}
 
-		groupKey := fmt.Sprintf("%d_%d", transaction.CategoryId, transaction.AccountId)
+		groupKey := fmt.Sprintf("%d_%d_%s", transaction.CategoryId, transaction.AccountId, transaction.Currency)
 
 		if transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT || transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_IN {
 			groupKey = fmt.Sprintf("%d_%d_%d_%d", transaction.CategoryId, transaction.AccountId, transaction.RelatedAccountId, transaction.Type)
@@ -2022,6 +2004,7 @@ func (s *TransactionService) GetAccountsAndCategoriesTotalInflowAndOutflow(c cor
 			totalAmounts = &models.Transaction{
 				Type:             transaction.Type,
 				CategoryId:       transaction.CategoryId,
+				Currency:         transaction.Currency,
 				AccountId:        transaction.AccountId,
 				RelatedAccountId: transaction.RelatedAccountId,
 				Amount:           0,
@@ -2102,7 +2085,7 @@ func (s *TransactionService) GetAccountsAndCategoriesMonthlyInflowAndOutflow(c c
 			finalConditionParams = append(finalConditionParams, "%%"+keyword+"%%")
 		}
 
-		sess := s.UserDataDB(uid).NewSession(c).Select("type, category_id, account_id, related_account_id, transaction_time, timezone_utc_offset, amount").Where(finalCondition, finalConditionParams...)
+		sess := s.UserDataDB(uid).NewSession(c).Select("type, category_id, account_id, related_account_id, transaction_time, timezone_utc_offset, amount, currency").Where(finalCondition, finalConditionParams...)
 		sess = s.appendFilterTagIdsConditionToQuery(sess, uid, maxTransactionTime, minTransactionTime, tagFilters, noTags)
 
 		err := sess.Limit(pageCountForLoadTransactionAmounts, 0).OrderBy("transaction_time desc").Find(&transactions)
@@ -2140,7 +2123,7 @@ func (s *TransactionService) GetAccountsAndCategoriesMonthlyInflowAndOutflow(c c
 			continue
 		}
 
-		groupKey := fmt.Sprintf("%d_%d_%d", yearMonth, transaction.CategoryId, transaction.AccountId)
+		groupKey := fmt.Sprintf("%d_%d_%d_%s", yearMonth, transaction.CategoryId, transaction.AccountId, transaction.Currency)
 
 		if transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT || transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_IN {
 			groupKey = fmt.Sprintf("%d_%d_%d_%d_%d", yearMonth, transaction.CategoryId, transaction.AccountId, transaction.RelatedAccountId, transaction.Type)
@@ -2152,6 +2135,7 @@ func (s *TransactionService) GetAccountsAndCategoriesMonthlyInflowAndOutflow(c c
 			transactionAmounts = &models.Transaction{
 				Type:             transaction.Type,
 				CategoryId:       transaction.CategoryId,
+				Currency:         transaction.Currency,
 				AccountId:        transaction.AccountId,
 				RelatedAccountId: transaction.RelatedAccountId,
 				Amount:           0,
@@ -2203,6 +2187,9 @@ func (s *TransactionService) GetTransactionIds(transactions []*models.Transactio
 }
 
 func (s *TransactionService) doCreateTransaction(c core.Context, database *datastore.Database, sess *xorm.Session, transaction *models.Transaction, transactionTagIndexes []*models.TransactionTagIndex, tagIds []int64, pictureIds []int64, pictureUpdateModel *models.TransactionPictureInfo) error {
+	if err := s.prepareCashFlow(c, sess, transaction); err != nil {
+		return err
+	}
 	// Get and verify source and destination account
 	sourceAccount, destinationAccount, err := s.getAccountModels(sess, transaction)
 
@@ -2210,11 +2197,11 @@ func (s *TransactionService) doCreateTransaction(c core.Context, database *datas
 		return err
 	}
 
-	if sourceAccount.Hidden || (destinationAccount != nil && destinationAccount.Hidden) {
+	if (sourceAccount != nil && sourceAccount.Hidden) || (destinationAccount != nil && destinationAccount.Hidden) {
 		return errs.ErrCannotAddTransactionToHiddenAccount
 	}
 
-	if sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
+	if (sourceAccount != nil && sourceAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) || (destinationAccount != nil && destinationAccount.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS) {
 		return errs.ErrCannotAddTransactionToParentAccount
 	}
 
@@ -2262,7 +2249,7 @@ func (s *TransactionService) doCreateTransaction(c core.Context, database *datas
 
 		transaction.RelatedAccountId = transaction.AccountId
 		transaction.RelatedAccountAmount = transaction.Amount - sourceAccount.Balance
-	} else { // Not allow to add transaction before balance modification transaction
+	} else if !transaction.IsCashFlow() { // Not allow to add transaction before balance modification transaction
 		otherTransactionExists := false
 
 		if destinationAccount != nil && sourceAccount.AccountId != destinationAccount.AccountId {
@@ -2388,32 +2375,6 @@ func (s *TransactionService) doCreateTransaction(c core.Context, database *datas
 		if transaction.RelatedAccountAmount != 0 {
 			sourceAccount.UpdatedUnixTime = time.Now().Unix()
 			updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance+(%d)", transaction.RelatedAccountAmount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-			if err != nil {
-				log.Errorf(c, "[transactions.doCreateTransaction] failed to update account balance, because %s", err.Error())
-				return err
-			} else if updatedRows < 1 {
-				log.Errorf(c, "[transactions.doCreateTransaction] failed to update account balance")
-				return errs.ErrDatabaseOperationFailed
-			}
-		}
-	} else if transaction.Type == models.TRANSACTION_DB_TYPE_INCOME {
-		if transaction.Amount != 0 {
-			sourceAccount.UpdatedUnixTime = time.Now().Unix()
-			updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance+(%d)", transaction.Amount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
-
-			if err != nil {
-				log.Errorf(c, "[transactions.doCreateTransaction] failed to update account balance, because %s", err.Error())
-				return err
-			} else if updatedRows < 1 {
-				log.Errorf(c, "[transactions.doCreateTransaction] failed to update account balance")
-				return errs.ErrDatabaseOperationFailed
-			}
-		}
-	} else if transaction.Type == models.TRANSACTION_DB_TYPE_EXPENSE {
-		if transaction.Amount != 0 {
-			sourceAccount.UpdatedUnixTime = time.Now().Unix()
-			updatedRows, err := sess.ID(sourceAccount.AccountId).SetExpr("balance", fmt.Sprintf("balance-(%d)", transaction.Amount)).Cols("updated_unix_time").Where("uid=? AND deleted=?", sourceAccount.Uid, false).Update(sourceAccount)
 
 			if err != nil {
 				log.Errorf(c, "[transactions.doCreateTransaction] failed to update account balance, because %s", err.Error())
@@ -2688,6 +2649,9 @@ func (s *TransactionService) isAccountIdValid(transaction *models.Transaction) e
 }
 
 func (s *TransactionService) getAccountModels(sess *xorm.Session, transaction *models.Transaction) (sourceAccount *models.Account, destinationAccount *models.Account, err error) {
+	if transaction.IsCashFlow() {
+		return nil, nil, nil
+	}
 	sourceAccount = &models.Account{}
 	destinationAccount = &models.Account{}
 
@@ -2778,6 +2742,9 @@ func (s *TransactionService) getAccountModels(sess *xorm.Session, transaction *m
 }
 
 func (s *TransactionService) getOldAccountModels(sess *xorm.Session, transaction *models.Transaction, oldTransaction *models.Transaction, sourceAccount *models.Account, destinationAccount *models.Account) (oldSourceAccount *models.Account, oldDestinationAccount *models.Account, err error) {
+	if oldTransaction.IsCashFlow() {
+		return nil, nil, nil
+	}
 	oldSourceAccount = &models.Account{}
 	oldDestinationAccount = &models.Account{}
 

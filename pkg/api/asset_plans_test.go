@@ -45,8 +45,13 @@ func (s *fakeAssetPlanStore) DeleteAssetPlan(_ core.Context, uid int64) error {
 }
 
 type fakeAssetPlanNetWorthProvider struct {
+	current                  int64
 	values                   map[int32]int64
 	resolvedExcludedAccounts []int64
+}
+
+func (p *fakeAssetPlanNetWorthProvider) CalculateCurrentNetWorth(_ core.Context, _ int64, _ string, _ []int64) (int64, error) {
+	return p.current, nil
 }
 
 func (p *fakeAssetPlanNetWorthProvider) ResolveExcludedAccountIds(_ core.Context, _ int64, _ []string) ([]int64, error) {
@@ -306,4 +311,9 @@ func newAssetPlanTestWebContext(method string, body string, uid int64) *core.Web
 		Type: core.USER_TOKEN_TYPE_NORMAL,
 	})
 	return webContext
+}
+
+func (s *fakeAssetPlanStore) SaveActualTracking(_ core.Context, _ int64, tracking string) error {
+	s.plan.ActualTracking = tracking
+	return nil
 }

@@ -201,7 +201,7 @@ function getTransactionTypeColor(transaction: TransactionInsightDataItem): strin
 }
 
 function getDisplaySourceAmount(transaction: TransactionInsightDataItem): string {
-    let currency = defaultCurrency.value;
+    let currency = transaction.currency || defaultCurrency.value;
 
     if (transaction.sourceAccount) {
         currency = transaction.sourceAccount.currency;
@@ -211,7 +211,7 @@ function getDisplaySourceAmount(transaction: TransactionInsightDataItem): string
 }
 
 function getDisplayDestinationAmount(transaction: TransactionInsightDataItem): string {
-    let currency = defaultCurrency.value;
+    let currency = transaction.currency || defaultCurrency.value;
 
     if (transaction.destinationAccount) {
         currency = transaction.destinationAccount.currency;

@@ -6,7 +6,7 @@ SCRIPT_DIR="$(CDPATH= cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 ACTION="${1:-start}"
-APP_PORT="${APP_PORT:-8888}"
+APP_PORT="${APP_PORT:-18888}"
 FRONTEND_PORT="${FRONTEND_PORT:-8889}"
 FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
 FRONTEND_PORTS="${FRONTEND_PORTS:-$FRONTEND_PORT 8081 5173 4173}"
@@ -18,6 +18,9 @@ START_FRONTEND="${START_FRONTEND:-1}"
 STOP_DOCKER_COMPOSE="${STOP_DOCKER_COMPOSE:-1}"
 STOP_TIMEOUT_SECONDS="${STOP_TIMEOUT_SECONDS:-15}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-30}"
+FOREGROUND="${FOREGROUND:-1}"
+EBK_LOG_LEVEL="${EBK_LOG_LEVEL:-debug}"
+export EBK_LOG_LEVEL
 USE_LAUNCHD="${USE_LAUNCHD:-auto}"
 LAUNCHD_LABEL="${LAUNCHD_LABEL:-financially_free-codex}"
 FRONTEND_LAUNCHD_LABEL="${FRONTEND_LAUNCHD_LABEL:-financially_free-frontend-codex}"
@@ -67,7 +70,7 @@ Aliases:
     pause    Same as stop
 
 Environment:
-    APP_PORT=8888                         Backend HTTP port
+    APP_PORT=18888                        Backend HTTP port
     FRONTEND_PORT=8889                    Vite dev server port
     FRONTEND_HOST=0.0.0.0                 Vite dev server host
     FRONTEND_PORTS="8889 8081 5173 4173"  Vite dev/preview ports to stop for this project
@@ -77,7 +80,10 @@ Environment:
     BUILD_FRONTEND=1                      Build frontend before start
     START_FRONTEND=1                      Start Vite dev server after backend is healthy
     STOP_DOCKER_COMPOSE=1                 Stop local compose app before start/stop
-    USE_LAUNCHD=auto                      Use launchctl on macOS, set 0 to use nohup
+    FOREGROUND=1                         Run in console; Ctrl+C stops both services
+    EBK_LOG_LEVEL=debug                   Backend log level
+    EBK_LOG_MODE=console                  Backend log output
+    USE_LAUNCHD=auto                      Background mode only: launchctl on macOS, 0 for nohup
     LAUNCHD_LABEL=financially_free-codex
     FRONTEND_LAUNCHD_LABEL=financially_free-frontend-codex
 EOF
@@ -563,7 +569,37 @@ wait_for_frontend() {
     return 1
 }
 
+cleanup_console_processes() {
+    trap '' INT TERM
+    for CONSOLE_PID in ${CONSOLE_FRONTEND_PID:-} ${CONSOLE_BACKEND_PID:-}; do
+        kill "$CONSOLE_PID" 2>/dev/null || true
+    done
+    for CONSOLE_PID in ${CONSOLE_FRONTEND_PID:-} ${CONSOLE_BACKEND_PID:-}; do
+        wait "$CONSOLE_PID" 2>/dev/null || true
+    done
+}
+
 start_service_process() {
+    if [ "$FOREGROUND" = "1" ]; then
+        trap cleanup_console_processes EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+        echo "Starting financially_free in console (log level: $EBK_LOG_LEVEL)..."
+        EBK_SERVER_HTTP_PORT="$APP_PORT" \
+        EBK_WORK_DIR="${EBK_WORK_DIR:-$PWD}" \
+        EBK_SERVER_DOMAIN="${EBK_SERVER_DOMAIN:-localhost}" \
+        EBK_SERVER_ROOT_URL="${EBK_SERVER_ROOT_URL:-http://localhost:$APP_PORT/}" \
+        EBK_SERVER_STATIC_ROOT_PATH="${EBK_SERVER_STATIC_ROOT_PATH:-$PWD/dist}" \
+        EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/financially_free.db}" \
+        EBK_LOG_MODE="${EBK_LOG_MODE:-console}" \
+        EBK_STORAGE_LOCAL_FILESYSTEM_PATH="${EBK_STORAGE_LOCAL_FILESYSTEM_PATH:-$RUNTIME_DIR/storage}" \
+        EBK_SECURITY_SECRET_KEY="${EBK_SECURITY_SECRET_KEY:-change-me-before-production}" \
+        "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/financially_free.ini}" server run &
+        CONSOLE_BACKEND_PID="$!"
+        echo "$CONSOLE_BACKEND_PID" > "$PID_FILE"
+        return 0
+    fi
+
     if use_launchd; then
         remove_launchd_job >/dev/null 2>&1 || true
         echo "Starting financially_free service with launchctl..."
@@ -578,9 +614,11 @@ start_service_process() {
             EBK_SERVER_ROOT_URL="${EBK_SERVER_ROOT_URL:-http://localhost:$APP_PORT/}" \
             EBK_SERVER_STATIC_ROOT_PATH="${EBK_SERVER_STATIC_ROOT_PATH:-$PWD/dist}" \
             EBK_DATABASE_DB_PATH="${EBK_DATABASE_DB_PATH:-$RUNTIME_DIR/data/financially_free.db}" \
+            EBK_LOG_LEVEL="$EBK_LOG_LEVEL" \
             EBK_LOG_MODE="${EBK_LOG_MODE:-console}" \
             EBK_STORAGE_LOCAL_FILESYSTEM_PATH="${EBK_STORAGE_LOCAL_FILESYSTEM_PATH:-$RUNTIME_DIR/storage}" \
             EBK_SECURITY_SECRET_KEY="${EBK_SECURITY_SECRET_KEY:-change-me-before-production}" \
+            /bin/sh -c 'cd "$EBK_WORK_DIR" && exec "$@"' financially_free \
             "$BIN_PATH" --conf-path "${EBK_CONF_PATH:-$PWD/conf/financially_free.ini}" server run
         return 0
     fi
@@ -626,7 +664,14 @@ start_frontend_dev() {
     : > "$FRONTEND_ERR_LOG_FILE"
     : > "$FRONTEND_PID_FILE"
 
-    if use_launchd; then
+    if [ "$FOREGROUND" = "1" ]; then
+        echo "Starting financially_free frontend dev server in console..."
+        APP_PORT="$APP_PORT" BACKEND_PORT="$APP_PORT" \
+        FRONTEND_PORT="$FRONTEND_PORT" FRONTEND_HOST="$FRONTEND_HOST" \
+        node "$SCRIPT_DIR/node_modules/vite/bin/vite.js" --host "$FRONTEND_HOST" --port "$FRONTEND_PORT" &
+        CONSOLE_FRONTEND_PID="$!"
+        echo "$CONSOLE_FRONTEND_PID" > "$FRONTEND_PID_FILE"
+    elif use_launchd; then
         echo "Starting financially_free frontend dev server with launchctl..."
         launchctl submit \
             -l "$FRONTEND_LAUNCHD_LABEL" \
@@ -660,7 +705,9 @@ start_frontend_dev() {
     fi
 
     echo "financially_free frontend is running at http://localhost:${FRONTEND_PORT}/"
-    echo "Frontend logs: $FRONTEND_LOG_FILE"
+    if [ "$FOREGROUND" != "1" ]; then
+        echo "Frontend logs: $FRONTEND_LOG_FILE"
+    fi
 }
 
 start_app() {
@@ -668,6 +715,7 @@ start_app() {
     build_frontend
     ensure_runtime_dirs
     stop_docker_compose_app
+    remove_launchd_job >/dev/null 2>&1 || true
     remove_legacy_launchd_job >/dev/null 2>&1 || true
     stop_port_processes || true
 
@@ -688,8 +736,15 @@ start_app() {
     fi
 
     echo "financially_free is running at http://localhost:${APP_PORT}/"
-    echo "Logs: $LOG_FILE"
+    if [ "$FOREGROUND" != "1" ]; then
+        echo "Logs: $LOG_FILE"
+    fi
     start_frontend_dev
+
+    if [ "$FOREGROUND" = "1" ]; then
+        echo "Console logging active. Press Ctrl+C to stop."
+        wait "$CONSOLE_BACKEND_PID"
+    fi
 }
 
 status_app() {

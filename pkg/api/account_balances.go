@@ -27,8 +27,9 @@ var (
 
 // AccountBalanceModifyRequest represents all parameters of account balance modification request
 type AccountBalanceModifyRequest struct {
-	Id      string `json:"id" binding:"required"`
-	Balance int64  `json:"balance" binding:"required"`
+	Id              string `json:"id" binding:"required"`
+	Balance         *int64 `json:"balance" binding:"required"`
+	ExpectedBalance *int64 `json:"expectedBalance"`
 }
 
 // AccountBatchBalanceModifyRequest represents all parameters of batch account balance modification request
@@ -47,9 +48,10 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 		log.Warnf(c, "[account_balances.ModifySingleAccountBalanceHandler] parse request failed, because %s", err.Error())
 		return nil, errs.NewIncompleteOrIncorrectSubmissionError(err)
 	}
+	newBalance := *req.Balance
 
 	// Allow negative balance for liability accounts like credit cards
-	// if req.Balance < 0 {
+	// if newBalance < 0 {
 	// 	log.Warnf(c, "[account_balances.ModifySingleAccountBalanceHandler] balance cannot be negative")
 	// 	return nil, errs.ErrAmountInvalid
 	// }
@@ -71,7 +73,11 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 	oldBalance := account.Balance
 
 	// Modify the balance
-	err = a.accounts.ModifyAccountBalance(c, uid, req.Id, req.Balance)
+	if req.ExpectedBalance != nil {
+		err = a.accounts.ModifyAccountBalance(c, uid, req.Id, newBalance, *req.ExpectedBalance)
+	} else {
+		err = a.accounts.ModifyAccountBalance(c, uid, req.Id, newBalance)
+	}
 
 	if err != nil {
 		log.Errorf(c, "[account_balances.ModifySingleAccountBalanceHandler] failed to modify account \"id:%s\" balance for user \"uid:%d\", because %s", req.Id, uid, err.Error())
@@ -79,12 +85,12 @@ func (a *AccountBalancesApi) ModifySingleAccountBalanceHandler(c *core.WebContex
 	}
 
 	log.Infof(c, "[account_balances.ModifySingleAccountBalanceHandler] user \"uid:%d\" has modified account \"id:%s\" balance from %d to %d",
-		uid, req.Id, oldBalance, req.Balance)
+		uid, req.Id, oldBalance, newBalance)
 
 	return &models.AccountInfoResponse{
 		Id:       account.AccountId,
 		Name:     account.Name,
-		Balance:  req.Balance,
+		Balance:  newBalance,
 		Currency: account.Currency,
 	}, nil
 }

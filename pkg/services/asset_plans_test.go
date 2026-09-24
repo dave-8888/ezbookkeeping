@@ -66,6 +66,15 @@ func TestAssetPlanServiceCRUDAndUserIsolation(t *testing.T) {
 	assert.Equal(t, "CNY", modified.Currency)
 	assert.Equal(t, []int64{12, 34}, modified.GetExcludedAccountIds())
 
+	modified.MonthlySchedule = `{"startMonth":"2026-03","endMonth":"2026-04","stages":[{"amount":100,"repeat":2}]}`
+	modified.StartDate = 20260301
+	require.NoError(t, service.ModifyAssetPlan(context, modified))
+	monthly, err := service.GetAssetPlanByUid(context, 101)
+	require.NoError(t, err)
+	assert.Equal(t, modified.MonthlySchedule, monthly.MonthlySchedule)
+	assert.Equal(t, int32(20260301), monthly.StartDate)
+	assert.Equal(t, "CNY", monthly.Currency)
+
 	otherUserPlan := *modified
 	otherUserPlan.Uid = 202
 	err = service.ModifyAssetPlan(context, &otherUserPlan)

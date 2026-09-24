@@ -57,6 +57,8 @@ func (a *ServerSettingsApi) ServerSettingsJavascriptHandler(c *core.WebContext) 
 	}
 
 	a.appendBooleanSetting(builder, "llmt", true)
+	a.appendBooleanSetting(builder, "llmc", config.TransactionFromAIImageRecognition &&
+		config.ReceiptImageRecognitionLLMConfig.IsConfigured())
 
 	if config.LoginPageTips.Enabled {
 		a.appendMultiLanguageTipSetting(builder, "lpt", config.LoginPageTips)

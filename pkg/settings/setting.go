@@ -320,6 +320,7 @@ type Config struct {
 	WebDAVConfig        *WebDAVConfig
 
 	// Large Language Model
+	LLMProviderCatalogFile            string
 	TransactionFromAIImageRecognition bool
 	MaxAIRecognitionPictureFileSize   uint32
 
@@ -834,6 +835,14 @@ func loadStorageConfiguration(config *Config, configFile *ini.File, sectionName 
 }
 
 func loadLLMGlobalConfiguration(config *Config, configFile *ini.File, sectionName string) error {
+	catalogFile := getConfigItemStringValue(configFile, sectionName, "provider_catalog_file")
+	if catalogFile != "" {
+		var err error
+		config.LLMProviderCatalogFile, err = getFinalPath(config.WorkingPath, catalogFile)
+		if err != nil {
+			return err
+		}
+	}
 	config.TransactionFromAIImageRecognition = getConfigItemBoolValue(configFile, sectionName, "transaction_from_ai_image_recognition", false)
 	config.MaxAIRecognitionPictureFileSize = getConfigItemUint32Value(configFile, sectionName, "max_ai_recognition_picture_size", defaultAIRecognitionPictureMaxSize)
 

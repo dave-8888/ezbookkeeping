@@ -20,6 +20,8 @@ type DataStatisticsResponse struct {
 	TotalTransactionPictureCount   int64 `json:"totalTransactionPictureCount,string"`
 	TotalTransactionTemplateCount  int64 `json:"totalTransactionTemplateCount,string"`
 	TotalScheduledTransactionCount int64 `json:"totalScheduledTransactionCount,string"`
+	TotalSocialGiftContactCount    int64 `json:"totalSocialGiftContactCount,string"`
+	TotalSocialGiftRecordCount     int64 `json:"totalSocialGiftRecordCount,string"`
 }
 
 // ExportTransactionDataRequest represents export transaction request

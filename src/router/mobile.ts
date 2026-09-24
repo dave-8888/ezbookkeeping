@@ -1,4 +1,5 @@
 import type { Router } from 'framework7/types';
+import { isNativeApp } from '@/lib/native_app.ts';
 
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 
@@ -16,6 +17,7 @@ import AccountEditPage from '@/views/mobile/accounts/EditPage.vue';
 import AccountReconciliationStatementPage from '@/views/mobile/accounts/ReconciliationStatementPage.vue';
 import AccountMoveAllTransactionsPage from '@/views/mobile/accounts/MoveAllTransactionsPage.vue';
 import AssetPlanPage from '@/views/mobile/assetplans/AssetPlanPage.vue';
+import SocialGiftPage from '@/views/mobile/socialgifts/SocialGiftPage.vue';
 
 import StatisticsTransactionPage from '@/views/mobile/statistics/TransactionPage.vue';
 import StatisticsSettingsPage from '@/views/mobile/statistics/SettingsPage.vue';
@@ -211,6 +213,11 @@ const routes: Router.RouteParameters[] = [
         beforeEnter: [checkLogin]
     },
     {
+        path: '/social-gifts',
+        async: asyncResolve(SocialGiftPage),
+        beforeEnter: [checkLogin]
+    },
+    {
         path: '/statistic/transaction',
         async: asyncResolve(StatisticsTransactionPage),
         beforeEnter: [checkLogin]
@@ -263,7 +270,7 @@ const routes: Router.RouteParameters[] = [
     {
         path: '/app_lock',
         async: asyncResolve(ApplicationLockPage),
-        beforeEnter: [checkLogin]
+        beforeEnter: [checkLogin, ({ reject, resolve }: Router.RouteCallbackCtx) => { if (isNativeApp()) reject(); else resolve(); }]
     },
     {
         path: '/exchange_rates',

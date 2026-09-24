@@ -36,3 +36,11 @@ export interface UserLLMSettingUpdateRequest {
     largeLanguageModelAPIProxy: string;
     largeLanguageModelAPISkipTLSVerify: boolean;
 }
+
+export interface LLMProviderPreset {
+    readonly id: string;
+    readonly name: string;
+    readonly protocol: string;
+    readonly baseUrl: string;
+    readonly docsUrl: string;
+}

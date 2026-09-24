@@ -8,12 +8,15 @@ import type {
 
 import services from '@/lib/services.ts';
 import logger from '@/lib/logger.ts';
+import { isServerTransactionAIConfigured } from '@/lib/server_settings.ts';
 
 export const useUserLLMSettingsStore = defineStore('userLLMSettings', () => {
     const userLLMSetting = ref<UserLLMSettingResponse | null>(null);
     const userLLMSettingStateInvalid = ref<boolean>(true);
 
     const enabled = computed<boolean>(() => !!userLLMSetting.value?.enabled && !!userLLMSetting.value?.llmProvider);
+
+    const transactionAIEnabled = computed<boolean>(() => enabled.value || isServerTransactionAIConfigured());
 
     function loadUserLLMSetting({ force }: { force: boolean }): Promise<UserLLMSettingResponse> {
         return new Promise((resolve, reject) => {
@@ -83,6 +86,7 @@ export const useUserLLMSettingsStore = defineStore('userLLMSettings', () => {
         userLLMSetting,
         userLLMSettingStateInvalid,
         enabled,
+        transactionAIEnabled,
         loadUserLLMSetting,
         updateUserLLMSetting,
         resetUserLLMSetting

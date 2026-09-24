@@ -1,19 +1,10 @@
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
-import { useAccountsStore } from '@/stores/account.ts';
-import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
-import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
+import { useUserLLMSettingsStore } from '@/stores/userLLMSetting.ts';
+
 import { useTransactionsStore } from '@/stores/transaction.ts';
-import { useSettingsStore } from '@/stores/setting.ts';
 import { useUserStore } from '@/stores/user.ts';
-
 import type { RecognizedTransactionResponse } from '@/models/large_language_model.ts';
-
-import { createTransactionFromRecognizedResult, getRecognizedTransactionAutoCreateMissingFields } from '@/lib/transaction.ts';
-import {
-    hasRecognizedTransactionFields,
-    recognizeTransactionByText
-} from '@/lib/transaction_text.ts';
 import { generateRandomUUID } from '@/lib/misc.ts';
 
 export interface QuickTransactionTextInputOptions {
@@ -24,12 +15,18 @@ export interface QuickTransactionTextInputOptions {
 }
 
 export function useQuickTransactionTextInput(options: QuickTransactionTextInputOptions) {
-    const accountsStore = useAccountsStore();
-    const transactionCategoriesStore = useTransactionCategoriesStore();
-    const transactionTagsStore = useTransactionTagsStore();
     const transactionsStore = useTransactionsStore();
-    const settingsStore = useSettingsStore();
     const userStore = useUserStore();
+
+    const userLLMSettingsStore = useUserLLMSettingsStore();
+    const aiEnabled = computed<boolean>(() => userLLMSettingsStore.transactionAIEnabled);
+
+    watch(() => userStore.currentUserBasicInfo?.username, username => {
+        if (username) {
+            // Failed settings loads keep personal AI disabled; the store logs the error.
+            userLLMSettingsStore.loadUserLLMSetting({ force: false }).catch(() => undefined);
+        }
+    }, { immediate: true });
 
     const transactionText = ref<string>('');
     const recognizingByText = ref<boolean>(false);
@@ -38,45 +35,38 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
         transactionText.value = '';
     }
 
-    function loadRecognitionContext(): Promise<void> {
-        return Promise.all([
-            accountsStore.loadAllAccounts({ force: false }),
-            transactionCategoriesStore.loadAllCategories({ force: false }),
-            transactionTagsStore.loadAllTags({ force: false })
-        ]).then(() => undefined);
-    }
+    // Retain the identity across retries, panel remounts and page reloads. The
+    // backend durably returns the original result instead of executing twice.
+    function pendingRequest(text: string): { text: string, requestId: string } {
+        const key = `web-mcp-transaction:${userStore.currentUserBasicInfo?.username}`;
+        const raw = sessionStorage.getItem(key);
+        const pending: { text: string, requestId: string }[] = raw ? JSON.parse(raw) : [];
+        const saved = pending.find(request => request.text === text);
 
-    function saveRecognizedTransactionOrRequestManualInput(result: RecognizedTransactionResponse): Promise<void> {
-        const createContext = {
-            allCategories: transactionCategoriesStore.allTransactionCategories,
-            allCategoriesMap: transactionCategoriesStore.allTransactionCategoriesMap,
-            allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
-            allAccountsMap: accountsStore.allAccountsMap,
-            allTagsMap: transactionTagsStore.allTransactionTagsMap,
-            defaultAccountId: userStore.currentUserDefaultAccountId,
-            timeZone: settingsStore.appSettings.timeZone
-        };
-        const transaction = createTransactionFromRecognizedResult(result, createContext);
-        const missingFields = getRecognizedTransactionAutoCreateMissingFields(result, transaction, createContext);
-
-        if (missingFields.length > 0) {
-            return Promise.resolve(options.onNeedManualInput(result));
+        if (saved?.text === text && saved.requestId) {
+            return saved;
         }
 
-        return transactionsStore.saveTransaction({
-            transaction,
-            defaultCurrency: userStore.currentUserDefaultCurrency,
-            isEdit: false,
-            clientSessionId: generateRandomUUID()
-        }).then(() => {
-            clearTransactionText();
-            options.showMessage('You have added a new transaction');
-            options.onSaved?.();
-        });
+        const request = { text, requestId: generateRandomUUID() };
+        pending.push(request);
+        sessionStorage.setItem(key, JSON.stringify(pending));
+        return request;
+    }
+
+    function forgetPendingRequest(text: string): void {
+        const key = `web-mcp-transaction:${userStore.currentUserBasicInfo?.username}`;
+        const raw = sessionStorage.getItem(key);
+        const pending: { text: string, requestId: string }[] = raw ? JSON.parse(raw) : [];
+        sessionStorage.setItem(key, JSON.stringify(pending.filter(request => request.text !== text)));
     }
 
     function submitTransactionText(): Promise<void> {
         if (recognizingByText.value) {
+            return Promise.resolve();
+        }
+
+        if (!aiEnabled.value) {
+            options.showError('llm provider is not enabled');
             return Promise.resolve();
         }
 
@@ -89,20 +79,21 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
 
         recognizingByText.value = true;
 
-        return loadRecognitionContext().then(() => {
-            return recognizeTransactionByText(text, {
-                allCategories: transactionCategoriesStore.allTransactionCategories,
-                allVisibleAccounts: accountsStore.allVisiblePlainAccounts,
-                allTags: transactionTagsStore.allTransactionTags,
-                recognizeTransactionText: (text: string) => transactionsStore.recognizeTransactionText({ text })
-            });
+        return Promise.resolve().then(() => {
+            return transactionsStore.createTransactionByMCP(pendingRequest(text));
         }).then(result => {
-            if (!hasRecognizedTransactionFields(result)) {
-                options.showError('Unable to recognize transaction text');
-                return;
-            }
+            if (result.status === 'created') {
+                forgetPendingRequest(text);
+                clearTransactionText();
+                options.showMessage(result.reply);
+                options.onSaved?.();
+            } else {
+                if (result.status === 'failed' || result.status === 'needs_input') {
+                    forgetPendingRequest(text);
+                }
 
-            return saveRecognizedTransactionOrRequestManualInput(result);
+                options.showMessage(result.reply);
+            }
         }).catch(error => {
             options.showError(error);
         }).finally(() => {
@@ -111,6 +102,7 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
     }
 
     return {
+        aiEnabled,
         transactionText,
         recognizingByText,
         clearTransactionText,

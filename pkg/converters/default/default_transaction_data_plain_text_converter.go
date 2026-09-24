@@ -34,6 +34,12 @@ var financiallyFreeDataColumnNameMapping = map[datatable.TransactionDataTableCol
 	datatable.TRANSACTION_DATA_TABLE_GEOGRAPHIC_LOCATION:      "Geographic Location",
 	datatable.TRANSACTION_DATA_TABLE_TAGS:                     "Tags",
 	datatable.TRANSACTION_DATA_TABLE_DESCRIPTION:              "Description",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_KEY:  "Social Gift Contact Key",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT:      "Social Gift Contact",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_RELATIONSHIP: "Social Gift Relationship",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_NOTE: "Social Gift Contact Note",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_TYPE:   "Social Gift Event Type",
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_NAME:   "Social Gift Event Name",
 }
 
 var financiallyFreeTransactionTypeNameMapping = map[models.TransactionType]string{
@@ -58,6 +64,12 @@ var financiallyFreeDataColumns = []datatable.TransactionDataTableColumn{
 	datatable.TRANSACTION_DATA_TABLE_GEOGRAPHIC_LOCATION,
 	datatable.TRANSACTION_DATA_TABLE_TAGS,
 	datatable.TRANSACTION_DATA_TABLE_DESCRIPTION,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_KEY,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_RELATIONSHIP,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_NOTE,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_TYPE,
+	datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_NAME,
 }
 
 // ToExportedContent returns the exported transaction plain text data

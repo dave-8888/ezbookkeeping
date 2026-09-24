@@ -11,3 +11,8 @@ export interface RecognizedTransactionResponse {
 }
 
 export type RecognizedReceiptImageResponse = RecognizedTransactionResponse;
+
+export interface MCPTransactionResponse {
+    readonly status: 'created' | 'needs_input' | 'failed' | 'unknown' | 'processing';
+    readonly reply: string;
+}

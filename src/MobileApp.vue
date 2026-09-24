@@ -1,12 +1,17 @@
 <template>
     <f7-app v-bind="f7params">
         <f7-view id="main-view" class="safe-areas" main url="/"></f7-view>
-        <global-quick-transaction-button />
+        <global-quick-transaction-button v-if="!isNativeApp()" />
     </f7-app>
 </template>
 
 <script setup lang="ts">
 import GlobalQuickTransactionButton from '@/components/mobile/GlobalQuickTransactionButton.vue';
+import { isNativeApp, notifyNative } from '@/lib/native_app.ts';
+import { useAccountsStore } from '@/stores/account.ts';
+import { useTransactionsStore } from '@/stores/transaction.ts';
+import { useOverviewStore } from '@/stores/overview.ts';
+import { useStatisticsStore } from '@/stores/statistics.ts';
 
 import { ref, computed, watch, onMounted } from 'vue';
 
@@ -42,7 +47,7 @@ const tokensStore = useTokensStore();
 const exchangeRatesStore = useExchangeRatesStore();
 
 const f7params = ref<Framework7Parameters>({
-    name: 'financially_free',
+    name: '财神',
     theme: 'ios',
     colors: {
         primary: '#0071e3'
@@ -64,7 +69,7 @@ const f7params = ref<Framework7Parameters>({
         tapHold: true
     },
     serviceWorker: {
-        path: isProduction() ? './sw.js' : undefined,
+        path: isProduction() && !isNativeApp() ? './sw.js' : undefined,
         scope: './',
     },
     actions: {
@@ -149,6 +154,36 @@ onMounted(() => {
     setAppFontSize(settingsStore.appSettings.fontSize);
 
     f7ready((f7) => {
+        if (isNativeApp()) {
+            let revision = 0;
+            window.addEventListener('native-resume', event => {
+                const detail = (event as CustomEvent).detail;
+                const router = f7.views.main.router;
+                if (detail.revision !== revision) {
+                    revision = detail.revision;
+                    useAccountsStore().updateAccountListInvalidState(true);
+                    useTransactionsStore().updateTransactionListInvalidState(true);
+                    useTransactionsStore().updateTransactionReconciliationStatementInvalidState(true);
+                    useOverviewStore().updateTransactionOverviewInvalidState(true);
+                    useStatisticsStore().updateTransactionStatisticsInvalidState(true);
+                    // Refresh read-only pages. Keep in-progress forms and navigation intact.
+                    if (['/', '/transaction/list', '/account/list', '/statistic/transaction'].includes(router.currentRoute.path)) {
+                        router.refreshPage();
+                    }
+                }
+                if (detail.route && detail.route !== router.currentRoute.url) router.navigate(detail.route);
+            });
+            window.addEventListener('native-back', () => {
+                if (isModalShowing()) {
+                    f7.actions.close(); f7.dialog.close(); f7.popover.close(); f7.popup.close(); f7.sheet.close();
+                } else if (f7.views.main.router.history.length > 1) {
+                    f7.views.main.router.back();
+                } else {
+                    notifyNative('exit');
+                }
+            });
+            notifyNative('ready');
+        }
         environmentsStore.framework7DarkMode = f7.darkMode;
         setThemeColorMeta(f7.darkMode);
 

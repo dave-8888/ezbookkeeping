@@ -89,7 +89,7 @@ func sendTestMail(c *core.CliContext) error {
 
 	err = mail.Container.SendMail(&mail.MailMessage{
 		To:      toAddress,
-		Subject: "financially_free test e-mail",
+		Subject: "财神 test e-mail",
 		Body:    "This is a test e-mail",
 	})
 

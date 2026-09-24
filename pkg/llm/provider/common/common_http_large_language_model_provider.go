@@ -30,6 +30,10 @@ type CommonHttpLargeLanguageModelProvider struct {
 	httpClient *http.Client
 }
 
+func (p *CommonHttpLargeLanguageModelProvider) GetChatResponse(c core.Context, uid int64, config *settings.LLMConfig, request *data.LargeLanguageModelRequest) (*data.LargeLanguageModelTextualResponse, error) {
+	return p.getTextualResponse(c, uid, config, request, data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS)
+}
+
 // GetJsonResponse returns the json response from common http large language model provider
 func (p *CommonHttpLargeLanguageModelProvider) GetJsonResponse(c core.Context, uid int64, currentLLMConfig *settings.LLMConfig, request *data.LargeLanguageModelRequest) (*data.LargeLanguageModelTextualResponse, error) {
 	response, err := p.getTextualResponse(c, uid, currentLLMConfig, request, data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_JSON)
@@ -65,9 +69,14 @@ func (p *CommonHttpLargeLanguageModelProvider) getTextualResponse(c core.Context
 	}
 
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
+	if err != nil {
+		return nil, errs.ErrFailedToRequestRemoteApi
+	}
 
-	log.Debugf(c, "[common_http_large_language_model_provider.getTextualResponse] response is %s", body)
+	if responseType != data.LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS {
+		log.Debugf(c, "[common_http_large_language_model_provider.getTextualResponse] response is %s", body)
+	}
 
 	if resp.StatusCode != 200 {
 		log.Errorf(c, "[common_http_large_language_model_provider.getTextualResponse] failed to get large language model api response for user \"uid:%d\", because response code is %d", uid, resp.StatusCode)

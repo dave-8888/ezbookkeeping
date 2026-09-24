@@ -263,13 +263,12 @@ func (a *LargeLanguageModelsApi) getEffectiveLLMConfig(c core.Context, uid int64
 	if userLLMSetting != nil && userLLMSetting.Enabled {
 		llmConfig := userLLMSetting.ToLLMConfig(a.CurrentConfig().ReceiptImageRecognitionLLMConfig)
 
-		if llmConfig != nil && llmConfig.LLMProvider != "" {
+		if llmConfig.IsConfigured() {
 			return llmConfig, nil
 		}
 	}
 
-	if a.CurrentConfig().ReceiptImageRecognitionLLMConfig != nil &&
-		a.CurrentConfig().ReceiptImageRecognitionLLMConfig.LLMProvider != "" &&
+	if a.CurrentConfig().ReceiptImageRecognitionLLMConfig.IsConfigured() &&
 		a.CurrentConfig().TransactionFromAIImageRecognition {
 		return a.CurrentConfig().ReceiptImageRecognitionLLMConfig, nil
 	}

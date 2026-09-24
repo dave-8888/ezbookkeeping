@@ -28,6 +28,7 @@ const (
 
 // TransactionTemplate represents transaction template stored in database
 type TransactionTemplate struct {
+	Currency                   string                           `xorm:"VARCHAR(3)"`
 	TemplateId                 int64                            `xorm:"PK"`
 	Uid                        int64                            `xorm:"INDEX(IDX_transaction_template_uid_deleted_template_type_order) NOT NULL"`
 	Deleted                    bool                             `xorm:"INDEX(IDX_transaction_template_uid_deleted_template_type_order) INDEX(IDX_transaction_template_deleted_type_freqtype_scheduled_time) NOT NULL"`
@@ -67,11 +68,12 @@ type TransactionTemplateGetRequest struct {
 
 // TransactionTemplateCreateRequest represents all parameters of transaction template creation request
 type TransactionTemplateCreateRequest struct {
+	Currency                   string                            `json:"currency,omitempty"`
 	TemplateType               TransactionTemplateType           `json:"templateType"`
 	Name                       string                            `json:"name" binding:"required,notBlank,max=64"`
 	Type                       TransactionType                   `json:"type" binding:"required"`
 	CategoryId                 int64                             `json:"categoryId,string" binding:"required,min=1"`
-	SourceAccountId            int64                             `json:"sourceAccountId,string" binding:"required,min=1"`
+	SourceAccountId            int64                             `json:"sourceAccountId,string" binding:"min=0"`
 	DestinationAccountId       int64                             `json:"destinationAccountId,string" binding:"min=0"`
 	SourceAmount               int64                             `json:"sourceAmount" binding:"min=-99999999999,max=99999999999"`
 	DestinationAmount          int64                             `json:"destinationAmount" binding:"min=-99999999999,max=99999999999"`
@@ -94,11 +96,12 @@ type TransactionTemplateModifyNameRequest struct {
 
 // TransactionTemplateModifyRequest represents all parameters of transaction template modification request
 type TransactionTemplateModifyRequest struct {
+	Currency                   string                            `json:"currency,omitempty"`
 	Id                         int64                             `json:"id,string" binding:"required,min=1"`
 	Name                       string                            `json:"name" binding:"required,notBlank,max=64"`
 	Type                       TransactionType                   `json:"type" binding:"required"`
 	CategoryId                 int64                             `json:"categoryId,string" binding:"required,min=1"`
-	SourceAccountId            int64                             `json:"sourceAccountId,string" binding:"required,min=1"`
+	SourceAccountId            int64                             `json:"sourceAccountId,string" binding:"min=0"`
 	DestinationAccountId       int64                             `json:"destinationAccountId,string" binding:"min=0"`
 	SourceAmount               int64                             `json:"sourceAmount" binding:"min=-99999999999,max=99999999999"`
 	DestinationAmount          int64                             `json:"destinationAmount" binding:"min=-99999999999,max=99999999999"`
@@ -135,6 +138,7 @@ type TransactionTemplateDeleteRequest struct {
 }
 
 type TransactionTemplateInfoResponse struct {
+	Currency string `json:"currency,omitempty"`
 	*TransactionInfoResponse
 	TemplateType           TransactionTemplateType           `json:"templateType"`
 	Name                   string                            `json:"name"`
@@ -212,6 +216,7 @@ func (t *TransactionTemplate) toTransactionInfoResponse(utcOffset int16) *Transa
 		Time:                 0,
 		UtcOffset:            utcOffset,
 		SourceAccountId:      t.AccountId,
+		Currency:             t.Currency,
 		DestinationAccountId: t.RelatedAccountId,
 		SourceAmount:         t.Amount,
 		DestinationAmount:    t.RelatedAccountAmount,

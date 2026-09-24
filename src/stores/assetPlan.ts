@@ -25,8 +25,8 @@ function getRequestError(error: Record<string, unknown>, fallbackMessage: string
 export const useAssetPlanStore = defineStore('assetPlan', () => {
     const assetPlan = ref<AssetPlanInfoResponse | null>(null);
 
-    function loadAssetPlan(): Promise<AssetPlanInfoResponse | null> {
-        return services.getAssetPlan().then(response => {
+    function loadAssetPlan(detailMonth?: string): Promise<AssetPlanInfoResponse | null> {
+        return services.getAssetPlan(detailMonth).then(response => {
             const data = response.data;
 
             if (!data?.success) {

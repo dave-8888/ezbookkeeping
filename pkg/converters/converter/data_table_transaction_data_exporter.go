@@ -27,7 +27,7 @@ func (c *DataTableTransactionDataExporter) BuildExportedContent(ctx core.Context
 			continue
 		}
 
-		dataRowMap := make(map[datatable.TransactionDataTableColumn]string, 15)
+		dataRowMap := make(map[datatable.TransactionDataTableColumn]string, 21)
 		transactionUnixTime := utils.GetUnixTimeFromTransactionTime(transaction.TransactionTime)
 		transactionTimeZone := time.FixedZone("Transaction Timezone", int(transaction.TimezoneUtcOffset)*60)
 
@@ -38,6 +38,10 @@ func (c *DataTableTransactionDataExporter) BuildExportedContent(ctx core.Context
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SUB_CATEGORY] = c.getExportedTransactionSubCategoryName(dataTableBuilder, transaction.CategoryId, categoryMap)
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_ACCOUNT_NAME] = c.getExportedAccountName(dataTableBuilder, transaction.AccountId, accountMap)
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY] = c.getAccountCurrency(dataTableBuilder, transaction.AccountId, accountMap)
+		if transaction.IsCashFlow() && transaction.Currency != "" {
+			dataRowMap[datatable.TRANSACTION_DATA_TABLE_ACCOUNT_NAME] = ""
+			dataRowMap[datatable.TRANSACTION_DATA_TABLE_ACCOUNT_CURRENCY] = transaction.Currency
+		}
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_AMOUNT] = utils.FormatAmount(transaction.Amount)
 
 		if transaction.Type == models.TRANSACTION_DB_TYPE_TRANSFER_OUT {
@@ -49,6 +53,12 @@ func (c *DataTableTransactionDataExporter) BuildExportedContent(ctx core.Context
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_GEOGRAPHIC_LOCATION] = c.getExportedGeographicLocation(transaction)
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_TAGS] = c.getExportedTags(dataTableBuilder, transaction.TransactionId, allTagIndexes, tagMap)
 		dataRowMap[datatable.TRANSACTION_DATA_TABLE_DESCRIPTION] = dataTableBuilder.ReplaceDelimiters(transaction.Comment)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_KEY] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftContactKey)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftContact)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_RELATIONSHIP] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftRelationship)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_CONTACT_NOTE] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftContactNote)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_TYPE] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftEventType)
+		dataRowMap[datatable.TRANSACTION_DATA_TABLE_SOCIAL_GIFT_EVENT_NAME] = dataTableBuilder.ReplaceDelimiters(transaction.SocialGiftEventName)
 
 		dataTableBuilder.AppendTransaction(dataRowMap)
 	}

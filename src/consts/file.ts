@@ -99,11 +99,11 @@ export const CHARDET_ENCODING_NAME_MAPPING: Record<string, string> = {
 
 export const SUPPORTED_IMPORT_FILE_CATEGORY_AND_TYPES: ImportFileCategoryAndTypes[] = [
     {
-        categoryName: 'financially_free File Format',
+        categoryName: '财神 File Format',
         fileTypes: [
             {
                 type: 'financially_free',
-                name: 'financially_free Data Export File',
+                name: '财神 Data Export File',
                 extensions: '.csv,.tsv',
                 subTypes: [
                     {

@@ -104,7 +104,10 @@
                                         v-model="transaction.name"
                                     />
                                 </v-col>
-                                <v-col cols="12" :md="transaction.type === TransactionType.Transfer ? 6 : 12">
+                                <v-col cols="12" v-if="transaction.isCashFlow">
+                                    <currency-select :disabled="loading || submitting || mode === TransactionEditPageMode.View" :label="tt('Currency')" v-model="transaction.currency" />
+                                </v-col>
+                                <v-col cols="12" :md="transaction.type === TransactionType.Transfer ? 6 : 12" v-if="!transaction.isCashFlow">
                                     <amount-input class="transaction-edit-amount font-weight-bold"
                                                   :color="sourceAmountColor"
                                                   :currency="sourceAccountCurrency"

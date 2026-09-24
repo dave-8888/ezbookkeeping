@@ -26,6 +26,8 @@ export interface DataStatisticsResponse {
     readonly totalTransactionPictureCount: string;
     readonly totalTransactionTemplateCount: string;
     readonly totalScheduledTransactionCount: string;
+    readonly totalSocialGiftContactCount: string;
+    readonly totalSocialGiftRecordCount: string;
 }
 
 export interface DisplayDataStatistics {
@@ -36,4 +38,6 @@ export interface DisplayDataStatistics {
     readonly totalTransactionPictureCount: string;
     readonly totalTransactionTemplateCount: string;
     readonly totalScheduledTransactionCount: string;
+    readonly totalSocialGiftContactCount: string;
+    readonly totalSocialGiftRecordCount: string;
 }

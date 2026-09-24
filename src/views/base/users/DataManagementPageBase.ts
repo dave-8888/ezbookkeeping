@@ -25,7 +25,9 @@ export function useDataManagementPageBase() {
             totalTransactionTagCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalTransactionTagCount)),
             totalTransactionPictureCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalTransactionPictureCount)),
             totalTransactionTemplateCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalTransactionTemplateCount)),
-            totalScheduledTransactionCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalScheduledTransactionCount))
+            totalScheduledTransactionCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalScheduledTransactionCount)),
+            totalSocialGiftContactCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalSocialGiftContactCount)),
+            totalSocialGiftRecordCount: formatNumberToLocalizedNumerals(parseInt(dataStatistics.value.totalSocialGiftRecordCount))
         };
     });
 

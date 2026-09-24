@@ -1,3 +1,5 @@
+import type { LLMProviderPreset } from '@/models/user_llm_setting.ts';
+import { socialGiftPrivacyHeaders } from '@/lib/social_gift_privacy.ts';
 import axios, { type AxiosRequestConfig, type AxiosRequestHeaders, type AxiosResponse } from 'axios';
 
 import type { ApiResponse } from '@/core/api.ts';
@@ -159,13 +161,27 @@ import type {
 } from '@/models/user_llm_setting.ts';
 import type {
     RecognizedReceiptImageResponse,
-    RecognizedTransactionResponse
+    RecognizedTransactionResponse,
+    MCPTransactionResponse
 } from '@/models/large_language_model.ts';
 import type {
     AssetPlanCreateRequest,
     AssetPlanModifyRequest,
     AssetPlanInfoResponse
 } from '@/models/asset_plan.ts';
+import type {
+    SocialGiftContactCreateRequest,
+    SocialGiftContactModifyRequest,
+    SocialGiftContactDeleteRequest,
+    SocialGiftContactInfoResponse,
+    SocialGiftContactPageResponse,
+    SocialGiftRecordCreateRequest,
+    SocialGiftRecordModifyRequest,
+    SocialGiftRecordDeleteRequest,
+    SocialGiftRecordInfoResponse,
+    SocialGiftRecordPageResponse,
+    SocialGiftSummaryResponse
+} from '@/models/social_gift.ts';
 
 import {
     getCurrentToken,
@@ -425,6 +441,12 @@ export default {
     disableUserApplicationCloudSettings: (): ApiResponsePromise<boolean> => {
         return axios.post<ApiResponse<boolean>>('v1/users/settings/cloud/disable.json');
     },
+    getLLMProviders: (): ApiResponsePromise<LLMProviderPreset[]> => {
+        return axios.get<ApiResponse<LLMProviderPreset[]>>('v1/users/settings/llm/providers.json');
+    },
+    getLLMModels: (req: UserLLMSettingUpdateRequest): ApiResponsePromise<string[]> => {
+        return axios.post<ApiResponse<string[]>>('v1/users/settings/llm/models.json', req);
+    },
     getUserLLMSetting: (): ApiResponsePromise<UserLLMSettingResponse> => {
         return axios.get<ApiResponse<UserLLMSettingResponse>>('v1/users/settings/llm/get.json');
     },
@@ -600,8 +622,8 @@ export default {
 
         return axios.get<ApiResponse<TransactionStatisticAssetTrendsResponseItem[]>>('v1/transactions/statistics/asset_trends.json' + (queryParams.length ? '?' + queryParams.join('&') : ''));
     },
-    getAssetPlan: (): ApiResponsePromise<AssetPlanInfoResponse | null> => {
-        return axios.get<ApiResponse<AssetPlanInfoResponse | null>>('v1/asset_plans/get.json');
+    getAssetPlan: (detailMonth?: string): ApiResponsePromise<AssetPlanInfoResponse | null> => {
+        return axios.get<ApiResponse<AssetPlanInfoResponse | null>>('v1/asset_plans/get.json' + (detailMonth ? `?detail_month=${encodeURIComponent(detailMonth)}` : ''));
     },
     createAssetPlan: (req: AssetPlanCreateRequest): ApiResponsePromise<AssetPlanInfoResponse> => {
         return axios.post<ApiResponse<AssetPlanInfoResponse>>('v1/asset_plans/add.json', req);
@@ -611,6 +633,39 @@ export default {
     },
     deleteAssetPlan: (): ApiResponsePromise<boolean> => {
         return axios.post<ApiResponse<boolean>>('v1/asset_plans/delete.json');
+    },
+    getSocialGiftPrivacyStatus: (): ApiResponsePromise<{ configured: boolean }> => axios.get('v1/social_gifts/privacy/status.json'),
+    unlockSocialGiftPrivacy: (password: string, setup: boolean): ApiResponsePromise<{ token: string }> => axios.post('v1/social_gifts/privacy/unlock.json', { password, setup }),
+    lockSocialGiftPrivacy: (token?: string): ApiResponsePromise<boolean> => axios.post('v1/social_gifts/privacy/lock.json', {}, token ? { headers: { 'X-Social-Gift-Token': token } } : socialGiftPrivacyHeaders()),
+    getSocialGiftContacts: ({ keyword, status, page, count }: { keyword: string, status: string, page: number, count: number }): ApiResponsePromise<SocialGiftContactPageResponse> => {
+        return axios.get<ApiResponse<SocialGiftContactPageResponse>>(`v1/social_gifts/contacts/list.json?keyword=${encodeURIComponent(keyword)}&status=${status}&page=${page}&count=${count}`, socialGiftPrivacyHeaders());
+    },
+    getSocialGiftContact: ({ id }: { id: string }): ApiResponsePromise<SocialGiftContactInfoResponse> => {
+        return axios.get<ApiResponse<SocialGiftContactInfoResponse>>(`v1/social_gifts/contacts/get.json?id=${id}`, socialGiftPrivacyHeaders());
+    },
+    createSocialGiftContact: (req: SocialGiftContactCreateRequest): ApiResponsePromise<SocialGiftContactInfoResponse> => {
+        return axios.post<ApiResponse<SocialGiftContactInfoResponse>>('v1/social_gifts/contacts/add.json', req, socialGiftPrivacyHeaders());
+    },
+    modifySocialGiftContact: (req: SocialGiftContactModifyRequest): ApiResponsePromise<SocialGiftContactInfoResponse> => {
+        return axios.post<ApiResponse<SocialGiftContactInfoResponse>>('v1/social_gifts/contacts/modify.json', req, socialGiftPrivacyHeaders());
+    },
+    deleteSocialGiftContact: (req: SocialGiftContactDeleteRequest): ApiResponsePromise<boolean> => {
+        return axios.post<ApiResponse<boolean>>('v1/social_gifts/contacts/delete.json', req, socialGiftPrivacyHeaders());
+    },
+    getSocialGiftRecords: ({ contactId, direction, eventType, page, count }: { contactId: string, direction?: string, eventType?: string, page: number, count: number }): ApiResponsePromise<SocialGiftRecordPageResponse> => {
+        return axios.get<ApiResponse<SocialGiftRecordPageResponse>>(`v1/social_gifts/records/list.json?contact_id=${contactId}&direction=${direction || ''}&event_type=${eventType || ''}&page=${page}&count=${count}`, socialGiftPrivacyHeaders());
+    },
+    createSocialGiftRecord: (req: SocialGiftRecordCreateRequest): ApiResponsePromise<SocialGiftRecordInfoResponse> => {
+        return axios.post<ApiResponse<SocialGiftRecordInfoResponse>>('v1/social_gifts/records/add.json', req, socialGiftPrivacyHeaders());
+    },
+    modifySocialGiftRecord: (req: SocialGiftRecordModifyRequest): ApiResponsePromise<SocialGiftRecordInfoResponse> => {
+        return axios.post<ApiResponse<SocialGiftRecordInfoResponse>>('v1/social_gifts/records/modify.json', req, socialGiftPrivacyHeaders());
+    },
+    deleteSocialGiftRecord: (req: SocialGiftRecordDeleteRequest): ApiResponsePromise<boolean> => {
+        return axios.post<ApiResponse<boolean>>('v1/social_gifts/records/delete.json', req, socialGiftPrivacyHeaders());
+    },
+    getSocialGiftSummary: (): ApiResponsePromise<SocialGiftSummaryResponse> => {
+        return axios.get<ApiResponse<SocialGiftSummaryResponse>>('v1/social_gifts/summary.json', socialGiftPrivacyHeaders());
     },
     getTransactionAmounts: (params: TransactionAmountsRequestParams, excludeAccountIds: string[], excludeCategoryIds: string[]): ApiResponsePromise<TransactionAmountsResponse> => {
         const req = TransactionAmountsRequest.of(params);
@@ -800,6 +855,11 @@ export default {
             timeout: DEFAULT_LLM_API_TIMEOUT,
             cancelableUuid: cancelableUuid
         } as ApiRequestConfig);
+    },
+    createTransactionByMCP: (req: { text: string, requestId: string }): ApiResponsePromise<MCPTransactionResponse> => {
+        return axios.post<ApiResponse<MCPTransactionResponse>>('v1/llm/transactions/create_by_mcp.json', req, {
+            timeout: 420000
+        });
     },
     getLatestExchangeRates: (param: { ignoreError?: boolean }): ApiResponsePromise<LatestExchangeRateResponse> => {
         return axios.get<ApiResponse<LatestExchangeRateResponse>>('v1/exchange_rates/latest.json', {

@@ -322,6 +322,7 @@ export function useTransactionListPageBase() {
     }
 
     function getDisplayAmount(transaction: Transaction): string {
+        if (transaction.isCashFlow) { return formatAmount(transaction.sourceAmount, transaction.hideAmount, transaction.currency || userStore.currentUserDefaultCurrency); }
         if (queryAllFilterAccountIdsCount.value < 1) {
             if (transaction.sourceAccount) {
                 return formatAmount(transaction.sourceAmount, transaction.hideAmount, transaction.sourceAccount.currency);

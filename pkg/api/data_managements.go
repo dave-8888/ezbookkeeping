@@ -33,6 +33,7 @@ type DataManagementsApi struct {
 	templates               *services.TransactionTemplateService
 	userCustomExchangeRates *services.UserCustomExchangeRatesService
 	assetPlans              *services.AssetPlanService
+	socialGifts             *services.SocialGiftService
 }
 
 // Initialize a data management api singleton instance
@@ -51,6 +52,7 @@ var (
 		templates:               services.TransactionTemplates,
 		userCustomExchangeRates: services.UserCustomExchangeRates,
 		assetPlans:              services.AssetPlans,
+		socialGifts:             services.SocialGifts,
 	}
 )
 
@@ -116,6 +118,18 @@ func (a *DataManagementsApi) DataStatisticsHandler(c *core.WebContext) (any, *er
 		return nil, errs.ErrOperationFailed
 	}
 
+	totalSocialGiftContactCount, err := a.socialGifts.GetTotalContactCountByUid(c, uid)
+	if err != nil {
+		log.Errorf(c, "[data_managements.DataStatisticsHandler] failed to get social gift contact count for user \"uid:%d\", because %s", uid, err.Error())
+		return nil, errs.ErrOperationFailed
+	}
+
+	totalSocialGiftRecordCount, err := a.socialGifts.GetTotalRecordCountByUid(c, uid)
+	if err != nil {
+		log.Errorf(c, "[data_managements.DataStatisticsHandler] failed to get social gift record count for user \"uid:%d\", because %s", uid, err.Error())
+		return nil, errs.ErrOperationFailed
+	}
+
 	dataStatisticsResp := &models.DataStatisticsResponse{
 		TotalAccountCount:              totalAccountCount,
 		TotalTransactionCategoryCount:  totalTransactionCategoryCount,
@@ -124,6 +138,8 @@ func (a *DataManagementsApi) DataStatisticsHandler(c *core.WebContext) (any, *er
 		TotalTransactionPictureCount:   totalTransactionPictureCount,
 		TotalTransactionTemplateCount:  totalTransactionTemplateCount,
 		TotalScheduledTransactionCount: totalScheduledTransactionCount,
+		TotalSocialGiftContactCount:    totalSocialGiftContactCount,
+		TotalSocialGiftRecordCount:     totalSocialGiftRecordCount,
 	}
 
 	return dataStatisticsResp, nil
@@ -176,6 +192,12 @@ func (a *DataManagementsApi) ClearAllDataHandler(c *core.WebContext) (any, *errs
 
 	if err != nil {
 		log.Errorf(c, "[data_managements.ClearAllDataHandler] failed to delete all transactions, because %s", err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
+	err = a.socialGifts.DeleteAllContacts(c, uid)
+	if err != nil {
+		log.Errorf(c, "[data_managements.ClearAllDataHandler] failed to delete all social gift contacts, because %s", err.Error())
 		return nil, errs.Or(err, errs.ErrOperationFailed)
 	}
 
@@ -407,6 +429,11 @@ func (a *DataManagementsApi) getExportedFileContent(c *core.WebContext, fileType
 
 	if err != nil {
 		log.Errorf(c, "[data_managements.getExportedFileContent] failed to all transactions user \"uid:%d\", because %s", uid, err.Error())
+		return nil, "", errs.ErrOperationFailed
+	}
+
+	if err = a.socialGifts.AttachExportMetadata(c, uid, allTransactions); err != nil {
+		log.Errorf(c, "[data_managements.getExportedFileContent] failed to get social gift metadata for user \"uid:%d\", because %s", uid, err.Error())
 		return nil, "", errs.ErrOperationFailed
 	}
 

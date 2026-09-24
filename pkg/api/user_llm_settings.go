@@ -5,6 +5,7 @@ import (
 
 	"github.com/mayswind/financially_free/pkg/core"
 	"github.com/mayswind/financially_free/pkg/errs"
+	"github.com/mayswind/financially_free/pkg/llm/catalog"
 	"github.com/mayswind/financially_free/pkg/log"
 	"github.com/mayswind/financially_free/pkg/models"
 	"github.com/mayswind/financially_free/pkg/services"
@@ -120,7 +121,7 @@ func (a *UserLLMSettingsApi) createUserLLMSettingModel(uid int64, req *models.Us
 		userLLMSetting.OpenAIAPIKey = currentSetting.OpenAIAPIKey
 	}
 
-	if userLLMSetting.OpenAICompatibleAPIKey == "" {
+	if userLLMSetting.OpenAICompatibleAPIKey == "" && catalog.SameBaseURL(userLLMSetting.OpenAICompatibleBaseURL, currentSetting.OpenAICompatibleBaseURL) {
 		userLLMSetting.OpenAICompatibleAPIKey = currentSetting.OpenAICompatibleAPIKey
 	}
 

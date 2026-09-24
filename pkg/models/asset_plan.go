@@ -27,6 +27,8 @@ const (
 
 // AssetPlan represents the single net-worth plan stored for a user.
 type AssetPlan struct {
+	ActualTracking     string `xorm:"TEXT"`
+	MonthlySchedule    string `xorm:"TEXT"`
 	Uid                int64  `xorm:"PK"`
 	TargetAmount       int64  `xorm:"NOT NULL"`
 	TargetDate         int32  `xorm:"NOT NULL"`
@@ -40,32 +42,47 @@ type AssetPlan struct {
 
 // AssetPlanCreateRequest represents all parameters for creating an asset plan.
 type AssetPlanCreateRequest struct {
-	TargetAmount       int64    `json:"targetAmount"`
-	TargetDate         string   `json:"targetDate" binding:"required"`
-	ExcludedAccountIds []string `json:"excludedAccountIds"`
+	Version            int                `json:"version"`
+	FinalGoal          *AssetPlanGoal     `json:"finalGoal"`
+	Goals              []AssetPlanGoal    `json:"goals"`
+	Expenses           []AssetPlanExpense `json:"expenses"`
+	StartMonth         string             `json:"startMonth"`
+	EndMonth           string             `json:"endMonth"`
+	Stages             []AssetPlanStage   `json:"stages"`
+	TargetAmount       int64              `json:"targetAmount"`
+	TargetDate         string             `json:"targetDate"`
+	ExcludedAccountIds []string           `json:"excludedAccountIds"`
 }
 
 // AssetPlanModifyRequest represents all parameters for modifying an asset plan.
 type AssetPlanModifyRequest struct {
-	TargetAmount int64  `json:"targetAmount"`
-	TargetDate   string `json:"targetDate" binding:"required"`
+	Version      int                `json:"version"`
+	FinalGoal    *AssetPlanGoal     `json:"finalGoal"`
+	Goals        []AssetPlanGoal    `json:"goals"`
+	Expenses     []AssetPlanExpense `json:"expenses"`
+	StartMonth   string             `json:"startMonth"`
+	EndMonth     string             `json:"endMonth"`
+	Stages       []AssetPlanStage   `json:"stages"`
+	TargetAmount int64              `json:"targetAmount"`
+	TargetDate   string             `json:"targetDate"`
 }
 
 // AssetPlanInfoResponse represents the current state of an asset plan.
 type AssetPlanInfoResponse struct {
-	TargetAmount             int64    `json:"targetAmount"`
-	TargetDate               string   `json:"targetDate"`
-	StartAmount              int64    `json:"startAmount"`
-	StartDate                string   `json:"startDate"`
-	Currency                 string   `json:"currency"`
-	ExcludedAccountIds       []string `json:"excludedAccountIds"`
-	CurrentActualNetWorth    int64    `json:"currentActualNetWorth"`
-	TodayPlannedNetWorth     int64    `json:"todayPlannedNetWorth"`
-	DifferenceAmount         int64    `json:"differenceAmount"`
-	CompletionPercentage     string   `json:"completionPercentage"`
-	Status                   string   `json:"status"`
-	ComparisonStatus         string   `json:"comparisonStatus"`
-	TargetDateActualNetWorth *int64   `json:"targetDateActualNetWorth,omitempty"`
+	Monthly                  *MonthlyAssetPlanResponse `json:"monthly,omitempty"`
+	TargetAmount             int64                     `json:"targetAmount"`
+	TargetDate               string                    `json:"targetDate"`
+	StartAmount              int64                     `json:"startAmount"`
+	StartDate                string                    `json:"startDate"`
+	Currency                 string                    `json:"currency"`
+	ExcludedAccountIds       []string                  `json:"excludedAccountIds"`
+	CurrentActualNetWorth    int64                     `json:"currentActualNetWorth"`
+	TodayPlannedNetWorth     int64                     `json:"todayPlannedNetWorth"`
+	DifferenceAmount         int64                     `json:"differenceAmount"`
+	CompletionPercentage     string                    `json:"completionPercentage"`
+	Status                   string                    `json:"status"`
+	ComparisonStatus         string                    `json:"comparisonStatus"`
+	TargetDateActualNetWorth *int64                    `json:"targetDateActualNetWorth,omitempty"`
 }
 
 // GetExcludedAccountIds returns the normalized excluded account ids.

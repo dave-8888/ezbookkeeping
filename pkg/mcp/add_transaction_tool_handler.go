@@ -11,6 +11,7 @@ import (
 	"github.com/mayswind/financially_free/pkg/models"
 	"github.com/mayswind/financially_free/pkg/settings"
 	"github.com/mayswind/financially_free/pkg/utils"
+	"github.com/mayswind/financially_free/pkg/validators"
 )
 
 const transactionTypeIncome = "income"
@@ -19,10 +20,11 @@ const transactionTypeTransfer = "transfer"
 
 // MCPAddTransactionRequest represents all parameters of the add transaction request
 type MCPAddTransactionRequest struct {
+	Currency               string   `json:"currency,omitempty" jsonschema_description:"Currency for income or expense; defaults to user currency"`
 	Type                   string   `json:"type" jsonschema:"enum=income,enum=expense,enum=transfer" jsonschema_description:"Transaction type (income, expense, transfer)"`
 	Time                   string   `json:"time" jsonschema:"format=date-time" jsonschema_description:"Transaction time in RFC 3339 format (e.g. 2023-01-01T12:00:00Z)"`
 	SecondaryCategoryName  string   `json:"category_name" jsonschema_description:"Secondary category name for the transaction"`
-	AccountName            string   `json:"account_name" jsonschema_description:"Account name for the transaction"`
+	AccountName            string   `json:"account_name,omitempty" jsonschema_description:"Account name for the transaction"`
 	Amount                 string   `json:"amount" jsonschema_description:"Transaction amount"`
 	DestinationAccountName string   `json:"destination_account_name,omitempty" jsonschema_description:"Destination account name for transfer transactions (optional)"`
 	DestinationAmount      string   `json:"destination_amount,omitempty" jsonschema_description:"Destination amount for transfer transactions (optional)"`
@@ -96,11 +98,21 @@ func (h *mcpAddTransactionToolHandler) Handle(c *core.WebContext, callToolReq *M
 	accountsMap := services.GetAccountService().GetVisibleAccountNameMapByList(allAccounts)
 	sourceAccount, exists := accountsMap[addTransactionRequest.AccountName]
 
-	if !exists {
+	if !exists && addTransactionRequest.Type == transactionTypeTransfer {
 		log.Warnf(c, "[add_transaction.Handle] source account \"%s\" not found for user \"uid:%d\"", addTransactionRequest.AccountName, uid)
 		return nil, nil, errs.ErrSourceAccountNotFound
 	}
 
+	currency := addTransactionRequest.Currency
+	if addTransactionRequest.Type != transactionTypeTransfer {
+		if currency == "" {
+			currency = user.DefaultCurrency
+		}
+		if !validators.AllCurrencyNames[currency] {
+			return nil, nil, errs.ErrAccountCurrencyInvalid
+		}
+		sourceAccount = &models.Account{Currency: currency}
+	}
 	var destinationAccount *models.Account
 	destinationAccountId := int64(0)
 
@@ -178,6 +190,8 @@ func (h *mcpAddTransactionToolHandler) Handle(c *core.WebContext, callToolReq *M
 		return nil, nil, err
 	}
 
+	transaction.Currency = currency
+
 	transactionEditable := user.CanEditTransactionByTransactionTime(transaction.TransactionTime, time.FixedZone("Transaction Timezone", int(transaction.TimezoneUtcOffset)*60))
 
 	if !transactionEditable {
@@ -193,6 +207,10 @@ func (h *mcpAddTransactionToolHandler) Handle(c *core.WebContext, callToolReq *M
 		}
 
 		log.Infof(c, "[add_transaction.Handle] user \"uid:%d\" has created a new transaction \"id:%d\" successfully", uid, transaction.TransactionId)
+
+		if transaction.IsCashFlow() {
+			return h.createNewMCPAddTransactionResponse(c, transaction, nil, false)
+		}
 
 		accountIds := []int64{sourceAccount.AccountId}
 
@@ -214,6 +232,10 @@ func (h *mcpAddTransactionToolHandler) Handle(c *core.WebContext, callToolReq *M
 
 		return structuredResponse, response, nil
 	} else {
+		if transaction.IsCashFlow() {
+			return h.createNewMCPAddTransactionResponse(c, transaction, nil, true)
+		}
+
 		newAccounts := make(map[int64]*models.Account)
 		newAccounts[sourceAccount.AccountId] = sourceAccount
 

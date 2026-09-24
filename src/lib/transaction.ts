@@ -99,7 +99,7 @@ export function getRecognizedTransactionAutoCreateMissingFields(result: Recogniz
         missingFields.push('categoryId');
     }
 
-    if (!transaction.sourceAccountId) {
+    if (!transaction.isCashFlow && !transaction.sourceAccountId) {
         missingFields.push('sourceAccountId');
     }
 
@@ -192,7 +192,7 @@ export function setTransactionModelByTransaction(transaction: Transaction, trans
         }
     }
 
-    if (allVisibleAccounts.length) {
+    if (!transaction.isCashFlow && allVisibleAccounts.length) {
         if (options.accountId && options.accountId !== '0') {
             for (const account of allVisibleAccounts) {
                 if (account.id === options.accountId) {
@@ -269,6 +269,7 @@ export function setTransactionModelByTransaction(transaction: Transaction, trans
             transaction.utcOffset = transaction2.utcOffset;
         }
 
+        transaction.currency = transaction2.currency;
         transaction.sourceAccountId = transaction2.sourceAccountId;
 
         if (transaction2.destinationAccountId) {

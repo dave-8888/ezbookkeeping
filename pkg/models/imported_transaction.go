@@ -12,6 +12,7 @@ type ImportTransaction struct {
 	OriginalDestinationAccountName     string
 	OriginalDestinationAccountCurrency string
 	OriginalTagNames                   []string
+	SocialGift                         *SocialGiftImportMetadata
 }
 
 // ImportTransactionRequest represents all parameters of the imported transaction data
@@ -53,6 +54,7 @@ type ImportTransactionResponse struct {
 	OriginalTagNames                   []string                        `json:"originalTagNames"`
 	Comment                            string                          `json:"comment"`
 	GeoLocation                        *TransactionGeoLocationResponse `json:"geoLocation,omitempty"`
+	SocialGift                         *SocialGiftImportMetadata       `json:"socialGift,omitempty"`
 }
 
 // ImportTransactionResponsePageWrapper represents a response of imported transaction which contains items and count
@@ -96,6 +98,7 @@ func (t ImportTransaction) ToImportTransactionResponse() *ImportTransactionRespo
 		OriginalTagNames:                   t.OriginalTagNames,
 		Comment:                            t.Comment,
 		GeoLocation:                        geoLocation,
+		SocialGift:                         t.SocialGift,
 	}
 }
 

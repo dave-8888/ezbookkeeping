@@ -996,7 +996,7 @@ func (s *AccountService) GetAccountOrSubAccountIdsByAccountName(accounts []*mode
 }
 
 // ModifyAccountBalance modifies the balance of an account
-func (s *AccountService) ModifyAccountBalance(c core.Context, uid int64, accountId_s string, newBalance int64) error {
+func (s *AccountService) ModifyAccountBalance(c core.Context, uid int64, accountId_s string, newBalance int64, expectedBalance ...int64) error {
 	if uid <= 0 {
 		return errs.ErrUserIdInvalid
 	}
@@ -1022,17 +1022,29 @@ func (s *AccountService) ModifyAccountBalance(c core.Context, uid int64, account
 		return errs.ErrAccountNotFound
 	}
 
-	// Store old balance for logging purposes
-	_ = account.Balance
-
+	// A conversation may refer to an older displayed balance. Compare in the UPDATE,
+	// not only in a preceding read, so a concurrent transaction cannot be overwritten.
+	if len(expectedBalance) > 0 && account.Balance != expectedBalance[0] {
+		return errs.ErrAccountBalanceChanged
+	}
+	if account.Type == models.ACCOUNT_TYPE_MULTI_SUB_ACCOUNTS {
+		return errs.ErrParentAccountCannotSetBalance
+	}
 	account.Balance = newBalance
 	account.UpdatedUnixTime = time.Now().Unix()
-
-	updatedRows, err := s.UserDataDB(uid).NewSession(c).ID(accountId).Cols("balance", "updated_unix_time").Where("uid=? AND deleted=?", uid, false).Update(account)
-
+	sess := s.UserDataDB(uid).NewSession(c)
+	defer sess.Close()
+	sess = sess.ID(accountId).Cols("balance", "updated_unix_time").Where("uid=? AND deleted=?", uid, false)
+	if len(expectedBalance) > 0 {
+		sess = sess.And("balance=?", expectedBalance[0])
+	}
+	updatedRows, err := sess.Update(account)
 	if err != nil {
 		return err
 	} else if updatedRows < 1 {
+		if len(expectedBalance) > 0 {
+			return errs.ErrAccountBalanceChanged
+		}
 		return errs.ErrAccountNotFound
 	}
 

@@ -350,6 +350,8 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/users/settings/cloud/disable.json", bindApi(api.UserApplicationCloudSettings.ApplicationSettingsDisableHandler))
 
 			// User Large Language Model Settings
+			apiV1Route.GET("/users/settings/llm/providers.json", bindApi(api.UserLLMSettings.UserLLMProvidersHandler))
+			apiV1Route.POST("/users/settings/llm/models.json", bindApi(api.UserLLMSettings.UserLLMModelsHandler))
 			apiV1Route.GET("/users/settings/llm/get.json", bindApi(api.UserLLMSettings.UserLLMSettingsGetHandler))
 			apiV1Route.POST("/users/settings/llm/update.json", bindApi(api.UserLLMSettings.UserLLMSettingsUpdateHandler))
 
@@ -393,6 +395,21 @@ func startWebServer(c *core.CliContext) error {
 			apiV1Route.POST("/asset_plans/add.json", bindApi(api.AssetPlans.AssetPlanCreateHandler))
 			apiV1Route.POST("/asset_plans/modify.json", bindApi(api.AssetPlans.AssetPlanModifyHandler))
 			apiV1Route.POST("/asset_plans/delete.json", bindApi(api.AssetPlans.AssetPlanDeleteHandler))
+
+			// Social Gifts
+			apiV1Route.GET("/social_gifts/privacy/status.json", bindApi(api.SocialGifts.PrivacyStatusHandler))
+			apiV1Route.POST("/social_gifts/privacy/unlock.json", bindApi(api.SocialGifts.PrivacyUnlockHandler))
+			apiV1Route.POST("/social_gifts/privacy/lock.json", bindApi(api.SocialGifts.PrivacyLockHandler))
+			apiV1Route.GET("/social_gifts/contacts/list.json", bindApi(api.SocialGifts.ContactListHandler))
+			apiV1Route.GET("/social_gifts/contacts/get.json", bindApi(api.SocialGifts.ContactGetHandler))
+			apiV1Route.POST("/social_gifts/contacts/add.json", bindApi(api.SocialGifts.ContactCreateHandler))
+			apiV1Route.POST("/social_gifts/contacts/modify.json", bindApi(api.SocialGifts.ContactModifyHandler))
+			apiV1Route.POST("/social_gifts/contacts/delete.json", bindApi(api.SocialGifts.ContactDeleteHandler))
+			apiV1Route.GET("/social_gifts/records/list.json", bindApi(api.SocialGifts.RecordListHandler))
+			apiV1Route.POST("/social_gifts/records/add.json", bindApi(api.SocialGifts.RecordCreateHandler))
+			apiV1Route.POST("/social_gifts/records/modify.json", bindApi(api.SocialGifts.RecordModifyHandler))
+			apiV1Route.POST("/social_gifts/records/delete.json", bindApi(api.SocialGifts.RecordDeleteHandler))
+			apiV1Route.GET("/social_gifts/summary.json", bindApi(api.SocialGifts.SummaryHandler))
 
 			// Transactions
 			apiV1Route.GET("/transactions/count.json", bindApi(api.Transactions.TransactionCountHandler))
@@ -455,6 +472,11 @@ func startWebServer(c *core.CliContext) error {
 			// Large Language Models
 			apiV1Route.POST("/llm/transactions/recognize_receipt_image.json", bindApi(api.LargeLanguageModels.RecognizeReceiptImageHandler))
 			apiV1Route.POST("/llm/transactions/recognize_transaction_text.json", bindApi(api.LargeLanguageModels.RecognizeTransactionTextHandler))
+			apiV1Route.POST("/llm/transactions/create_by_mcp.json", bindApi(api.LargeLanguageModels.CreateTransactionTextMCPHandler))
+			apiV1Route.POST("/llm/conversations/generate_title.json", bindApi(api.LargeLanguageModels.GenerateConversationTitleHandler))
+			apiV1Route.POST("/llm/conversations/chat.json", bindApi(api.LargeLanguageModels.ConversationChatHandler))
+			apiV1Route.POST("/llm/conversations/respond.json", bindApi(api.LargeLanguageModels.ConversationRespondHandler))
+			apiV1Route.GET("/llm/conversations/result.json", bindApi(api.LargeLanguageModels.ConversationResultHandler))
 
 			// Exchange Rates
 			apiV1Route.GET("/exchange_rates/latest.json", bindApi(api.ExchangeRates.LatestExchangeRateHandler))

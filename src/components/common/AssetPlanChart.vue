@@ -1,192 +1,96 @@
 <template>
-    <div class="asset-plan-chart-wrapper">
-        <v-chart
-            v-if="hasData"
-            autoresize
-            class="asset-plan-chart"
-            :option="chartOptions"
-        />
-        <div class="asset-plan-chart-empty" v-else>
-            <span>{{ tt('No asset trend data') }}</span>
-        </div>
+    <div class="asset-plan-chart" role="img" :aria-label="tt('Cumulative planned and actual savings')">
+        <v-chart v-if="months.length" autoresize class="chart" :option="options" />
+        <p v-else>{{ tt('Set your monthly amounts to preview the plan') }}</p>
     </div>
 </template>
-
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { EChartsOption } from 'echarts';
-
+import type { AssetPlanMonth, AssetPlanGoal, AssetPlanExpense } from '@/models/asset_plan.ts';
 import { useI18n } from '@/locales/helpers.ts';
-
-import type { AssetPlanInfoResponse } from '@/models/asset_plan.ts';
-import {
-    type AssetPlanTrendPoint,
-    dateOnlyToTimestamp,
-    getPlanTrendPoints
-} from '@/lib/asset_plan.ts';
-import { parseDateTimeFromUnixTime } from '@/lib/datetime.ts';
-
-interface TooltipItem {
-    readonly marker: string;
-    readonly seriesName: string;
-    readonly value: [number, number];
-}
-
-const props = defineProps<{
-    actualPoints: AssetPlanTrendPoint[];
-    currency: string;
-    plan?: AssetPlanInfoResponse | null;
-    showPlan?: boolean;
-    dark?: boolean;
-}>();
-
-const {
-    tt,
-    formatDateTimeToLongDate,
-    formatAmountToLocalizedNumeralsWithCurrency
-} = useI18n();
-
-const planPoints = computed<AssetPlanTrendPoint[]>(() => {
-    if (!props.showPlan || !props.plan) {
-        return [];
-    }
-
-    return getPlanTrendPoints(
-        props.plan.startDate,
-        props.plan.startAmount,
-        props.plan.targetDate,
-        props.plan.targetAmount
-    );
-});
-
-const hasData = computed<boolean>(() => props.actualPoints.length > 0 || planPoints.value.length > 0);
-
-function toChartData(points: AssetPlanTrendPoint[]): [number, number][] {
-    return points
-        .map(item => [dateOnlyToTimestamp(item.date), item.amount] as [number, number])
-        .filter(item => Number.isFinite(item[0]));
-}
-
-const chartOptions = computed(() => ({
-    animationDuration: 350,
-    aria: {
-        enabled: true,
-        decal: {
-            show: true
-        }
-    },
-    color: ['#0071e3', '#ff9f0a'],
-    grid: {
-        top: 44,
-        right: 24,
-        bottom: 44,
-        left: 24,
-        containLabel: true
-    },
-    legend: {
-        top: 4,
-        textStyle: {
-            color: props.dark ? '#eee' : '#333'
-        },
-        data: props.showPlan && props.plan
-            ? [tt('Actual'), tt('Plan')]
-            : [tt('Actual')]
-    },
+const props = defineProps<{ months: AssetPlanMonth[]; currency: string; dark?: boolean; baseline?: number | null; target?: AssetPlanGoal; goals?: AssetPlanGoal[]; expenses?: AssetPlanExpense[] }>();
+const { tt, formatAmountToLocalizedNumeralsWithCurrency } = useI18n();
+const absolute = computed(() => props.baseline !== undefined && props.baseline !== null);
+const plannedName = computed(() => tt(absolute.value ? 'Expected net worth' : 'Cumulative planned savings'));
+const actualName = computed(() => tt(absolute.value ? 'Actual net worth' : 'Cumulative actual savings'));
+const goalMarkers = computed(() => (props.goals || []).flatMap(goal => {
+    const index = props.months.findIndex(month => goal.date.startsWith(month.month));
+    return index < 0 ? [] : [{
+        name: goal.name,
+        value: [index, props.months[index]!.cumulativePlanned + (props.baseline || 0)],
+        goalDate: goal.date,
+        goalAmount: goal.amount
+    }];
+}));
+const options = computed<EChartsOption>(() => ({
+    animationDuration: 250,
+    color: ['#ff9f0a', '#2997ff'],
+    grid: { top: 50, right: 20, bottom: 35, left: 15, containLabel: true },
+    legend: { top: 0, show: true, data: [plannedName.value, actualName.value, ...(goalMarkers.value.length ? [tt('Short term goals')] : []), ...((props.expenses || []).some(expense => props.months.some(month => expense.date.startsWith(month.month))) ? [tt('Expected expenses')] : []), ...(props.target && absolute.value ? [tt('Final net worth goal')] : [])], textStyle: { color: props.dark ? '#ddd' : '#555' } },
     tooltip: {
-        trigger: 'axis',
-        confine: true,
-        backgroundColor: props.dark ? '#333' : '#fff',
-        borderColor: props.dark ? '#333' : '#fff',
-        textStyle: {
-            color: props.dark ? '#eee' : '#333'
-        },
-        formatter: (rawItems: unknown) => {
-            const items = (Array.isArray(rawItems) ? rawItems : [rawItems]) as TooltipItem[];
-            const first = items[0];
-
-            if (!first?.value) {
-                return '';
-            }
-
-            const date = formatDateTimeToLongDate(parseDateTimeFromUnixTime(Math.floor(first.value[0] / 1000)));
-            const lines = items.map(item => `${item.marker}${item.seriesName}: ${formatAmountToLocalizedNumeralsWithCurrency(item.value[1], props.currency)}`);
-            return `${date}<br/>${lines.join('<br/>')}`;
+        trigger: 'axis', renderMode: 'richText', confine: true,
+        formatter: (params: unknown) => {
+            const entries = params as { dataIndex: number; seriesName: string; value: unknown; axisValueLabel?: string; marker?: string }[];
+            if (!Array.isArray(entries) || !entries.length) return '';
+            const row = props.months[entries[0]!.dataIndex];
+            if (!row) return '';
+            const amount = (value: unknown) => typeof value === 'number' ? formatAmountToLocalizedNumeralsWithCurrency(value, props.currency) : '—';
+            return [
+                entries[0]!.axisValueLabel || row.month,
+                ...entries.map(entry => `${entry.marker || ''}${entry.seriesName}${entry.seriesName === actualName.value && row.actualThrough ? ` (${tt('As of')} ${row.actualThrough})` : ''}  ${amount(entry.value)}`),
+                `${tt('Expected net increase')}  ${amount(row.planned)}`
+            ].join('\n');
         }
     },
-    xAxis: {
-        type: 'time',
-        axisLabel: {
-            color: props.dark ? '#aaa' : '#666',
-            hideOverlap: true
-        },
-        axisLine: {
-            lineStyle: {
-                color: props.dark ? '#666' : '#aaa'
-            }
-        }
-    },
-    yAxis: {
-        type: 'value',
-        scale: true,
-        axisLabel: {
-            color: props.dark ? '#aaa' : '#666',
-            formatter: (value: number) => formatAmountToLocalizedNumeralsWithCurrency(Math.trunc(value), props.currency)
-        },
-        splitLine: {
-            lineStyle: {
-                color: props.dark ? '#4f4f4f' : '#e1e6f2'
-            }
-        }
-    },
+    xAxis: { type: 'category', data: props.months.map(month => month.month), axisLabel: { hideOverlap: true, color: props.dark ? '#aaa' : '#666' } },
+    yAxis: { type: 'value', axisLabel: { color: props.dark ? '#aaa' : '#666', formatter: (value: number) => formatAmountToLocalizedNumeralsWithCurrency(value, props.currency) }, splitLine: { lineStyle: { color: props.dark ? '#444' : '#e5e5e5' } } },
     series: [
+        { name: plannedName.value, type: 'line', symbolSize: 7, lineStyle: { width: 3, type: 'dashed' }, data: props.months.map(month => month.cumulativePlanned + (props.baseline || 0)) },
+        { name: actualName.value, type: 'line', symbolSize: 7, connectNulls: false, lineStyle: { width: 3 }, data: props.months.map(month => month.cumulativeActual === null ? null : month.cumulativeActual + (props.baseline || 0)) },
+        ...(props.target && absolute.value ? [{ name: tt('Final net worth goal'), type: 'line' as const, symbol: 'none', itemStyle: { color: '#8e8e93' }, lineStyle: { width: 1, type: 'dotted' as const, color: '#8e8e93' }, data: props.months.map(() => props.target!.amount) }] : []),
         {
-            id: 'actual',
-            name: tt('Actual'),
-            type: 'line',
-            showSymbol: false,
-            smooth: 0.2,
-            lineStyle: {
-                width: 3
-            },
-            data: toChartData(props.actualPoints)
+            name: tt('Short term goals'), type: 'scatter', symbol: 'diamond', symbolSize: 16, z: 6,
+            itemStyle: { color: '#af52de', borderColor: props.dark ? '#202022' : '#fff', borderWidth: 2, opacity: 1 },
+            data: goalMarkers.value,
+            label: { show: true, position: 'top', distance: 10, color: props.dark ? '#e3b6fa' : '#8137a7', fontSize: 12, width: 150, overflow: 'truncate', formatter: '{b}' },
+            labelLayout: { hideOverlap: true },
+            emphasis: { scale: 1.3, label: { show: true } },
+            tooltip: {
+                trigger: 'item', renderMode: 'richText', confine: true,
+                formatter: (params: unknown) => {
+                    const item = params as { data?: { name: string; goalDate: string; goalAmount: number } };
+                    const goal = item.data;
+                    return goal ? `${goal.name}\n${goal.goalDate}\n${tt('Target amount')}: ${formatAmountToLocalizedNumeralsWithCurrency(goal.goalAmount, props.currency)}` : '';
+                }
+            }
         },
-        ...(props.showPlan && props.plan ? [{
-            id: 'plan',
-            name: tt('Plan'),
-            type: 'line',
-            showSymbol: true,
-            symbolSize: 8,
-            lineStyle: {
-                type: 'dashed' as const,
-                width: 3
-            },
-            data: toChartData(planPoints.value)
-        }] : [])
+        {
+            name: tt('Expected expenses'), type: 'scatter', symbol: 'triangle', symbolRotate: 180,
+            symbolSize: 14, symbolOffset: [0, 18], z: 6,
+            itemStyle: { color: '#ff6961', borderColor: props.dark ? '#202022' : '#fff', borderWidth: 1, opacity: 1 },
+            data: (props.expenses || []).flatMap(expense => {
+                const index = props.months.findIndex(m => expense.date.startsWith(m.month));
+                return index < 0 ? [] : [{
+                    value: [index, props.months[index]!.cumulativePlanned + (props.baseline || 0)],
+                    name: expense.name, expenseDate: expense.date, expenseAmount: expense.amount
+                }];
+            }),
+            tooltip: {
+                trigger: 'item', renderMode: 'richText', confine: true,
+                formatter: (params: unknown) => {
+                    const item = params as { data?: { name: string; expenseDate: string; expenseAmount: number } };
+                    const expense = item.data;
+                    return expense ? `${expense.name}\n${expense.expenseDate}\n${tt('Expected expenses')}: ${formatAmountToLocalizedNumeralsWithCurrency(expense.expenseAmount, props.currency)}` : '';
+                }
+            }
+        }
     ]
-}) as EChartsOption);
+}));
 </script>
-
 <style scoped>
-.asset-plan-chart-wrapper,
-.asset-plan-chart {
-    width: 100%;
-    min-height: 360px;
-}
-
-.asset-plan-chart-empty {
-    display: flex;
-    min-height: 300px;
-    align-items: center;
-    justify-content: center;
-    color: inherit;
-    opacity: 0.6;
-    text-align: center;
-}
-
-@media (max-width: 600px) {
-    .asset-plan-chart-wrapper,
-    .asset-plan-chart {
-        min-height: 300px;
-    }
-}
+.asset-plan-chart { width: 100%; min-height: 320px; }
+.chart { width: 100%; height: 360px; }
+.asset-plan-chart > p { padding: 100px 20px; text-align: center; opacity: .65; }
+@media (max-width: 600px) { .chart { height: 300px; } }
 </style>

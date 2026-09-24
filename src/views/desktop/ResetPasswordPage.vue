@@ -102,7 +102,7 @@
 
                                 <v-col cols="12" class="text-center text-sm">
                                     <span>Powered by </span>
-                                    <a href="https://github.com/mayswind/financially_free" target="_blank">financially_free</a>&nbsp;<span>{{ version }}</span>
+                                    <a href="https://github.com/mayswind/financially_free" target="_blank">财神</a>&nbsp;<span>{{ version }}</span>
                                 </v-col>
                             </v-row>
                         </v-card-text>

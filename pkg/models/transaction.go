@@ -121,27 +121,34 @@ const (
 
 // Transaction represents transaction data stored in database
 type Transaction struct {
-	TransactionId        int64             `xorm:"PK"`
-	Uid                  int64             `xorm:"UNIQUE(UQE_transaction_uid_time) INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_time_longitude_latitude) NOT NULL"`
-	Deleted              bool              `xorm:"INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_time_longitude_latitude) NOT NULL"`
-	Type                 TransactionDbType `xorm:"INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) NOT NULL"`
-	CategoryId           int64             `xorm:"INDEX(IDX_transaction_uid_deleted_category_id_time) NOT NULL"`
-	AccountId            int64             `xorm:"INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) NOT NULL"`
-	TransactionTime      int64             `xorm:"UNIQUE(UQE_transaction_uid_time) INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) NOT NULL"`
-	TimezoneUtcOffset    int16             `xorm:"NOT NULL"`
-	Amount               int64             `xorm:"NOT NULL"`
-	RelatedId            int64             `xorm:"NOT NULL"`
-	RelatedAccountId     int64             `xorm:"NOT NULL"`
-	RelatedAccountAmount int64             `xorm:"NOT NULL"`
-	HideAmount           bool              `xorm:"NOT NULL"`
-	Comment              string            `xorm:"VARCHAR(255) NOT NULL"`
-	GeoLongitude         float64           `xorm:"INDEX(IDX_transaction_uid_deleted_time_longitude_latitude)"`
-	GeoLatitude          float64           `xorm:"INDEX(IDX_transaction_uid_deleted_time_longitude_latitude)"`
-	CreatedIp            string            `xorm:"VARCHAR(39)"`
-	ScheduledCreated     bool
-	CreatedUnixTime      int64
-	UpdatedUnixTime      int64
-	DeletedUnixTime      int64
+	Currency               string            `xorm:"VARCHAR(3)"`
+	TransactionId          int64             `xorm:"PK"`
+	Uid                    int64             `xorm:"UNIQUE(UQE_transaction_uid_time) INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_time_longitude_latitude) NOT NULL"`
+	Deleted                bool              `xorm:"INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_time_longitude_latitude) NOT NULL"`
+	Type                   TransactionDbType `xorm:"INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) NOT NULL"`
+	CategoryId             int64             `xorm:"INDEX(IDX_transaction_uid_deleted_category_id_time) NOT NULL"`
+	AccountId              int64             `xorm:"INDEX(IDX_transaction_uid_deleted_account_id_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) NOT NULL"`
+	TransactionTime        int64             `xorm:"UNIQUE(UQE_transaction_uid_time) INDEX(IDX_transaction_uid_deleted_time) INDEX(IDX_transaction_uid_deleted_type_time) INDEX(IDX_transaction_uid_deleted_type_account_id_time) INDEX(IDX_transaction_uid_deleted_category_id_time) INDEX(IDX_transaction_uid_deleted_account_id_time) NOT NULL"`
+	TimezoneUtcOffset      int16             `xorm:"NOT NULL"`
+	Amount                 int64             `xorm:"NOT NULL"`
+	RelatedId              int64             `xorm:"NOT NULL"`
+	RelatedAccountId       int64             `xorm:"NOT NULL"`
+	RelatedAccountAmount   int64             `xorm:"NOT NULL"`
+	HideAmount             bool              `xorm:"NOT NULL"`
+	Comment                string            `xorm:"VARCHAR(255) NOT NULL"`
+	GeoLongitude           float64           `xorm:"INDEX(IDX_transaction_uid_deleted_time_longitude_latitude)"`
+	GeoLatitude            float64           `xorm:"INDEX(IDX_transaction_uid_deleted_time_longitude_latitude)"`
+	CreatedIp              string            `xorm:"VARCHAR(39)"`
+	ScheduledCreated       bool
+	CreatedUnixTime        int64
+	UpdatedUnixTime        int64
+	DeletedUnixTime        int64
+	SocialGiftContactKey   string `xorm:"-"`
+	SocialGiftContact      string `xorm:"-"`
+	SocialGiftRelationship string `xorm:"-"`
+	SocialGiftContactNote  string `xorm:"-"`
+	SocialGiftEventType    string `xorm:"-"`
+	SocialGiftEventName    string `xorm:"-"`
 }
 
 // TransactionWithAccountBalance represents a transaction item with account balance
@@ -159,11 +166,12 @@ type TransactionGeoLocationRequest struct {
 
 // TransactionCreateRequest represents all parameters of transaction creation request
 type TransactionCreateRequest struct {
+	Currency             string                         `json:"currency,omitempty"`
 	Type                 TransactionType                `json:"type" binding:"required"`
 	CategoryId           int64                          `json:"categoryId,string"`
 	Time                 int64                          `json:"time" binding:"required,min=1"`
 	UtcOffset            int16                          `json:"utcOffset" binding:"min=-720,max=840"`
-	SourceAccountId      int64                          `json:"sourceAccountId,string" binding:"required,min=1"`
+	SourceAccountId      int64                          `json:"sourceAccountId,string" binding:"min=0"`
 	DestinationAccountId int64                          `json:"destinationAccountId,string" binding:"min=0"`
 	SourceAmount         int64                          `json:"sourceAmount" binding:"min=-99999999999,max=99999999999"`
 	DestinationAmount    int64                          `json:"destinationAmount" binding:"min=-99999999999,max=99999999999"`
@@ -173,15 +181,17 @@ type TransactionCreateRequest struct {
 	Comment              string                         `json:"comment" binding:"max=255"`
 	GeoLocation          *TransactionGeoLocationRequest `json:"geoLocation" binding:"omitempty"`
 	ClientSessionId      string                         `json:"clientSessionId"`
+	SocialGift           *SocialGiftImportMetadata      `json:"socialGift,omitempty" binding:"omitempty"`
 }
 
 // TransactionModifyRequest represents all parameters of transaction modification request
 type TransactionModifyRequest struct {
+	Currency             string                         `json:"currency,omitempty"`
 	Id                   int64                          `json:"id,string" binding:"required,min=1"`
 	CategoryId           int64                          `json:"categoryId,string"`
 	Time                 int64                          `json:"time" binding:"required,min=1"`
 	UtcOffset            int16                          `json:"utcOffset" binding:"min=-720,max=840"`
-	SourceAccountId      int64                          `json:"sourceAccountId,string" binding:"required,min=1"`
+	SourceAccountId      int64                          `json:"sourceAccountId,string" binding:"min=0"`
 	DestinationAccountId int64                          `json:"destinationAccountId,string" binding:"min=0"`
 	SourceAmount         int64                          `json:"sourceAmount" binding:"min=-99999999999,max=99999999999"`
 	DestinationAmount    int64                          `json:"destinationAmount" binding:"min=-99999999999,max=99999999999"`
@@ -350,6 +360,7 @@ type TransactionGeoLocationResponse struct {
 
 // TransactionInfoResponse represents a view-object of transaction
 type TransactionInfoResponse struct {
+	Currency             string                                   `json:"currency,omitempty"`
 	Id                   int64                                    `json:"id,string"`
 	TimeSequenceId       int64                                    `json:"timeSequenceId,string"`
 	Type                 TransactionType                          `json:"type"`
@@ -415,6 +426,7 @@ type TransactionStatisticResponse struct {
 
 // TransactionStatisticResponseItem represents total amount item for a response
 type TransactionStatisticResponseItem struct {
+	Currency           string                        `json:"currency,omitempty"`
 	CategoryId         int64                         `json:"categoryId,string"`
 	AccountId          int64                         `json:"accountId,string"`
 	RelatedAccountId   int64                         `json:"relatedAccountId,string,omitempty"`
@@ -517,7 +529,7 @@ func (t *Transaction) IsEditable(currentUser *User, clientTimezone *time.Locatio
 		return false
 	}
 
-	if account == nil || account.Hidden {
+	if !t.IsCashFlow() && (account == nil || account.Hidden) {
 		return false
 	}
 
@@ -572,6 +584,7 @@ func (t *Transaction) ToTransactionInfoResponse(tagIds []int64, editable bool) *
 		Time:                 utils.GetUnixTimeFromTransactionTime(t.TransactionTime),
 		UtcOffset:            t.TimezoneUtcOffset,
 		SourceAccountId:      sourceAccountId,
+		Currency:             t.Currency,
 		DestinationAccountId: destinationAccountId,
 		SourceAmount:         sourceAmount,
 		DestinationAmount:    destinationAmount,
@@ -729,4 +742,9 @@ func (s TransactionAmountsResponseItemAmountInfoSlice) Swap(i, j int) {
 // Less reports whether the first item is less than the second one
 func (s TransactionAmountsResponseItemAmountInfoSlice) Less(i, j int) bool {
 	return strings.Compare(s[i].Currency, s[j].Currency) < 0
+}
+
+// IsCashFlow reports whether a transaction is independent of account balances.
+func (t *Transaction) IsCashFlow() bool {
+	return t.Type == TRANSACTION_DB_TYPE_INCOME || t.Type == TRANSACTION_DB_TYPE_EXPENSE
 }

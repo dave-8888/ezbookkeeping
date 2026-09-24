@@ -8,12 +8,12 @@ services:
     image: financially_free:local
     restart: unless-stopped
     ports:
-      - "${APP_PORT:-8888}:8080"
+      - "${APP_PORT:-18888}:8080"
     environment:
       TZ: ${TZ:-Asia/Shanghai}
       EBK_CONF_PATH: /financially_free/conf/financially_free.ini
       EBK_SERVER_DOMAIN: ${EBK_SERVER_DOMAIN:-localhost}
-      EBK_SERVER_ROOT_URL: ${EBK_SERVER_ROOT_URL:-http://localhost:8888/}
+      EBK_SERVER_ROOT_URL: ${EBK_SERVER_ROOT_URL:-http://localhost:18888/}
       EBK_SECURITY_SECRET_KEY: ${EBK_SECURITY_SECRET_KEY:-change-me-before-production}
     volumes:
       - ./docker/financially_free.docker.ini:/financially_free/conf/financially_free.ini:ro

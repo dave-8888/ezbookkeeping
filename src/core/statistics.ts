@@ -162,11 +162,12 @@ export class ChartDataType implements TypeAndName {
     }
 
     public isAvailableAnalysisType(analysisType: StatisticsAnalysisType): boolean {
-        return this.availableAnalysisTypes[analysisType] || false;
+        return this !== ChartDataType.ExpenseByAccount && this !== ChartDataType.IncomeByAccount && (this.availableAnalysisTypes[analysisType] || false);
     }
 
     public static values(analysisType?: StatisticsAnalysisType, withDesktopOnlyChart?: boolean): ChartDataType[] {
-        const availableInstances: ChartDataType[] = withDesktopOnlyChart ? ChartDataType.allInstancesForDesktop : ChartDataType.allInstancesForAll;
+        const availableInstances: ChartDataType[] = (withDesktopOnlyChart ? ChartDataType.allInstancesForDesktop : ChartDataType.allInstancesForAll)
+            .filter(item => item !== ChartDataType.ExpenseByAccount && item !== ChartDataType.IncomeByAccount);
 
         if (analysisType === undefined) {
             return availableInstances;

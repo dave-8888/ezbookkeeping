@@ -37,7 +37,8 @@ import {
 } from '@/models/data_management.ts';
 import type {
     RecognizedReceiptImageResponse,
-    RecognizedTransactionResponse
+    RecognizedTransactionResponse,
+    MCPTransactionResponse
 } from '@/models/large_language_model.ts';
 
 import {
@@ -373,12 +374,11 @@ export const useTransactionsStore = defineStore('transactions', () => {
                 account = transaction.destinationAccount;
             }
 
-            if (!account) {
-                continue;
-            }
+            const currency = transaction.isCashFlow ? (transaction.currency || defaultCurrency) : account?.currency;
+            if (!currency) { continue; }
 
-            if (account.currency !== defaultCurrency) {
-                const balance = exchangeRatesStore.getExchangedAmount(amount, account.currency, defaultCurrency);
+            if (currency !== defaultCurrency) {
+                const balance = exchangeRatesStore.getExchangedAmount(amount, currency, defaultCurrency);
 
                 if (!isNumber(balance)) {
                     if (transaction.type === TransactionType.Expense) {
@@ -1258,6 +1258,25 @@ export const useTransactionsStore = defineStore('transactions', () => {
         });
     }
 
+    async function createTransactionByMCP(request: { text: string, requestId: string }): Promise<MCPTransactionResponse> {
+        const response = await services.createTransactionByMCP(request);
+        const data = response.data;
+
+        if (!data?.success || !data.result) {
+            throw { message: 'Unable to recognize transaction text' };
+        }
+
+        if (data.result.status === 'created' || data.result.status === 'unknown') {
+            updateTransactionListInvalidState(true);
+            updateTransactionReconciliationStatementInvalidState(true);
+            accountsStore.updateAccountListInvalidState(true);
+            overviewStore.updateTransactionOverviewInvalidState(true);
+            statisticsStore.updateTransactionStatisticsInvalidState(true);
+        }
+
+        return data.result;
+    }
+
     function cancelRecognizeReceiptImage(cancelableUuid: string): void {
         services.cancelRequest(cancelableUuid);
     }
@@ -1478,6 +1497,7 @@ export const useTransactionsStore = defineStore('transactions', () => {
         deleteTransaction,
         recognizeReceiptImage,
         recognizeTransactionText,
+        createTransactionByMCP,
         cancelRecognizeReceiptImage,
         parseImportDsvFile,
         parseImportTransaction,

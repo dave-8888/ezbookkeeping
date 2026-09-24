@@ -1377,7 +1377,7 @@ function getCurrentInvalidAccountNames(): NameValue[] {
         const sourceAccountId = importTransaction.sourceAccountId;
         const destinationAccountId = importTransaction.destinationAccountId;
 
-        if (!sourceAccountId || sourceAccountId === '0' || !allAccountsMap.value[sourceAccountId]) {
+        if (importTransaction.type !== TransactionType.Income && importTransaction.type !== TransactionType.Expense && (!sourceAccountId || sourceAccountId === '0' || !allAccountsMap.value[sourceAccountId])) {
             invalidAccountNames[importTransaction.originalSourceAccountName] = true;
         }
 

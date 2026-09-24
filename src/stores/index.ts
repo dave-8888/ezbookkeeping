@@ -14,6 +14,7 @@ import { useExploresStore } from './explore.ts';
 import { useExchangeRatesStore } from './exchangeRates.ts';
 import { useUserLLMSettingsStore } from './userLLMSetting.ts';
 import { useAssetPlanStore } from './assetPlan.ts';
+import { useSocialGiftStore } from './socialGift.ts';
 
 import type { AuthResponse, RegisterResponse } from '@/models/auth_response.ts';
 import type {
@@ -56,6 +57,7 @@ export const useRootStore = defineStore('root', () => {
     const exchangeRatesStore = useExchangeRatesStore();
     const userLLMSettingsStore = useUserLLMSettingsStore();
     const assetPlanStore = useAssetPlanStore();
+    const socialGiftStore = useSocialGiftStore();
 
     const currentNotification = ref<string | null>(null);
 
@@ -76,6 +78,7 @@ export const useRootStore = defineStore('root', () => {
         accountsStore.resetAccounts();
         userLLMSettingsStore.resetUserLLMSetting();
         assetPlanStore.resetAssetPlan();
+        socialGiftStore.reset();
 
         if (resetUserInfoAndSettings) {
             userStore.resetUserBasicInfo();

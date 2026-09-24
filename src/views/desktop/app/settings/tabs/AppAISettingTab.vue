@@ -26,8 +26,13 @@
                                     :label="tt('Large Language Model Provider')"
                                     :placeholder="tt('Large Language Model Provider')"
                                     :items="allLLMProviders"
-                                    v-model="form.llmProvider"
+                                    v-model="selectedProvider"
                                 />
+                                <v-btn variant="text" size="small" :loading="loadingProviders" :disabled="loadingProviders || saving" @click="refreshProviders">
+                                    {{ tt('Refresh providers') }}
+                                </v-btn>
+                                <div class="text-caption text-error" v-if="providerError">{{ tt(providerError) }}</div>
+                                <a class="text-caption ms-2" v-if="selectedPreset?.docsUrl" :href="selectedPreset.docsUrl" target="_blank" rel="noopener noreferrer">{{ tt('Provider documentation') }}</a>
                             </v-col>
 
                             <template v-if="form.enabled && form.llmProvider === LLMProvider.OpenAI">
@@ -39,15 +44,6 @@
                                         :label="secretLabel('OpenAI API Key', llmSetting?.openAIAPIKeySet)"
                                         :placeholder="secretPlaceholder(llmSetting?.openAIAPIKeySet)"
                                         v-model="form.openAIAPIKey"
-                                    />
-                                </v-col>
-
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        persistent-placeholder
-                                        :label="tt('OpenAI Model ID')"
-                                        :placeholder="tt('OpenAI Model ID')"
-                                        v-model="form.openAIModelID"
                                     />
                                 </v-col>
                             </template>
@@ -67,18 +63,9 @@
                                         type="password"
                                         autocomplete="off"
                                         persistent-placeholder
-                                        :label="secretLabel('OpenAI Compatible API Key', llmSetting?.openAICompatibleAPIKeySet)"
-                                        :placeholder="secretPlaceholder(llmSetting?.openAICompatibleAPIKeySet)"
+                                        :label="secretLabel('OpenAI Compatible API Key', compatibleKeyConfigured)"
+                                        :placeholder="secretPlaceholder(compatibleKeyConfigured)"
                                         v-model="form.openAICompatibleAPIKey"
-                                    />
-                                </v-col>
-
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        persistent-placeholder
-                                        :label="tt('OpenAI Compatible Model ID')"
-                                        :placeholder="tt('OpenAI Compatible Model ID')"
-                                        v-model="form.openAICompatibleModelID"
                                     />
                                 </v-col>
                             </template>
@@ -94,15 +81,6 @@
                                         v-model="form.openRouterAPIKey"
                                     />
                                 </v-col>
-
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        persistent-placeholder
-                                        :label="tt('OpenRouter Model ID')"
-                                        :placeholder="tt('OpenRouter Model ID')"
-                                        v-model="form.openRouterModelID"
-                                    />
-                                </v-col>
                             </template>
 
                             <template v-if="form.enabled && form.llmProvider === LLMProvider.Ollama">
@@ -112,15 +90,6 @@
                                         :label="tt('Ollama Server URL')"
                                         :placeholder="tt('Ollama Server URL')"
                                         v-model="form.ollamaServerURL"
-                                    />
-                                </v-col>
-
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        persistent-placeholder
-                                        :label="tt('Ollama Model ID')"
-                                        :placeholder="tt('Ollama Model ID')"
-                                        v-model="form.ollamaModelID"
                                     />
                                 </v-col>
                             </template>
@@ -136,16 +105,24 @@
                                         v-model="form.googleAIAPIKey"
                                     />
                                 </v-col>
-
-                                <v-col cols="12" md="6">
-                                    <v-text-field
-                                        persistent-placeholder
-                                        :label="tt('Google AI Model ID')"
-                                        :placeholder="tt('Google AI Model ID')"
-                                        v-model="form.googleAIModelID"
-                                    />
-                                </v-col>
                             </template>
+
+                            <v-col cols="12" v-if="form.enabled">
+                                <v-combobox
+                                    autocomplete="off"
+                                    :label="tt('Model ID')"
+                                    :hint="tt('Select a refreshed model or enter a model ID manually.')"
+                                    persistent-hint
+                                    :items="models"
+                                    :return-object="false"
+                                    :disabled="saving"
+                                    v-model="modelId"
+                                />
+                                <v-btn class="mt-2" variant="tonal" :loading="loadingModels" :disabled="loadingModels || saving" @click="refreshModels">
+                                    {{ tt('Refresh models') }}
+                                </v-btn>
+                                <div class="text-caption mt-2" role="status" v-if="modelStatus">{{ tt(modelStatus) }}</div>
+                            </v-col>
 
                             <v-col cols="12" md="4">
                                 <v-text-field
@@ -204,6 +181,8 @@ import { ref, reactive, computed, useTemplateRef } from 'vue';
 
 import { useI18n } from '@/locales/helpers.ts';
 
+import { useAIProviderSettings } from '@/components/base/AIProviderSettingsBase.ts';
+
 import { useUserLLMSettingsStore } from '@/stores/userLLMSetting.ts';
 
 import type { LocalizedSwitchOption, NameValue } from '@/core/base.ts';
@@ -248,14 +227,18 @@ const form = reactive<UserLLMSettingUpdateRequest>({
     largeLanguageModelAPISkipTLSVerify: false
 });
 
+const {
+    selectedProvider, selectedPreset, providerOptions, modelId, models,
+    compatibleKeyConfigured, loadingProviders, loadingModels, providerError, modelStatus,
+    refreshProviders, refreshModels
+} = useAIProviderSettings(form, llmSetting);
+const allLLMProviders = computed<NameValue[]>(() => providerOptions.value.map(provider => ({
+    ...provider, name: tt(provider.name)
+})));
+
+
 const enableDisableOptions = computed<LocalizedSwitchOption[]>(() => getAllEnableDisableOptions());
-const allLLMProviders = computed<NameValue[]>(() => [
-    { name: tt('OpenAI'), value: LLMProvider.OpenAI },
-    { name: tt('OpenAI Compatible'), value: LLMProvider.OpenAICompatible },
-    { name: tt('OpenRouter'), value: LLMProvider.OpenRouter },
-    { name: tt('Ollama'), value: LLMProvider.Ollama },
-    { name: tt('Google AI'), value: LLMProvider.GoogleAI }
-]);
+
 
 function secretLabel(label: string, configured?: boolean): string {
     if (configured) {
@@ -322,5 +305,6 @@ function save(): void {
     });
 }
 
+refreshProviders();
 load();
 </script>

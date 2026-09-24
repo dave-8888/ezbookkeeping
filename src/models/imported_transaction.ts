@@ -1,6 +1,7 @@
 import { TransactionType } from '@/core/transaction.ts';
 
 import type { TransactionCreateRequest, TransactionGeoLocationResponse } from './transaction.ts';
+import type { SocialGiftImportMetadata } from './social_gift.ts';
 
 export class ImportTransaction implements ImportTransactionResponse {
     public type: number;
@@ -20,6 +21,7 @@ export class ImportTransaction implements ImportTransactionResponse {
     public originalTagNames: string[];
     public comment: string;
     public geoLocation?: TransactionGeoLocationResponse;
+    public socialGift?: SocialGiftImportMetadata;
 
     public actualCategoryName: string;
     public actualSourceAccountName: string;
@@ -46,6 +48,7 @@ export class ImportTransaction implements ImportTransactionResponse {
         this.originalTagNames = response.originalTagNames || [];
         this.comment = response.comment;
         this.geoLocation = response.geoLocation;
+        this.socialGift = response.socialGift;
 
         this.actualCategoryName = response.originalCategoryName;
         this.actualSourceAccountName = response.originalSourceAccountName;
@@ -61,7 +64,8 @@ export class ImportTransaction implements ImportTransactionResponse {
             categoryId: this.categoryId,
             time: this.time,
             utcOffset: this.utcOffset,
-            sourceAccountId: this.sourceAccountId,
+            sourceAccountId: this.type === TransactionType.Income || this.type === TransactionType.Expense ? '0' : this.sourceAccountId,
+            currency: this.originalSourceAccountCurrency,
             destinationAccountId: this.type === TransactionType.Transfer ? this.destinationAccountId : '0',
             sourceAmount: this.sourceAmount,
             destinationAmount: this.type === TransactionType.Transfer ? this.destinationAmount : 0,
@@ -70,7 +74,8 @@ export class ImportTransaction implements ImportTransactionResponse {
             pictureIds: [],
             comment: this.comment,
             geoLocation: this.geoLocation,
-            clientSessionId: ''
+            clientSessionId: '',
+            socialGift: this.socialGift
         };
     }
 
@@ -79,7 +84,7 @@ export class ImportTransaction implements ImportTransactionResponse {
             return false;
         }
 
-        if (!this.sourceAccountId || this.sourceAccountId === '0') {
+        if (this.type !== TransactionType.Income && this.type !== TransactionType.Expense && (!this.sourceAccountId || this.sourceAccountId === '0')) {
             return false;
         }
 
@@ -139,6 +144,7 @@ export interface ImportTransactionResponse {
     readonly originalTagNames: string[];
     readonly comment: string;
     readonly geoLocation?: TransactionGeoLocationResponse;
+    readonly socialGift?: SocialGiftImportMetadata;
 }
 
 export interface ImportTransactionResponsePageWrapper {

@@ -14,12 +14,15 @@ type LargeLanguageModelResponseFormat byte
 
 // Large Language Model Response Format
 const (
-	LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TEXT LargeLanguageModelResponseFormat = 0
-	LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_JSON LargeLanguageModelResponseFormat = 1
+	LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TEXT  LargeLanguageModelResponseFormat = 0
+	LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_JSON  LargeLanguageModelResponseFormat = 1
+	LARGE_LANGUAGE_MODEL_RESPONSE_FORMAT_TOOLS LargeLanguageModelResponseFormat = 2
 )
 
 // LargeLanguageModelRequest represents a request to a large language model
 type LargeLanguageModelRequest struct {
+	Messages               []ChatMessage
+	Tools                  []ToolDefinition
 	Stream                 bool
 	SystemPrompt           string
 	UserPrompt             []byte
@@ -31,4 +34,5 @@ type LargeLanguageModelRequest struct {
 // LargeLanguageModelTextualResponse represents a textual response from a large language model
 type LargeLanguageModelTextualResponse struct {
 	Content string
+	Message *ChatMessage
 }

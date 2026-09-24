@@ -132,7 +132,7 @@
                                                 </span>
                                             </div>
                                             <v-spacer/>
-                                            <div class="transaction-totals skeleton-no-margin d-flex align-center" v-if="showTotalAmountInTransactionListPage && currentMonthTotalAmount">
+                                            <div class="transaction-totals skeleton-no-margin d-flex align-center" v-if="currentMonthTotalAmount">
                                                 <span class="ms-2 text-subtitle-1">{{ queryAllFilterAccountIdsCount ? tt('Total Inflows') : tt('Total Income') }}</span>
                                                 <span class="text-income ms-2" v-if="loading">
                                                     <v-skeleton-loader type="text" style="width: 60px" :loading="true"></v-skeleton-loader>
@@ -155,6 +155,7 @@
                                         <transaction-calendar day-has-transaction-class="font-weight-bold"
                                                               :readonly="loading" :is-dark-mode="isDarkMode"
                                                               :default-currency="defaultCurrency"
+                                                              :hide-amount="!showTotalAmountInTransactionListPage"
                                                               :min-date="transactionCalendarMinDate"
                                                               :max-date="transactionCalendarMaxDate"
                                                               :dailyTotalAmounts="currentMonthTransactionData?.dailyTotalAmounts"

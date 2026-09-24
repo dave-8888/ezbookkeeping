@@ -75,6 +75,7 @@
                                   :default-currency="false"
                                   :min-date="transactionCalendarMinDate"
                                   :max-date="transactionCalendarMaxDate"
+                                  :hide-amount="!showTotalAmountInTransactionListPage"
                                   :dailyTotalAmounts="currentMonthTransactionData?.dailyTotalAmounts"
                                   v-model="currentCalendarDate"></transaction-calendar>
         </f7-block>

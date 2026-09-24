@@ -287,7 +287,7 @@ export function useTransactionListPageBase() {
     }
 
     function formatAmount(amount: number, hideAmount: boolean, currencyCode: string): string {
-        if (hideAmount) {
+        if (hideAmount || !showTotalAmountInTransactionListPage.value) {
             return formatAmountToLocalizedNumeralsWithCurrency(DISPLAY_HIDDEN_AMOUNT, currencyCode);
         }
 
@@ -353,6 +353,10 @@ export function useTransactionListPageBase() {
     }
 
     function getDisplayMonthTotalAmount(amount: number, currency: string | false, symbol: string, incomplete: boolean): string {
+        if (!showTotalAmountInTransactionListPage.value) {
+            return formatAmountToLocalizedNumeralsWithCurrency(DISPLAY_HIDDEN_AMOUNT, currency);
+        }
+
         const displayAmount = formatAmountToLocalizedNumeralsWithCurrency(amount, currency);
         return symbol + displayAmount + (incomplete ? INCOMPLETE_AMOUNT_SUFFIX : '');
     }

@@ -325,7 +325,7 @@ export const useTransactionsStore = defineStore('transactions', () => {
         }
     }
 
-    function calculateMonthTotalAmount(transactionMonthList: TransactionMonthList | null, defaultCurrency: string, accountIds: string, incomplete: boolean): void {
+    function calculateMonthTotalAmount(transactionMonthList: Pick<TransactionMonthList, 'items' | 'totalAmount' | 'dailyTotalAmounts'> | null, defaultCurrency: string, accountIds: string, incomplete: boolean): void {
         if (!transactionMonthList) {
             return;
         }
@@ -437,6 +437,12 @@ export const useTransactionsStore = defineStore('transactions', () => {
                 incompleteIncome: incomplete || dailyTotalAmount.incompleteIncome
             };
         }
+    }
+
+    function calculateTransactionTotalAmount(items: Transaction[], defaultCurrency: string, accountIds: string, incomplete: boolean): TransactionTotalAmount {
+        const totalAmount: TransactionTotalAmount = { income: 0, expense: 0, incompleteIncome: false, incompleteExpense: false };
+        calculateMonthTotalAmount({ items, totalAmount, dailyTotalAmounts: {} }, defaultCurrency, accountIds, incomplete);
+        return totalAmount;
     }
 
     function fillTransactionObject(transaction: Transaction): void {
@@ -1475,6 +1481,7 @@ export const useTransactionsStore = defineStore('transactions', () => {
         noTransaction,
         hasMoreTransaction,
         // functions
+        calculateTransactionTotalAmount,
         initTransactionDraft,
         isTransactionDraftModified,
         saveTransactionDraft,

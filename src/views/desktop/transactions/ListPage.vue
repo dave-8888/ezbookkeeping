@@ -573,6 +573,14 @@
                                                     <v-chip class="ms-1" color="default" size="x-small" v-if="day.firstTransaction.displayDayOfWeek">
                                                         {{ getWeekdayLongName(day.firstTransaction.displayDayOfWeek) }}
                                                     </v-chip>
+                                                    <span class="transaction-daily-total">
+                                                        {{ queryAllFilterAccountIdsCount ? tt('Total Inflows') : tt('Total Income') }}
+                                                        <span class="text-income">{{ getDisplayMonthTotalAmount(day.totalAmount.income, defaultCurrency, '', day.totalAmount.incompleteIncome) }}</span>
+                                                    </span>
+                                                    <span class="transaction-daily-total">
+                                                        {{ queryAllFilterAccountIdsCount ? tt('Total Outflows') : tt('Total Expense') }}
+                                                        <span class="text-expense">{{ getDisplayMonthTotalAmount(day.totalAmount.expense, defaultCurrency, '', day.totalAmount.incompleteExpense) }}</span>
+                                                    </span>
                                                 </div>
                                                 <div class="transaction-category-cell" v-for="column in transactionCategoryColumns" :key="column.key">
                                                     <button class="transaction-category-item" type="button"
@@ -962,7 +970,15 @@ const transactionCategoryDays = computed(() => {
         day.columns.set(key, items);
     }
 
-    return [...days.values()];
+    return [...days.values()].map((day, index) => ({
+        ...day,
+        totalAmount: transactionsStore.calculateTransactionTotalAmount(
+            [...day.columns.values()].flat(),
+            defaultCurrency.value,
+            query.value.accountIds,
+            !queryMonthlyData.value && currentPageTransactions.value.length < totalCount.value && index === days.size - 1
+        )
+    }));
 });
 
 const recentDateRangeIndex = computed<number>({
@@ -1983,12 +1999,25 @@ init(props);
 }
 
 .transaction-category-date {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     grid-column: 1 / -1;
     padding: 10px 20px;
     font-size: 12px;
     color: rgba(var(--v-theme-on-surface), 0.6);
     background: rgba(var(--v-theme-on-surface), 0.025);
     border-block: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.transaction-daily-total {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-inline-start: 12px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .transaction-category-cell {

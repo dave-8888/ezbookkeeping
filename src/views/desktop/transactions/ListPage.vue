@@ -165,7 +165,7 @@
                                     <v-table class="transaction-table" :hover="!loading">
                                         <thead>
                                         <tr>
-                                            <th class="transaction-table-column-description text-no-wrap">{{ tt('Description') }}</th>
+                                            <th class="transaction-table-column-description text-no-wrap">{{ pageType === TransactionListPageType.List.type ? tt('Filters') : tt('Description') }}</th>
                                             <th class="transaction-table-column-amount text-no-wrap">
                                                 <v-menu ref="amountFilterMenu" class="transaction-amount-menu"
                                                         eager location="bottom" max-height="500"
@@ -494,6 +494,7 @@
                                         </tr>
                                         </tbody>
 
+                                        <template v-if="pageType === TransactionListPageType.Calendar.type">
                                         <tbody :key="transaction.id"
                                                :class="{ 'disabled': loading, 'has-bottom-border': idx < transactions.length - 1 }"
                                                v-for="(transaction, idx) in transactions">
@@ -562,7 +563,44 @@
                                                 </td>
                                             </tr>
                                         </tbody>
+                                        </template>
                                     </v-table>
+
+                                    <div class="transaction-category-scroll" tabindex="0" :aria-label="tt('Transaction List')"
+                                         v-if="pageType === TransactionListPageType.List.type && transactions.length">
+                                        <div class="transaction-category-grid" :style="{ gridTemplateColumns: `repeat(${transactionCategoryColumns.length}, 280px)` }"
+                                             :class="{ 'transaction-category-loading': loading }" :aria-busy="loading">
+                                            <div class="transaction-category-heading" v-for="column in transactionCategoryColumns" :key="column.key">
+                                                <ItemIcon size="20px" icon-type="category" :icon-id="column.transaction.category.icon"
+                                                          :color="column.transaction.category.color" v-if="column.transaction.category" />
+                                                <v-icon :icon="mdiPencilBoxOutline" size="20" v-else />
+                                                <span class="text-truncate">{{ column.transaction.category?.name || getTransactionTypeName(column.transaction.type, 'Transaction') }}</span>
+                                            </div>
+                                            <template v-for="day in transactionCategoryDays" :key="day.date">
+                                                <div class="transaction-category-date">
+                                                    {{ getDisplayLongDate(day.firstTransaction) }}
+                                                    <v-chip class="ms-1" color="default" size="x-small" v-if="day.firstTransaction.displayDayOfWeek">
+                                                        {{ getWeekdayLongName(day.firstTransaction.displayDayOfWeek) }}
+                                                    </v-chip>
+                                                </div>
+                                                <div class="transaction-category-cell" v-for="column in transactionCategoryColumns" :key="column.key">
+                                                    <button class="transaction-category-item" type="button"
+                                                            v-for="transaction in day.columns.get(column.key) || []" :key="transaction.id"
+                                                            :disabled="loading" @click="show(transaction)">
+                                                        <span class="transaction-category-description text-truncate" :title="transaction.comment">{{ transaction.comment || column.transaction.category?.name || getTransactionTypeName(transaction.type, 'Transaction') }}</span>
+                                                        <span class="transaction-category-details">
+                                                            <span :class="{ 'text-expense': transaction.type === TransactionType.Expense, 'text-income': transaction.type === TransactionType.Income }">{{ getDisplayAmount(transaction) }}</span>
+                                                            <span class="transaction-category-time">
+                                                                {{ getDisplayTime(transaction) }}
+                                                                <span v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimezone(transaction) }}</span>
+                                                                <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimeInDefaultTimezone(transaction) }}</v-tooltip>
+                                                            </span>
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
 
                                     <div class="mt-2 mb-4" v-if="pageType === TransactionListPageType.List.type">
                                         <pagination-buttons :totalPageCount="totalPageCount"
@@ -913,6 +951,45 @@ const transactions = computed<Transaction[]>(() => {
     } else {
         return [];
     }
+});
+
+function getTransactionCategoryColumnKey(transaction: Transaction): string {
+    return `${transaction.type}:${transaction.categoryId || '0'}`;
+}
+
+const transactionCategoryColumns = computed(() => {
+    const columns = new Map<string, { key: string; transaction: Transaction }>();
+
+    for (const transaction of transactions.value) {
+        const key = getTransactionCategoryColumnKey(transaction);
+        if (!columns.has(key)) {
+            columns.set(key, { key, transaction });
+        }
+    }
+
+    return [...columns.values()].sort((a, b) =>
+        a.transaction.type - b.transaction.type ||
+        (a.transaction.category?.displayOrder ?? 0) - (b.transaction.category?.displayOrder ?? 0) ||
+        a.key.localeCompare(b.key));
+});
+
+const transactionCategoryDays = computed(() => {
+    const days = new Map<string, { date: string; firstTransaction: Transaction; columns: Map<string, Transaction[]> }>();
+
+    for (const transaction of transactions.value) {
+        const date = transaction.gregorianCalendarYearDashMonthDashDay || getDisplayLongDate(transaction);
+        let day = days.get(date);
+        if (!day) {
+            day = { date, firstTransaction: transaction, columns: new Map() };
+            days.set(date, day);
+        }
+        const key = getTransactionCategoryColumnKey(transaction);
+        const items = day.columns.get(key) || [];
+        items.push(transaction);
+        day.columns.set(key, items);
+    }
+
+    return [...days.values()];
 });
 
 const recentDateRangeIndex = computed<number>({
@@ -1908,6 +1985,88 @@ init(props);
 </style>
 
 <style scoped>
+.transaction-category-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.transaction-category-grid {
+    display: grid;
+    width: max-content;
+    min-width: 100%;
+    align-items: stretch;
+}
+
+.transaction-category-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 48px;
+    padding: 0 20px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.transaction-category-date {
+    grid-column: 1 / -1;
+    padding: 10px 20px;
+    font-size: 12px;
+    color: rgba(var(--v-theme-on-surface), 0.6);
+    background: rgba(var(--v-theme-on-surface), 0.025);
+    border-block: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.transaction-category-cell {
+    min-width: 0;
+    border-right: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.transaction-category-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 76px;
+    padding: 12px 20px;
+    text-align: start;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.transaction-category-item:hover {
+    background: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+.transaction-category-item:focus-visible {
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: -2px;
+}
+
+.transaction-category-description {
+    display: block;
+    max-width: 100%;
+}
+
+.transaction-category-details {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+}
+
+.transaction-category-time {
+    color: rgba(var(--v-theme-on-surface), 0.55);
+    font-size: 12px;
+    text-align: end;
+}
+
+.transaction-category-loading {
+    opacity: 0.5;
+}
+
 .transaction-workspace {
     border: none;
     border-radius: 16px !important;

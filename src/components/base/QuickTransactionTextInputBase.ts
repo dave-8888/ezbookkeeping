@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue';
+import { computed, onScopeDispose, ref, watch } from 'vue';
 
 import { useUserLLMSettingsStore } from '@/stores/userLLMSetting.ts';
 
@@ -12,6 +12,15 @@ export interface QuickTransactionTextInputOptions {
     showError: (error: unknown) => void;
     onNeedManualInput: (result: RecognizedTransactionResponse) => void | Promise<void>;
     onSaved?: () => void;
+    continuous?: boolean;
+    formatError?: (error: unknown) => string;
+}
+
+export interface QuickTransactionSubmission {
+    id: string;
+    text: string;
+    status: 'pending' | 'created' | 'attention';
+    message: string;
 }
 
 export function useQuickTransactionTextInput(options: QuickTransactionTextInputOptions) {
@@ -29,7 +38,20 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
     }, { immediate: true });
 
     const transactionText = ref<string>('');
-    const recognizingByText = ref<boolean>(false);
+    const activeRequests = ref(0);
+    const recognizingByText = computed(() => activeRequests.value > 0);
+    const submissions = ref<QuickTransactionSubmission[]>([]);
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    let disposed = false;
+
+    function dismissSubmission(id: string): void {
+        submissions.value = submissions.value.filter(item => item.id !== id);
+    }
+
+    onScopeDispose(() => {
+        disposed = true;
+        timers.forEach(timer => clearTimeout(timer));
+    });
 
     function clearTransactionText(): void {
         transactionText.value = '';
@@ -61,7 +83,7 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
     }
 
     function submitTransactionText(): Promise<void> {
-        if (recognizingByText.value) {
+        if (!options.continuous && recognizingByText.value) {
             return Promise.resolve();
         }
 
@@ -70,38 +92,75 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
             return Promise.resolve();
         }
 
-        const text = transactionText.value.trim();
+        const text = (transactionText.value || '').trim();
 
         if (!text) {
             options.showError('Parameter Invalid');
             return Promise.resolve();
         }
 
-        recognizingByText.value = true;
+        // Identical in-flight text shares an idempotency key; do not display or
+        // execute it twice. Different entries may finish in any order.
+        if (options.continuous && submissions.value.some(item => item.text === text && item.status === 'pending')) {
+            return Promise.resolve();
+        }
+
+        const submission = ref<QuickTransactionSubmission>({
+            id: generateRandomUUID(), text, status: 'pending', message: ''
+        });
+        if (options.continuous) {
+            submissions.value.push(submission.value);
+            clearTransactionText();
+        }
+        activeRequests.value++;
 
         return Promise.resolve().then(() => {
             return transactionsStore.createTransactionByMCP(pendingRequest(text));
         }).then(result => {
             if (result.status === 'created') {
                 forgetPendingRequest(text);
-                clearTransactionText();
-                options.showMessage(result.reply);
+                if (options.continuous) {
+                    submission.value.status = 'created';
+                    submission.value.message = result.reply;
+                    if (!disposed) {
+                        const timer = setTimeout(() => {
+                            dismissSubmission(submission.value.id);
+                            timers.delete(timer);
+                        }, 3000);
+                        timers.add(timer);
+                    }
+                } else {
+                    clearTransactionText();
+                    options.showMessage(result.reply);
+                }
                 options.onSaved?.();
             } else {
                 if (result.status === 'failed' || result.status === 'needs_input') {
                     forgetPendingRequest(text);
                 }
 
-                options.showMessage(result.reply);
+                if (options.continuous) {
+                    submission.value.status = 'attention';
+                    submission.value.message = result.reply;
+                } else {
+                    options.showMessage(result.reply);
+                }
             }
         }).catch(error => {
-            options.showError(error);
+            if (options.continuous) {
+                submission.value.status = 'attention';
+                submission.value.message = options.formatError?.(error) || 'operation failed';
+            } else {
+                options.showError(error);
+            }
         }).finally(() => {
-            recognizingByText.value = false;
+            activeRequests.value--;
         });
     }
 
     return {
+        submissions,
+        dismissSubmission,
         aiEnabled,
         transactionText,
         recognizingByText,

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { effectScope } from 'vue';
+import type { RecognizedTransactionResponse } from '@/models/large_language_model.ts';
 import { useQuickTransactionTextInput } from '@/components/base/QuickTransactionTextInputBase.ts';
 import { useTransactionsStore } from '@/stores/transaction.ts';
 
@@ -13,13 +14,14 @@ jest.mock('@/lib/misc.ts', () => {
 
 function setup(continuous = false) {
     const create = jest.fn<ReturnType<typeof useTransactionsStore>['createTransactionByMCP']>();
-    jest.mocked(useTransactionsStore).mockReturnValue({ createTransactionByMCP: create } as never);
+    const recognize = jest.fn<ReturnType<typeof useTransactionsStore>['recognizeTransactionText']>();
+    jest.mocked(useTransactionsStore).mockReturnValue({ createTransactionByMCP: create, recognizeTransactionText: recognize } as never);
     const onSaved = jest.fn();
-    const onNeedManualInput = jest.fn<() => void>();
+    const onNeedManualInput = jest.fn<(result: RecognizedTransactionResponse) => Promise<boolean>>();
     const scope = effectScope();
     const state = scope.run(() => useQuickTransactionTextInput({ continuous, showMessage: jest.fn(), showError: jest.fn(), onSaved, onNeedManualInput }))!;
     state.transactionText.value = '昨天现金午饭20元';
-    return { state, create, scope, onSaved, onNeedManualInput };
+    return { state, create, recognize, scope, onSaved, onNeedManualInput };
 }
 
 beforeEach(() => {
@@ -115,6 +117,51 @@ describe('continuous desktop submissions', () => {
         expect(create.mock.calls[0]![0]).toEqual(create.mock.calls[1]![0]);
         state.dismissSubmission(state.submissions.value[0]!.id);
         expect(state.submissions.value).toHaveLength(1);
+        scope.stop();
+    });
+});
+
+
+describe('manual correction of quick transactions', () => {
+    test('opens the matching draft, keeps canceled entries and removes saved entries', async () => {
+        const { state, create, recognize, scope, onSaved, onNeedManualInput } = setup(true);
+        create.mockResolvedValue({ status: 'needs_input', reply: '请补充分类' });
+        await state.submitTransactionText();
+        const id = state.submissions.value[0]!.id;
+        const draft = { sourceAmount: 2000, comment: '午饭' };
+        recognize.mockResolvedValue(draft);
+        onNeedManualInput.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+        state.transactionText.value = '下一笔未提交内容';
+        await state.editSubmission(id);
+        expect(recognize).toHaveBeenCalledWith({ text: '昨天现金午饭20元' });
+        expect(onNeedManualInput).toHaveBeenCalledWith(draft);
+        expect(state.submissions.value).toHaveLength(1);
+        await state.editSubmission(id);
+        expect(recognize).toHaveBeenCalledTimes(1);
+        expect(state.submissions.value).toHaveLength(0);
+        expect(state.transactionText.value).toBe('下一笔未提交内容');
+        expect(onSaved).toHaveBeenCalledTimes(1);
+        scope.stop();
+    });
+
+    test('still opens manual entry with original text when recognition fails', async () => {
+        const { state, create, recognize, scope, onNeedManualInput } = setup(true);
+        create.mockResolvedValue({ status: 'failed', reply: '失败' });
+        recognize.mockRejectedValue(new Error('unavailable'));
+        await state.submitTransactionText();
+        await state.editSubmission(state.submissions.value[0]!.id);
+        expect(onNeedManualInput).toHaveBeenCalledWith({ comment: '昨天现金午饭20元' });
+        expect(state.editingSubmissionId.value).toBeNull();
+        scope.stop();
+    });
+
+    test.each(['unknown', 'processing', 'created'] as const)('does not create a manual duplicate for %s results', async status => {
+        const { state, create, recognize, scope, onNeedManualInput } = setup(true);
+        create.mockResolvedValue({ status, reply: '结果' });
+        await state.submitTransactionText();
+        await state.editSubmission(state.submissions.value[0]!.id);
+        expect(recognize).not.toHaveBeenCalled();
+        expect(onNeedManualInput).not.toHaveBeenCalled();
         scope.stop();
     });
 });

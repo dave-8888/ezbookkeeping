@@ -12,6 +12,11 @@
                             <div class="submission-text">{{ item.text }}</div>
                             <div>{{ item.status === 'pending' ? tt('Loading...') : tt(item.message) }}</div>
                         </div>
+                        <v-btn v-if="item.editable" variant="text" size="small"
+                               :loading="editingSubmissionId === item.id"
+                               :disabled="!!editingSubmissionId" @click="editSubmission(item.id)">
+                            {{ tt('Edit') }}
+                        </v-btn>
                         <v-btn v-if="item.status !== 'pending'" variant="text" size="x-small" :icon="mdiClose"
                                :aria-label="tt('Close')" @click="dismissSubmission(item.id)" />
                     </div>
@@ -118,11 +123,12 @@ const {
 });
 const {
     submissions,
+    editingSubmissionId,
+    editSubmission,
     dismissSubmission,
     aiEnabled,
     transactionText,
     recognizingByText,
-    clearTransactionText,
     submitTransactionText
 } = useQuickTransactionTextInput({
     continuous: true,
@@ -178,7 +184,7 @@ async function submit(): Promise<void> {
     await pending;
 }
 
-function openRecognizedTransactionDialog(result: RecognizedTransactionResponse): void {
+async function openRecognizedTransactionDialog(result: RecognizedTransactionResponse): Promise<boolean> {
     expanded.value = false;
 
     const editDialogPromise = editDialog.value?.open({
@@ -195,23 +201,23 @@ function openRecognizedTransactionDialog(result: RecognizedTransactionResponse):
     });
 
     if (!editDialogPromise) {
-        return;
+        expand();
+        return false;
     }
 
-    editDialogPromise.then(result => {
+    try {
+        const result = await editDialogPromise;
         if (result && result.message) {
-            clearTransactionText();
             snackbar.value?.showMessage(result.message);
+            return true;
         }
-
-        desktopPageStore.requestOverviewRefresh();
-    }).catch(error => {
-        if (error) {
-            snackbar.value?.showError(error);
-        }
-    }).finally(() => {
+        return false;
+    } catch (error) {
+        if (error) snackbar.value?.showError(error as Parameters<SnackBarType['showError']>[0]);
+        return false;
+    } finally {
         expand();
-    });
+    }
 }
 
 </script>

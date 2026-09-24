@@ -10,7 +10,7 @@ import { generateRandomUUID } from '@/lib/misc.ts';
 export interface QuickTransactionTextInputOptions {
     showMessage: (message: string) => void;
     showError: (error: unknown) => void;
-    onNeedManualInput: (result: RecognizedTransactionResponse) => void | Promise<void>;
+    onNeedManualInput: (result: RecognizedTransactionResponse) => void | Promise<void | boolean>;
     onSaved?: () => void;
     continuous?: boolean;
     formatError?: (error: unknown) => string;
@@ -21,6 +21,8 @@ export interface QuickTransactionSubmission {
     text: string;
     status: 'pending' | 'created' | 'attention';
     message: string;
+    editable?: boolean;
+    draft?: RecognizedTransactionResponse;
 }
 
 export function useQuickTransactionTextInput(options: QuickTransactionTextInputOptions) {
@@ -41,6 +43,7 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
     const activeRequests = ref(0);
     const recognizingByText = computed(() => activeRequests.value > 0);
     const submissions = ref<QuickTransactionSubmission[]>([]);
+    const editingSubmissionId = ref<string | null>(null);
     const timers = new Set<ReturnType<typeof setTimeout>>();
     let disposed = false;
 
@@ -80,6 +83,33 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
         const raw = sessionStorage.getItem(key);
         const pending: { text: string, requestId: string }[] = raw ? JSON.parse(raw) : [];
         sessionStorage.setItem(key, JSON.stringify(pending.filter(request => request.text !== text)));
+    }
+
+    async function editSubmission(id: string): Promise<void> {
+        const submission = submissions.value.find(item => item.id === id);
+        if (!submission?.editable || editingSubmissionId.value) return;
+
+        editingSubmissionId.value = id;
+        try {
+            if (!submission.draft) {
+                try {
+                    submission.draft = await transactionsStore.recognizeTransactionText({ text: submission.text });
+                } catch {
+                    // Manual entry must remain available when recognition fails.
+                    submission.draft = { comment: submission.text };
+                }
+            }
+            if (disposed) return;
+            const saved = await options.onNeedManualInput(submission.draft);
+            if (saved) {
+                dismissSubmission(id);
+                options.onSaved?.();
+            }
+        } catch (error) {
+            options.showError(error);
+        } finally {
+            editingSubmissionId.value = null;
+        }
     }
 
     function submitTransactionText(): Promise<void> {
@@ -142,6 +172,7 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
                 if (options.continuous) {
                     submission.value.status = 'attention';
                     submission.value.message = result.reply;
+                    submission.value.editable = result.status === 'needs_input' || result.status === 'failed';
                 } else {
                     options.showMessage(result.reply);
                 }
@@ -160,6 +191,8 @@ export function useQuickTransactionTextInput(options: QuickTransactionTextInputO
 
     return {
         submissions,
+        editingSubmissionId,
+        editSubmission,
         dismissSubmission,
         aiEnabled,
         transactionText,

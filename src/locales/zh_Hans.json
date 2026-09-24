@@ -1,4 +1,11 @@
 {
+    "Transaction Analysis": "交易分析",
+    "Daily Expense Ranking": "每日消费排行",
+    "Secondary Category Expense Ranking": "二级分类消费排行",
+    "Individual Expense Ranking": "单笔消费排行",
+    "Expense rankings use the current filters and default currency": "按当前筛选条件统计支出，统一换算为默认币种",
+    "Expenses without exchange rates are excluded from rankings": "缺少汇率的支出未计入排行",
+    "Uncategorized": "未分类",
     "Expected net increase": "预期净增加",
     "Net worth growth is measured from the saved balance baseline. Historical values are shown only for dates with balance snapshots.": "净资产增长以已保存的账户余额为基准；历史值仅展示有余额快照的日期。",
     "Cumulative net worth growth": "累计净资产增长",

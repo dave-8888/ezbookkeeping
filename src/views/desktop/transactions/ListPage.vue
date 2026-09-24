@@ -11,7 +11,7 @@
                                         <div class="transaction-toolbar">
                                             <v-btn-toggle class="transaction-view-switch" mandatory divided
                                                           :disabled="loading" v-model="queryPageType">
-                                                <v-btn v-for="item in TransactionListPageType.values()" :key="item.type"
+                                                <v-btn v-for="item in desktopPageTypes" :key="item.type"
                                                        :value="item.type" size="small">{{ tt(item.name) }}</v-btn>
                                             </v-btn-toggle>
                                             <div class="transaction-keyword-filter">
@@ -156,7 +156,7 @@
                                     <v-table class="transaction-table" :hover="!loading">
                                         <thead>
                                         <tr>
-                                            <th class="transaction-table-column-description text-no-wrap">{{ pageType === TransactionListPageType.List.type ? tt('Filters') : tt('Description') }}</th>
+                                            <th class="transaction-table-column-description text-no-wrap">{{ pageType !== TransactionListPageType.Calendar.type ? tt('Filters') : tt('Description') }}</th>
                                             <th class="transaction-table-column-amount text-no-wrap">
                                                 <v-menu ref="amountFilterMenu" class="transaction-amount-menu"
                                                         eager location="bottom" max-height="500"
@@ -471,7 +471,7 @@
                                         </tr>
                                         </thead>
 
-                                        <tbody v-if="loading && (!transactions || !transactions.length || transactions.length < 1)">
+                                        <tbody v-if="pageType !== analysisPageType && loading && (!transactions || !transactions.length || transactions.length < 1)">
                                         <tr :key="itemIdx" v-for="itemIdx in skeletonData">
                                             <td class="px-0" colspan="4">
                                                 <v-skeleton-loader type="text" :loading="true"></v-skeleton-loader>
@@ -479,7 +479,7 @@
                                         </tr>
                                         </tbody>
 
-                                        <tbody v-if="!loading && (!transactions || !transactions.length || transactions.length < 1)">
+                                        <tbody v-if="pageType !== analysisPageType && !loading && (!transactions || !transactions.length || transactions.length < 1)">
                                         <tr>
                                             <td colspan="4">{{ tt('No transaction data') }}</td>
                                         </tr>
@@ -556,6 +556,12 @@
                                         </tbody>
                                         </template>
                                     </v-table>
+
+                                    <transaction-analysis v-if="pageType === analysisPageType"
+                                                          :transactions="transactions" :loading="loading"
+                                                          :default-currency="defaultCurrency"
+                                                          :show-amounts="showTotalAmountInTransactionListPage"
+                                                          @select="show" />
 
                                     <div v-if="pageType === TransactionListPageType.List.type && transactions.length"
                                          :class="{ 'transaction-category-loading': loading }" :aria-busy="loading">
@@ -665,6 +671,8 @@ import CategoryFilterSettingsCard from '@/views/desktop/common/cards/CategoryFil
 import TransactionTagFilterSettingsCard from '@/views/desktop/common/cards/TransactionTagFilterSettingsCard.vue';
 import { TransactionEditPageType } from '@/views/base/transactions/TransactionEditPageBase.ts';
 
+import TransactionAnalysis from '@/components/desktop/TransactionAnalysis.vue';
+
 import { useCoalescedRefresh } from '@/components/base/CoalescedRefresh.ts';
 
 import { ref, computed, useTemplateRef, watch, nextTick } from 'vue';
@@ -772,6 +780,8 @@ interface TransactionListProps {
 }
 
 const props = defineProps<TransactionListProps>();
+const analysisPageType = 2;
+const desktopPageTypes = [...TransactionListPageType.values(), { type: analysisPageType, name: 'Transaction Analysis' }];
 
 type ConfirmDialogType = InstanceType<typeof ConfirmDialog>;
 type SnackBarType = InstanceType<typeof SnackBar>;
@@ -888,7 +898,7 @@ const showFilterTagDialog = ref<boolean>(false);
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
 
-const recentMonthDateRanges = computed<LocalizedRecentMonthDateRange[]>(() => getAllRecentMonthDateRanges(pageType.value === TransactionListPageType.List.type, true));
+const recentMonthDateRanges = computed<LocalizedRecentMonthDateRange[]>(() => getAllRecentMonthDateRanges(pageType.value !== TransactionListPageType.Calendar.type, true));
 
 const allTransactionTemplates = computed<TransactionTemplate[]>(() => {
     const allTemplates = transactionTemplatesStore.allVisibleTemplates;
@@ -904,7 +914,7 @@ const allowCategoryTypes = computed<string>(() => {
 });
 
 const transactions = computed<Transaction[]>(() => {
-    if (pageType.value === TransactionListPageType.List.type) {
+    if (pageType.value === TransactionListPageType.List.type || pageType.value === analysisPageType) {
         if (queryMonthlyData.value) {
             const transactionData = currentMonthTransactionData.value;
 
@@ -1125,7 +1135,7 @@ function init(initProps: TransactionListProps): void {
     });
 
     if (initProps.initPageType) {
-        const type = TransactionListPageType.valueOf(parseInt(initProps.initPageType));
+        const type = desktopPageTypes.find(item => item.type === parseInt(initProps.initPageType!));
 
         if (type) {
             pageType.value = type.type;
@@ -1164,7 +1174,7 @@ function init(initProps: TransactionListProps): void {
 }
 
 function reload(force: boolean, init: boolean, background = false): Promise<void> {
-    const pagesToLoad = background ? currentPage.value : 1;
+    const pagesToLoad = pageType.value === analysisPageType ? Number.POSITIVE_INFINITY : (background ? currentPage.value : 1);
     refreshingList.value = background;
     if (!background) {
         loading.value = true;
@@ -1822,6 +1832,7 @@ function onShowDateRangeError(message: string): void {
 onBeforeRouteUpdate((to) => {
     if (to.query) {
         init({
+            initPageType: (to.query['pageType'] as string | null) || '0',
             initDateType: (to.query['dateType'] as string | null) || undefined,
             initMinTime: (to.query['minTime'] as string | null) || undefined,
             initMaxTime: (to.query['maxTime'] as string | null) || undefined,

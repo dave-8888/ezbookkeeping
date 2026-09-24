@@ -1,4 +1,11 @@
 {
+    "Transaction Analysis": "Transaction Analysis",
+    "Daily Expense Ranking": "Daily Expense Ranking",
+    "Secondary Category Expense Ranking": "Secondary Category Expense Ranking",
+    "Individual Expense Ranking": "Individual Expense Ranking",
+    "Expense rankings use the current filters and default currency": "Expense rankings use the current filters and default currency",
+    "Expenses without exchange rates are excluded from rankings": "Expenses without exchange rates are excluded from rankings",
+    "Uncategorized": "Uncategorized",
     "global": {
         "app": {
             "title": "财神"

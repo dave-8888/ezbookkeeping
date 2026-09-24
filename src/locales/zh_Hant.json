@@ -1,4 +1,11 @@
 {
+    "Transaction Analysis": "交易分析",
+    "Daily Expense Ranking": "每日消費排行",
+    "Secondary Category Expense Ranking": "二級分類消費排行",
+    "Individual Expense Ranking": "單筆消費排行",
+    "Expense rankings use the current filters and default currency": "按目前篩選條件統計支出，統一換算為預設幣種",
+    "Expenses without exchange rates are excluded from rankings": "缺少匯率的支出未計入排行",
+    "Uncategorized": "未分類",
     "global": {
         "app": {
             "title": "财神"

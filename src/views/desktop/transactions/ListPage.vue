@@ -905,9 +905,9 @@ const transactions = computed<Transaction[]>(() => {
                 return [];
             }
 
-            return transactionData.items;
+            return transactionData.items.filter(transaction => transaction.type !== TransactionType.ModifyBalance);
         } else {
-            return currentPageTransactions.value;
+            return currentPageTransactions.value.filter(transaction => transaction.type !== TransactionType.ModifyBalance);
         }
     } else if (pageType.value === TransactionListPageType.Calendar.type) {
         if (queryMonthlyData.value) {

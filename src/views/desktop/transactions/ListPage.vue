@@ -557,48 +557,52 @@
                                         </template>
                                     </v-table>
 
-                                    <div class="transaction-category-scroll" tabindex="0" :aria-label="tt('Transaction List')"
-                                         v-if="pageType === TransactionListPageType.List.type && transactions.length">
-                                        <div class="transaction-category-grid" :style="{ gridTemplateColumns: `repeat(${transactionCategoryColumns.length}, 280px)` }"
-                                             :class="{ 'transaction-category-loading': loading }" :aria-busy="loading">
-                                            <div class="transaction-category-heading" v-for="column in transactionCategoryColumns" :key="column.key">
-                                                <ItemIcon size="20px" icon-type="category" :icon-id="column.transaction.category.icon"
-                                                          :color="column.transaction.category.color" v-if="column.transaction.category" />
-                                                <v-icon :icon="mdiPencilBoxOutline" size="20" v-else />
-                                                <span class="text-truncate">{{ column.transaction.category?.name || getTransactionTypeName(column.transaction.type, 'Transaction') }}</span>
+                                    <div v-if="pageType === TransactionListPageType.List.type && transactions.length"
+                                         :class="{ 'transaction-category-loading': loading }" :aria-busy="loading">
+                                        <section v-for="day in transactionCategoryDays" :key="day.date" :aria-label="getDisplayLongDate(day.firstTransaction)">
+                                            <div class="transaction-category-date">
+                                                {{ getDisplayLongDate(day.firstTransaction) }}
+                                                <v-chip class="ms-1" color="default" size="x-small" v-if="day.firstTransaction.displayDayOfWeek">
+                                                    {{ getWeekdayLongName(day.firstTransaction.displayDayOfWeek) }}
+                                                </v-chip>
+                                                <span class="transaction-daily-total">
+                                                    {{ queryAllFilterAccountIdsCount ? tt('Total Inflows') : tt('Total Income') }}
+                                                    <span class="text-income">{{ getDisplayMonthTotalAmount(day.totalAmount.income, defaultCurrency, '', day.totalAmount.incompleteIncome) }}</span>
+                                                </span>
+                                                <span class="transaction-daily-total">
+                                                    {{ queryAllFilterAccountIdsCount ? tt('Total Outflows') : tt('Total Expense') }}
+                                                    <span class="text-expense">{{ getDisplayMonthTotalAmount(day.totalAmount.expense, defaultCurrency, '', day.totalAmount.incompleteExpense) }}</span>
+                                                </span>
                                             </div>
-                                            <template v-for="day in transactionCategoryDays" :key="day.date">
-                                                <div class="transaction-category-date">
-                                                    {{ getDisplayLongDate(day.firstTransaction) }}
-                                                    <v-chip class="ms-1" color="default" size="x-small" v-if="day.firstTransaction.displayDayOfWeek">
-                                                        {{ getWeekdayLongName(day.firstTransaction.displayDayOfWeek) }}
-                                                    </v-chip>
-                                                    <span class="transaction-daily-total">
-                                                        {{ queryAllFilterAccountIdsCount ? tt('Total Inflows') : tt('Total Income') }}
-                                                        <span class="text-income">{{ getDisplayMonthTotalAmount(day.totalAmount.income, defaultCurrency, '', day.totalAmount.incompleteIncome) }}</span>
-                                                    </span>
-                                                    <span class="transaction-daily-total">
-                                                        {{ queryAllFilterAccountIdsCount ? tt('Total Outflows') : tt('Total Expense') }}
-                                                        <span class="text-expense">{{ getDisplayMonthTotalAmount(day.totalAmount.expense, defaultCurrency, '', day.totalAmount.incompleteExpense) }}</span>
-                                                    </span>
+                                            <div class="transaction-category-scroll" tabindex="0" :aria-label="getDisplayLongDate(day.firstTransaction)">
+                                                <div class="transaction-category-grid" :style="{ gridTemplateColumns: `repeat(${day.categories.length}, 280px)` }">
+                                                    <div class="transaction-category-cell" v-for="column in day.categories" :key="column.key">
+                                                        <div class="transaction-category-heading">
+                                                            <ItemIcon size="20px" icon-type="category" :icon-id="column.transaction.category.icon"
+                                                                      :color="column.transaction.category.color" v-if="column.transaction.category" />
+                                                            <v-icon :icon="mdiPencilBoxOutline" size="20" v-else />
+                                                            <span class="text-truncate">{{ column.transaction.category?.name || getTransactionTypeName(column.transaction.type, 'Transaction') }}</span>
+                                                        </div>
+                                                        <ul class="transaction-category-list">
+                                                            <li v-for="transaction in column.items" :key="transaction.id">
+                                                                <button class="transaction-category-item" type="button"
+                                                                        :disabled="loading" @click="show(transaction)">
+                                                                    <span class="transaction-category-description text-truncate" :title="transaction.comment">{{ transaction.comment || column.transaction.category?.name || getTransactionTypeName(transaction.type, 'Transaction') }}</span>
+                                                                    <span class="transaction-category-details">
+                                                                        <span :class="{ 'text-expense': transaction.type === TransactionType.Expense, 'text-income': transaction.type === TransactionType.Income }">{{ getDisplayAmount(transaction) }}</span>
+                                                                        <span class="transaction-category-time">
+                                                                            {{ getDisplayTime(transaction) }}
+                                                                            <span v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimezone(transaction) }}</span>
+                                                                            <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimeInDefaultTimezone(transaction) }}</v-tooltip>
+                                                                        </span>
+                                                                    </span>
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
                                                 </div>
-                                                <div class="transaction-category-cell" v-for="column in transactionCategoryColumns" :key="column.key">
-                                                    <button class="transaction-category-item" type="button"
-                                                            v-for="transaction in day.columns.get(column.key) || []" :key="transaction.id"
-                                                            :disabled="loading" @click="show(transaction)">
-                                                        <span class="transaction-category-description text-truncate" :title="transaction.comment">{{ transaction.comment || column.transaction.category?.name || getTransactionTypeName(transaction.type, 'Transaction') }}</span>
-                                                        <span class="transaction-category-details">
-                                                            <span :class="{ 'text-expense': transaction.type === TransactionType.Expense, 'text-income': transaction.type === TransactionType.Income }">{{ getDisplayAmount(transaction) }}</span>
-                                                            <span class="transaction-category-time">
-                                                                {{ getDisplayTime(transaction) }}
-                                                                <span v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimezone(transaction) }}</span>
-                                                                <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(transaction)">{{ getDisplayTimeInDefaultTimezone(transaction) }}</v-tooltip>
-                                                            </span>
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            </template>
-                                        </div>
+                                            </div>
+                                        </section>
                                     </div>
 
                                     <v-infinite-scroll v-if="pageType === TransactionListPageType.List.type && !queryMonthlyData && !loading"
@@ -938,22 +942,6 @@ function getTransactionCategoryColumnKey(transaction: Transaction): string {
     return `${transaction.type}:${transaction.categoryId || '0'}`;
 }
 
-const transactionCategoryColumns = computed(() => {
-    const columns = new Map<string, { key: string; transaction: Transaction }>();
-
-    for (const transaction of transactions.value) {
-        const key = getTransactionCategoryColumnKey(transaction);
-        if (!columns.has(key)) {
-            columns.set(key, { key, transaction });
-        }
-    }
-
-    return [...columns.values()].sort((a, b) =>
-        a.transaction.type - b.transaction.type ||
-        (a.transaction.category?.displayOrder ?? 0) - (b.transaction.category?.displayOrder ?? 0) ||
-        a.key.localeCompare(b.key));
-});
-
 const transactionCategoryDays = computed(() => {
     const days = new Map<string, { date: string; firstTransaction: Transaction; columns: Map<string, Transaction[]> }>();
 
@@ -972,6 +960,10 @@ const transactionCategoryDays = computed(() => {
 
     return [...days.values()].map((day, index) => ({
         ...day,
+        categories: [...day.columns.entries()].map(([key, items]) => ({ key, items, transaction: items[0]! })).sort((a, b) =>
+            a.transaction.type - b.transaction.type ||
+            (a.transaction.category?.displayOrder ?? 0) - (b.transaction.category?.displayOrder ?? 0) ||
+            a.key.localeCompare(b.key)),
         totalAmount: transactionsStore.calculateTransactionTotalAmount(
             [...day.columns.values()].flat(),
             defaultCurrency.value,
@@ -1985,7 +1977,7 @@ init(props);
     display: grid;
     width: max-content;
     min-width: 100%;
-    align-items: stretch;
+    align-items: start;
 }
 
 .transaction-category-heading {
@@ -2003,7 +1995,6 @@ init(props);
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    grid-column: 1 / -1;
     padding: 10px 20px;
     font-size: 12px;
     color: rgba(var(--v-theme-on-surface), 0.6);
@@ -2023,6 +2014,12 @@ init(props);
 .transaction-category-cell {
     min-width: 0;
     border-right: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.transaction-category-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .transaction-category-item {

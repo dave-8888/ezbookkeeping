@@ -49,16 +49,7 @@
                                                             v-model="queryType"
                                                         />
                                                     </div>
-                                                    <div class="mb-4" v-if="pageType === TransactionListPageType.List.type">
-                                                        <span class="text-subtitle-2">{{ tt('Transactions Per Page') }}</span>
-                                                        <v-select class="mt-2" hide-details density="compact"
-                                                                  item-title="name" :aria-label="tt('Transactions Per Page')"
-                                                                  item-value="value"
-                                                                  :disabled="loading"
-                                                                  :items="allPageCounts"
-                                                                  v-model="countPerPage"
-                                                        />
-                                                    </div>
+
                                                 </v-card>
                                             </v-menu>
                                             <v-btn class="transaction-add-button" color="primary" variant="flat" :prepend-icon="mdiPlus"
@@ -602,10 +593,8 @@
                                         </div>
                                     </div>
 
-                                    <div class="mt-2 mb-4" v-if="pageType === TransactionListPageType.List.type">
-                                        <pagination-buttons :totalPageCount="totalPageCount"
-                                                            v-model="paginationCurrentPage"></pagination-buttons>
-                                    </div>
+                                    <v-infinite-scroll v-if="pageType === TransactionListPageType.List.type && !queryMonthlyData && !loading"
+                                                       :key="loadGeneration" :empty-text="''" @load="loadMoreTransactions" />
                                 </v-card>
                             </v-window-item>
                         </v-window>
@@ -653,7 +642,7 @@
 
 <script setup lang="ts">
 import { VMenu } from 'vuetify/components/VMenu';
-import PaginationButtons from '@/components/desktop/PaginationButtons.vue';
+import { VInfiniteScroll } from 'vuetify/components/VInfiniteScroll';
 import ConfirmDialog from '@/components/desktop/ConfirmDialog.vue';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 import EditDialog from './list/dialogs/EditDialog.vue';
@@ -681,7 +670,6 @@ import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
 import { useDesktopPageStore } from '@/stores/desktopPage.ts';
 
 import {
-    type NameNumeralValue,
     keys
 } from '@/core/base.ts';
 import {
@@ -691,7 +679,7 @@ import {
     DateRangeScene,
     DateRange
 } from '@/core/datetime.ts';
-import { type NumeralSystem, AmountFilterType } from '@/core/numeral.ts';
+import { AmountFilterType } from '@/core/numeral.ts';
 import { ThemeType } from '@/core/theme.ts';
 import { TransactionType } from '@/core/transaction.ts';
 import { TemplateType }  from '@/core/template.ts';
@@ -789,7 +777,6 @@ const {
     tt,
     getAllRecentMonthDateRanges,
     getWeekdayLongName,
-    getCurrentNumeralSystemType,
     getCurrentLanguageInfo
 } = useI18n();
 
@@ -866,7 +853,8 @@ const importDialog = useTemplateRef<ImportDialogType>('importDialog');
 
 const activeTab = ref<string>('transactionPage');
 const currentPage = ref<number>(1);
-const temporaryCountPerPage = ref<number | null>(null);
+const loadGeneration = ref(0);
+const loadingMore = ref(false);
 const totalCount = ref<number>(1);
 const searchKeyword = ref<string>('');
 const currentAmountFilterType = ref<string>('');
@@ -884,18 +872,6 @@ const showFilterCategoryDialog = ref<boolean>(false);
 const showFilterTagDialog = ref<boolean>(false);
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
-const numeralSystem = computed<NumeralSystem>(() => getCurrentNumeralSystemType());
-
-const allPageCounts = computed<NameNumeralValue[]>(() => {
-    const pageCounts: NameNumeralValue[] = [];
-    const availableCountPerPage: number[] = [ 5, 10, 15, 20, 25, 30, 50 ];
-
-    for (const count of availableCountPerPage) {
-        pageCounts.push({ value: count, name: numeralSystem.value.replaceWesternArabicDigitsToLocalizedDigits(count.toString()) });
-    }
-
-    return pageCounts;
-});
 
 const recentMonthDateRanges = computed<LocalizedRecentMonthDateRange[]>(() => getAllRecentMonthDateRanges(pageType.value === TransactionListPageType.List.type, true));
 
@@ -921,10 +897,7 @@ const transactions = computed<Transaction[]>(() => {
                 return [];
             }
 
-            const firstIndex = (currentPage.value - 1) * countPerPage.value;
-            const lastIndex = currentPage.value * countPerPage.value;
-
-            return transactionData.items.slice(firstIndex, lastIndex);
+            return transactionData.items;
         } else {
             return currentPageTransactions.value;
         }
@@ -1049,41 +1022,7 @@ const queryAllSelectedFilterTagIds = computed<string>(() => {
     }
 });
 
-const countPerPage = computed<number>({
-    get: () => {
-        if (temporaryCountPerPage.value) {
-            return temporaryCountPerPage.value;
-        }
-
-        return settingsStore.appSettings.itemsCountInTransactionListPage;
-    },
-    set: (value) => {
-        const newTotalPageCount = Math.ceil(totalCount.value / value);
-
-        if (currentPage.value > newTotalPageCount) {
-            currentPage.value = newTotalPageCount;
-        }
-
-        temporaryCountPerPage.value = value;
-
-        if (!queryMonthlyData.value) {
-            reload(false, false);
-        }
-    }
-});
-
-const totalPageCount = computed<number>(() => Math.ceil(totalCount.value / countPerPage.value));
-
-const paginationCurrentPage = computed<number>({
-    get: () => currentPage.value,
-    set: (value) => {
-        currentPage.value = value;
-
-        if (!queryMonthlyData.value) {
-            reload(false, false);
-        }
-    }
-});
+const countPerPage = computed<number>(() => settingsStore.appSettings.itemsCountInTransactionListPage);
 
 const skeletonData = computed<number[]>(() => {
     const data: number[] = [];
@@ -1215,8 +1154,10 @@ function init(initProps: TransactionListProps): void {
 
 function reload(force: boolean, init: boolean): void {
     loading.value = true;
-
-    const page = currentPage.value;
+    currentPage.value = 1;
+    loadingMore.value = false;
+    const generation = ++loadGeneration.value;
+    const page = 1;
 
     Promise.all([
         accountsStore.loadAllAccounts({ force: false }),
@@ -1252,6 +1193,7 @@ function reload(force: boolean, init: boolean): void {
             });
         }
     }).then(data => {
+        if (generation !== loadGeneration.value) { return; }
         loading.value = false;
         currentPageTransactions.value = data && data.items && data.items.length ? data.items : [];
 
@@ -1263,6 +1205,7 @@ function reload(force: boolean, init: boolean): void {
             snackbar.value?.showMessage('Data has been updated');
         }
     }).catch(error => {
+        if (generation !== loadGeneration.value) { return; }
         loading.value = false;
         currentPageTransactions.value = [];
         totalCount.value = 1;
@@ -1271,6 +1214,37 @@ function reload(force: boolean, init: boolean): void {
             snackbar.value?.showError(error);
         }
     });
+}
+
+async function loadMoreTransactions({ done }: { done: (status: 'ok' | 'empty' | 'error') => void }): Promise<void> {
+    if (loading.value || loadingMore.value || queryMonthlyData.value || currentPageTransactions.value.length >= totalCount.value) {
+        done('empty');
+        return;
+    }
+
+    const generation = loadGeneration.value;
+    loadingMore.value = true;
+    try {
+        const data = await transactionsStore.loadTransactions({
+            reload: true,
+            count: countPerPage.value,
+            page: currentPage.value + 1,
+            withCount: false,
+            autoExpand: true,
+            defaultCurrency: defaultCurrency.value
+        });
+        if (generation !== loadGeneration.value) { done('empty'); return; }
+        const existingIds = new Set(currentPageTransactions.value.map(transaction => transaction.id));
+        currentPageTransactions.value.push(...data.items.filter(transaction => !existingIds.has(transaction.id)));
+        currentPage.value++;
+        done(!data.items.length || currentPageTransactions.value.length >= totalCount.value ? 'empty' : 'ok');
+    } catch {
+        if (generation !== loadGeneration.value) { done('empty'); return; }
+        done('error');
+        snackbar.value?.showError('Unable to retrieve transaction list');
+    } finally {
+        if (generation === loadGeneration.value) { loadingMore.value = false; }
+    }
 }
 
 function changePageType(type: number): void {

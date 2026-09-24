@@ -9,6 +9,70 @@
                     </div>
                     <h1 class="font-weight-medium text-xl">{{ tt('global.app.title') }}</h1>
                 </router-link>
+                <div class="nav-header-actions">
+                    <v-btn color="primary" variant="text" size="30"
+                           :icon="true" :aria-label="showAmountGlobally ? tt('Hide Amount') : tt('Show Amount')"
+                           @click="showAmountGlobally = !showAmountGlobally">
+                        <v-icon :icon="showAmountGlobally ? mdiEyeOffOutline : mdiEyeOutline" size="18" />
+                        <v-tooltip activator="parent">{{ showAmountGlobally ? tt('Hide Amount') : tt('Show Amount') }}</v-tooltip>
+                    </v-btn>
+                    <v-btn color="primary" variant="text" size="30"
+                           :icon="true" :aria-label="tt('Theme')" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
+                        <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="18" />
+                    </v-btn>
+                    <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')">
+                        <v-avatar size="26" variant="tonal" :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
+                            <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
+                                <template #placeholder>
+                                    <div class="d-flex align-center justify-center fill-height bg-light-primary">
+                                        <v-icon color="primary" :icon="mdiAccount" size="18"/>
+                                    </div>
+                                </template>
+                            </v-img>
+                            <v-icon :icon="mdiAccount" size="18" v-else-if="!currentUserAvatar"/>
+                        </v-avatar>
+                        <v-menu activator="parent" width="230" location="bottom end" offset="14px">
+                            <v-list>
+                                <v-list-item>
+                                    <template #prepend>
+                                        <v-list-item-action>
+                                            <v-avatar variant="tonal"
+                                                      :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
+                                                <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
+                                                    <template #placeholder>
+                                                        <div class="d-flex align-center justify-center fill-height bg-light-primary">
+                                                            <v-icon color="primary" :icon="mdiAccount"/>
+                                                        </div>
+                                                    </template>
+                                                </v-img>
+                                                <v-icon :icon="mdiAccount" v-else-if="!currentUserAvatar"/>
+                                            </v-avatar>
+                                        </v-list-item-action>
+                                    </template>
+                                    <v-list-item-title class="ms-2">
+                                        {{ currentNickName }}
+                                    </v-list-item-title>
+                                </v-list-item>
+                                <v-divider class="my-2"/>
+                                <v-list-item :prepend-icon="mdiAccountCogOutline"
+                                             :title="tt('User Settings')"
+                                             to="/user/settings"></v-list-item>
+                                <v-list-item :prepend-icon="mdiCogOutline"
+                                             :title="tt('Application Settings')"
+                                             to="/app/settings"></v-list-item>
+                                <v-divider class="my-2"/>
+                                <v-list-item :prepend-icon="mdiLockOutline"
+                                             :title="tt('Lock Application')"
+                                             v-if="isEnableApplicationLock"
+                                             @click="lock"></v-list-item>
+                                <v-list-item :disabled="logouting"
+                                             :prepend-icon="mdiLogout"
+                                             :title="tt('Log Out')"
+                                             @click="logout"></v-list-item>
+                            </v-list>
+                        </v-menu>
+                    </v-btn>
+                </div>
             </div>
             <perfect-scrollbar
                 tag="ul" class="nav-items"
@@ -129,85 +193,13 @@
             </perfect-scrollbar>
         </div>
 
+        <v-btn v-if="mdAndDown && !showVerticalOverlayMenu" class="compact-nav-toggle"
+               color="primary" size="40" :icon="true" :aria-label="tt('Navigation Bar')"
+               @click="showVerticalOverlayMenu = true">
+            <v-icon :icon="mdiMenu" size="22" />
+        </v-btn>
+
         <div class="layout-content-wrapper">
-            <div class="layout-navbar navbar-blur">
-                <div class="navbar-content-container">
-                    <div class="d-flex h-100 align-center">
-                        <v-btn class="ms-n3 me-2 d-lg-none" color="default" variant="text"
-                               :icon="true" @click="showVerticalOverlayMenu = true">
-                            <v-icon :icon="mdiMenu" size="24" />
-                        </v-btn>
-                        <div class="app-logo d-flex align-center gap-x-3 app-title-wrapper" v-if="mdAndDown">
-                            <div class="d-flex">
-                                <img alt="logo" class="main-logo" :src="APPLICATION_LOGO_PATH" />
-                            </div>
-                            <h1 class="font-weight-medium text-xl">{{ tt('global.app.title') }}</h1>
-                        </div>
-                        <v-spacer />
-                        <v-btn color="primary" variant="text" class="me-2"
-                               :icon="true"
-                               @click="showAmountGlobally = !showAmountGlobally">
-                            <v-icon :icon="showAmountGlobally ? mdiEyeOffOutline : mdiEyeOutline" size="24" />
-                            <v-tooltip activator="parent">{{ showAmountGlobally ? tt('Hide Amount') : tt('Show Amount') }}</v-tooltip>
-                        </v-btn>
-                        <v-btn color="primary" variant="text" class="me-2"
-                               :icon="true" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
-                            <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="24" />
-                        </v-btn>
-                        <v-avatar class="cursor-pointer" variant="tonal"
-                                  :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
-                            <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
-                                <template #placeholder>
-                                    <div class="d-flex align-center justify-center fill-height bg-light-primary">
-                                        <v-icon color="primary" :icon="mdiAccount"/>
-                                    </div>
-                                </template>
-                            </v-img>
-                            <v-icon :icon="mdiAccount" v-else-if="!currentUserAvatar"/>
-                            <v-menu activator="parent" width="230" location="bottom end" offset="14px">
-                                <v-list>
-                                    <v-list-item>
-                                        <template #prepend>
-                                            <v-list-item-action>
-                                                <v-avatar variant="tonal"
-                                                          :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
-                                                    <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
-                                                        <template #placeholder>
-                                                            <div class="d-flex align-center justify-center fill-height bg-light-primary">
-                                                                <v-icon color="primary" :icon="mdiAccount"/>
-                                                            </div>
-                                                        </template>
-                                                    </v-img>
-                                                    <v-icon :icon="mdiAccount" v-else-if="!currentUserAvatar"/>
-                                                </v-avatar>
-                                            </v-list-item-action>
-                                        </template>
-                                        <v-list-item-title class="ms-2">
-                                            {{ currentNickName }}
-                                        </v-list-item-title>
-                                    </v-list-item>
-                                    <v-divider class="my-2"/>
-                                    <v-list-item :prepend-icon="mdiAccountCogOutline"
-                                                 :title="tt('User Settings')"
-                                                 to="/user/settings"></v-list-item>
-                                    <v-list-item :prepend-icon="mdiCogOutline"
-                                                 :title="tt('Application Settings')"
-                                                 to="/app/settings"></v-list-item>
-                                    <v-divider class="my-2"/>
-                                    <v-list-item :prepend-icon="mdiLockOutline"
-                                                 :title="tt('Lock Application')"
-                                                 v-if="isEnableApplicationLock"
-                                                 @click="lock"></v-list-item>
-                                    <v-list-item :disabled="logouting"
-                                                 :prepend-icon="mdiLogout"
-                                                 :title="tt('Log Out')"
-                                                 @click="logout"></v-list-item>
-                                </v-list>
-                            </v-menu>
-                        </v-avatar>
-                    </div>
-                </div>
-            </div>
             <div class="layout-page-content">
                 <div class="page-content-container">
                     <router-view :key="currentRoutePath" />
@@ -390,5 +382,41 @@ function refreshOverviewPage(): void {
 
 .nav-link.home-link > a:not(.router-link-exact-active):hover::before {
     opacity: calc(var(--v-hover-opacity)* var(--v-theme-overlay-multiplier));
+}
+</style>
+
+<style scoped>
+.layout-vertical-nav .nav-header {
+    padding: 16px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.layout-vertical-nav .nav-header .app-logo {
+    min-width: 0;
+    flex-shrink: 1;
+    gap: 8px !important;
+}
+
+.nav-header .app-logo h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 18px !important;
+}
+
+.nav-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+}
+
+.compact-nav-toggle {
+    position: fixed;
+    inset-inline-start: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 12;
 }
 </style>

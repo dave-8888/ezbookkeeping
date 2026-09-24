@@ -477,27 +477,27 @@
                             </div>
                         </template>
                     </v-tooltip>
-                    <v-btn-group class="transaction-detail-copy" variant="tonal" density="comfortable"
-                                 v-if="mode === TransactionEditPageMode.View && transaction.type !== TransactionType.ModifyBalance">
-                        <v-btn :disabled="loading || submitting"
-                               @click="duplicate(false, false)">{{ tt('Duplicate') }}</v-btn>
-                        <v-btn class="transaction-detail-copy-menu" density="compact" :disabled="loading || submitting" :icon="true"
-                               :aria-label="tt('Duplicate')">
-                            <v-icon :icon="mdiMenuDown" size="24" />
-                            <v-menu activator="parent">
-                                <v-list>
-                                    <v-list-item :title="tt('Duplicate (With Time)')"
-                                                 @click="duplicate(true, false)"></v-list-item>
-                                    <v-list-item :title="tt('Duplicate (With Geographic Location)')"
-                                                 @click="duplicate(false, true)"
-                                                 v-if="transaction.geoLocation"></v-list-item>
-                                    <v-list-item :title="tt('Duplicate (With Time and Geographic Location)')"
-                                                 @click="duplicate(true, true)"
-                                                 v-if="transaction.geoLocation"></v-list-item>
-                                </v-list>
-                            </v-menu>
-                        </v-btn>
-                    </v-btn-group>
+                    <v-menu location="bottom start" :offset="6"
+                            v-if="mode === TransactionEditPageMode.View && transaction.type !== TransactionType.ModifyBalance">
+                        <template #activator="{ props }">
+                            <v-btn v-bind="props" class="transaction-detail-copy" variant="tonal"
+                                   :append-icon="mdiMenuDown" :disabled="loading || submitting">
+                                {{ tt('Duplicate') }}
+                            </v-btn>
+                        </template>
+                        <v-list density="compact" rounded="lg">
+                            <v-list-item :title="tt('Duplicate')"
+                                         @click="duplicate(false, false)"></v-list-item>
+                            <v-list-item :title="tt('Duplicate (With Time)')"
+                                         @click="duplicate(true, false)"></v-list-item>
+                            <v-list-item :title="tt('Duplicate (With Geographic Location)')"
+                                         @click="duplicate(false, true)"
+                                         v-if="transaction.geoLocation"></v-list-item>
+                            <v-list-item :title="tt('Duplicate (With Time and Geographic Location)')"
+                                         @click="duplicate(true, true)"
+                                         v-if="transaction.geoLocation"></v-list-item>
+                        </v-list>
+                    </v-menu>
                     <v-btn class="transaction-detail-delete" color="error" variant="text" :disabled="loading || submitting"
                            v-if="mode === TransactionEditPageMode.View && originalTransactionEditable" @click="remove">
                         {{ tt('Delete') }}
@@ -1521,25 +1521,6 @@ defineExpose({
     box-shadow: none;
 }
 
-.transaction-detail-copy {
-    height: 36px;
-    border-radius: 9px;
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-    overflow: hidden;
-}
-
-.transaction-detail-copy :deep(.v-btn) {
-    height: 34px;
-    border-radius: 0;
-}
-
-.transaction-detail-copy :deep(.transaction-detail-copy-menu) {
-    min-width: 32px;
-    width: 32px;
-    padding: 0;
-    border-inline-start: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-}
-
 .transaction-detail-actions .transaction-detail-close {
     margin-inline-start: auto;
 }
@@ -1559,10 +1540,5 @@ defineExpose({
         padding-inline: 12px;
     }
 
-    .transaction-detail-copy :deep(.transaction-detail-copy-menu) {
-        min-width: 28px;
-        width: 28px;
-        padding: 0;
-    }
 }
 </style>

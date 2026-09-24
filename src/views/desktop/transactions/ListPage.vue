@@ -605,7 +605,7 @@
                                         </section>
                                     </div>
 
-                                    <v-infinite-scroll v-if="pageType === TransactionListPageType.List.type && !queryMonthlyData && !loading"
+                                    <v-infinite-scroll v-if="pageType === TransactionListPageType.List.type && !queryMonthlyData && !loading && !refreshingList"
                                                        :key="loadGeneration" :empty-text="''" @load="loadMoreTransactions" />
                                 </v-card>
                             </v-window-item>
@@ -664,6 +664,8 @@ import AccountFilterSettingsCard from '@/views/desktop/common/cards/AccountFilte
 import CategoryFilterSettingsCard from '@/views/desktop/common/cards/CategoryFilterSettingsCard.vue';
 import TransactionTagFilterSettingsCard from '@/views/desktop/common/cards/TransactionTagFilterSettingsCard.vue';
 import { TransactionEditPageType } from '@/views/base/transactions/TransactionEditPageBase.ts';
+
+import { useCoalescedRefresh } from '@/components/base/CoalescedRefresh.ts';
 
 import { ref, computed, useTemplateRef, watch, nextTick } from 'vue';
 import { useRouter, onBeforeRouteUpdate } from 'vue-router';
@@ -867,6 +869,7 @@ const activeTab = ref<string>('transactionPage');
 const currentPage = ref<number>(1);
 const loadGeneration = ref(0);
 const loadingMore = ref(false);
+const refreshingList = ref(false);
 const totalCount = ref<number>(1);
 const searchKeyword = ref<string>('');
 const currentAmountFilterType = ref<string>('');
@@ -1160,18 +1163,23 @@ function init(initProps: TransactionListProps): void {
     });
 }
 
-function reload(force: boolean, init: boolean): void {
-    loading.value = true;
-    currentPage.value = 1;
+function reload(force: boolean, init: boolean, background = false): Promise<void> {
+    const pagesToLoad = background ? currentPage.value : 1;
+    refreshingList.value = background;
+    if (!background) {
+        loading.value = true;
+        currentPage.value = 1;
+    }
     loadingMore.value = false;
     const generation = ++loadGeneration.value;
     const page = 1;
 
-    Promise.all([
+    return Promise.all([
         accountsStore.loadAllAccounts({ force: false }),
         transactionCategoriesStore.loadAllCategories({ force: false }),
         transactionTagsStore.loadAllTags({ force: false })
-    ]).then(() => {
+    ]).then(async () => {
+        if (generation !== loadGeneration.value) { return; }
         if (init) {
             if (desktopPageStore.showAddTransactionDialogInTransactionList) {
                 desktopPageStore.resetShowAddTransactionDialogInTransactionList();
@@ -1191,14 +1199,23 @@ function reload(force: boolean, init: boolean): void {
                 defaultCurrency: defaultCurrency.value
             });
         } else {
-            return transactionsStore.loadTransactions({
-                reload: true,
-                count: countPerPage.value,
-                page: page,
-                withCount: page <= 1,
-                autoExpand: true,
-                defaultCurrency: defaultCurrency.value
-            });
+            const items: Transaction[] = [];
+            let refreshedTotalCount = 0;
+            for (let requestedPage = 1; requestedPage <= pagesToLoad; requestedPage++) {
+                if (generation !== loadGeneration.value) { return; }
+                const result = await transactionsStore.loadTransactions({
+                    reload: true,
+                    count: countPerPage.value,
+                    page: requestedPage,
+                    withCount: requestedPage === 1,
+                    autoExpand: true,
+                    defaultCurrency: defaultCurrency.value
+                });
+                items.push(...result.items);
+                if (requestedPage === 1) refreshedTotalCount = result.totalCount || 0;
+                if (!result.items.length || items.length >= refreshedTotalCount) break;
+            }
+            return { items, totalCount: refreshedTotalCount };
         }
     }).then(data => {
         if (generation !== loadGeneration.value) { return; }
@@ -1215,17 +1232,27 @@ function reload(force: boolean, init: boolean): void {
     }).catch(error => {
         if (generation !== loadGeneration.value) { return; }
         loading.value = false;
-        currentPageTransactions.value = [];
-        totalCount.value = 1;
+        if (!background) {
+            currentPageTransactions.value = [];
+            totalCount.value = 1;
+        }
 
         if (!error.processed) {
             snackbar.value?.showError(error);
         }
+    }).finally(() => {
+        if (generation === loadGeneration.value) refreshingList.value = false;
     });
 }
 
+useCoalescedRefresh(
+    () => desktopPageStore.transactionListRevision,
+    () => loading.value || loadingMore.value || refreshingList.value,
+    () => reload(false, false, true)
+);
+
 async function loadMoreTransactions({ done }: { done: (status: 'ok' | 'empty' | 'error') => void }): Promise<void> {
-    if (loading.value || loadingMore.value || queryMonthlyData.value || currentPageTransactions.value.length >= totalCount.value) {
+    if (loading.value || refreshingList.value || loadingMore.value || queryMonthlyData.value || currentPageTransactions.value.length >= totalCount.value) {
         done('empty');
         return;
     }

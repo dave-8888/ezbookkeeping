@@ -136,6 +136,7 @@ const {
     showError: (error: unknown) => snackbar.value?.showError(error as Parameters<SnackBarType['showError']>[0]),
     onNeedManualInput: openRecognizedTransactionDialog,
     onSaved: () => {
+        desktopPageStore.requestTransactionListRefresh();
         desktopPageStore.requestOverviewRefresh();
     }
 });

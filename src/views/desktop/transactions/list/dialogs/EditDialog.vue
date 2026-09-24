@@ -1,6 +1,6 @@
 <template>
-    <v-dialog width="1000" :persistent="isTransactionModified" v-model="showState">
-        <v-card class="pa-sm-1 pa-md-2">
+    <v-dialog :width="mode === TransactionEditPageMode.View ? 720 : 1000" :persistent="isTransactionModified" v-model="showState">
+        <v-card class="pa-sm-1 pa-md-2" :class="{ 'transaction-detail-compact': mode === TransactionEditPageMode.View }">
             <template #title>
                 <div class="d-flex align-center justify-center">
                     <div class="d-flex align-center">
@@ -58,8 +58,8 @@
                     </v-btn>
                 </div>
             </template>
-            <v-card-text class="d-flex flex-column flex-md-row flex-grow-1 overflow-y-auto">
-                <div class="mb-4">
+            <v-card-text class="transaction-dialog-content d-flex flex-column flex-md-row flex-grow-1 overflow-y-auto">
+                <div class="transaction-dialog-navigation mb-4">
                     <v-tabs class="v-tabs-pill" direction="vertical" :class="{ 'readonly': type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add }"
                             :disabled="loading || submitting" v-model="transaction.type">
                         <v-tab :value="TransactionType.Expense" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Expense" v-if="transaction.type !== TransactionType.ModifyBalance">
@@ -394,7 +394,7 @@
                                     <v-textarea
                                         type="text"
                                         persistent-placeholder
-                                        rows="3"
+                                        :rows="mode === TransactionEditPageMode.View ? 2 : 3"
                                         :readonly="mode === TransactionEditPageMode.View"
                                         :disabled="loading || submitting"
                                         :label="tt('Description')"
@@ -463,7 +463,7 @@
                     </v-window-item>
                 </v-window>
             </v-card-text>
-            <v-card-text>
+            <v-card-text class="transaction-dialog-footer">
                 <div class="w-100 d-flex justify-center flex-wrap mt-sm-1 mt-md-2 gap-4"
                      :class="{ 'transaction-detail-actions': mode === TransactionEditPageMode.View }">
                     <v-tooltip v-if="mode !== TransactionEditPageMode.View" :disabled="!inputIsEmpty" :text="inputEmptyProblemMessage ? tt(inputEmptyProblemMessage) : ''">
@@ -1410,6 +1410,97 @@ defineExpose({
 </style>
 
 <style scoped>
+.transaction-detail-compact {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 48px);
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
+}
+
+.transaction-detail-compact :deep(.v-card-item) {
+    flex: 0 0 auto;
+    padding: 20px 24px 12px;
+}
+
+.transaction-detail-compact :deep(.text-h4) {
+    font-size: 20px !important;
+    line-height: 28px;
+    font-weight: 600;
+}
+
+.transaction-detail-compact .transaction-dialog-content {
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 12px 24px 8px;
+    overscroll-behavior: contain;
+}
+
+.transaction-detail-compact .transaction-dialog-navigation {
+    flex-shrink: 0;
+}
+
+.transaction-detail-compact :deep(.v-window) {
+    min-width: 0;
+}
+
+.transaction-detail-compact :deep(.v-tab) {
+    min-width: 0;
+    min-height: 36px;
+    height: auto;
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: normal;
+}
+
+.transaction-detail-compact :deep(.v-col-12) {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.transaction-detail-compact :deep(.v-field) {
+    --v-input-control-height: 44px;
+    --v-field-padding-top: 6px;
+    --v-field-padding-bottom: 6px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.transaction-detail-compact .transaction-dialog-footer {
+    flex: 0 0 auto;
+    padding: 8px 24px 20px;
+    background: rgb(var(--v-theme-surface));
+}
+
+.transaction-detail-compact .transaction-detail-actions {
+    margin-top: 0 !important;
+    padding-top: 16px;
+}
+
+.transaction-detail-compact :deep(.transaction-pictures) {
+    min-height: 240px;
+}
+
+.transaction-detail-compact :deep(.transaction-pictures > .v-col) {
+    flex: 0 0 50%;
+    max-width: 50%;
+}
+
+@media (min-width: 960px) {
+    .transaction-detail-compact .transaction-dialog-navigation {
+        width: 124px;
+    }
+}
+
+@media (max-width: 599px) {
+    .transaction-detail-compact :deep(.v-card-item),
+    .transaction-detail-compact .transaction-dialog-content,
+    .transaction-detail-compact .transaction-dialog-footer {
+        padding-inline: 16px;
+    }
+}
+
 .transaction-detail-actions {
     align-items: center;
     justify-content: flex-start !important;

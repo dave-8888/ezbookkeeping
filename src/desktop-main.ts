@@ -107,7 +107,6 @@ import MonthSelectionDialog from '@/components/desktop/MonthSelectionDialog.vue'
 import MonthRangeSelectionDialog from '@/components/desktop/MonthRangeSelectionDialog.vue';
 import AccountBalanceTrendsChart from '@/components/desktop/AccountBalanceTrendsChart.vue';
 import AccountAndCategorySankeyChart from '@/components/desktop/AccountAndCategorySankeyChart.vue';
-import SwitchToMobileDialog from '@/components/desktop/SwitchToMobileDialog.vue';
 
 import TextFieldAutoWidth from '@/directives/desktop/textfieldAutoWidth.ts';
 
@@ -559,7 +558,6 @@ app.component('MonthSelectionDialog', MonthSelectionDialog);
 app.component('MonthRangeSelectionDialog', MonthRangeSelectionDialog);
 app.component('AccountBalanceTrendsChart', AccountBalanceTrendsChart);
 app.component('AccountAndCategorySankeyChart', AccountAndCategorySankeyChart);
-app.component('SwitchToMobileDialog', SwitchToMobileDialog);
 
 app.directive('TextFieldAutoWidth', TextFieldAutoWidth);
 

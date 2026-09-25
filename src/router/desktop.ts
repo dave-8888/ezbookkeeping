@@ -18,8 +18,6 @@ import TransactionListPage from '@/views/desktop/transactions/ListPage.vue';
 
 import StatisticsTransactionPage from '@/views/desktop/statistics/TransactionPage.vue';
 
-import InsightsExplorePage from '@/views/desktop/insights/ExplorePage.vue';
-
 import AccountListPage from '@/views/desktop/accounts/ListPage.vue';
 import QuickBalanceModifyPage from '@/views/desktop/accounts/QuickBalanceModifyPage.vue';
 import AssetPlanPage from '@/views/desktop/assetplans/AssetPlanPage.vue';
@@ -35,7 +33,6 @@ import UserSettingsPage from '@/views/desktop/user/UserSettingsPage.vue';
 import AppSettingsPage from '@/views/desktop/app/AppSettingsPage.vue';
 
 import ExchangeRatesListPage from '@/views/desktop/exchangerates/ListPage.vue';
-import AboutPage from '@/views/desktop/AboutPage.vue';
 
 function checkLogin(): NavigationGuardReturn {
     if (!isUserLogined()) {
@@ -142,18 +139,6 @@ const router = createRouter({
                     })
                 },
                 {
-                    path: '/insights/explore',
-                    component: InsightsExplorePage,
-                    beforeEnter: checkLogin,
-                    props: route => ({
-                        initId: route.query['id'],
-                        initActiveTab: route.query['activeTab'],
-                        initDateRangeType: route.query['dateRangeType'],
-                        initStartTime: route.query['startTime'],
-                        initEndTime: route.query['endTime']
-                    })
-                },
-                {
                     path: '/account/list',
                     component: AccountListPage,
                     beforeEnter: checkLogin
@@ -219,13 +204,12 @@ const router = createRouter({
                     props: route => ({
                         initTab: route.query['tab']
                     })
-                },
-                {
-                    path: '/about',
-                    component: AboutPage,
-                    beforeEnter: checkLogin
                 }
             ]
+        },
+        {
+            path: '/:pathMatch(.*)*',
+            redirect: '/'
         },
         {
             path: '/login',

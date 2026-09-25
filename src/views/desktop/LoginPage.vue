@@ -88,11 +88,6 @@
 
                                     <v-col cols="12" class="py-0 mt-1 mb-4">
                                         <div class="d-flex align-center justify-space-between flex-wrap">
-                                            <a href="javascript:void(0);"
-                                               :class="{ 'disabled': loggingInByPassword || loggingInByOAuth2 || verifying }"
-                                               @click="showMobileQrCode = true">
-                                                <span class="nav-item-title">{{ tt('Use on Mobile Device') }}</span>
-                                            </a>
                                             <v-spacer/>
                                             <router-link class="text-primary" to="/forgetpassword"
                                                          :class="{ 'disabled': !isUserForgetPasswordEnabled() || loggingInByPassword || loggingInByOAuth2 || verifying }">
@@ -162,7 +157,6 @@
             </v-col>
         </v-row>
 
-        <switch-to-mobile-dialog v-model:show="showMobileQrCode" />
         <snack-bar ref="snackbar" />
     </div>
 </template>
@@ -232,7 +226,6 @@ const passcodeInput = useTemplateRef<VTextField>('passcodeInput');
 const snackbar = useTemplateRef<SnackBarType>('snackbar');
 
 const show2faInput = ref<boolean>(false);
-const showMobileQrCode = ref<boolean>(false);
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
 

@@ -114,12 +114,6 @@
                         <span class="nav-item-title">{{ tt('Social Gifts') }}</span>
                     </router-link>
                 </li>
-                <li class="nav-link">
-                    <router-link to="/insights/explore">
-                        <v-icon class="nav-item-icon" :icon="mdiCompassOutline"/>
-                        <span class="nav-item-title">{{ tt('Insights & Explore') }}</span>
-                    </router-link>
-                </li>
                 <li class="nav-section-title">
                     <div class="title-wrapper">
                         <span class="title-text">{{ tt('Basis Data') }}</span>
@@ -178,18 +172,6 @@
                         <span class="nav-item-title">{{ tt('Exchange Rates Data') }}</span>
                     </router-link>
                 </li>
-                <li class="nav-link">
-                    <a href="javascript:void(0);" @click="showMobileQrCode = true">
-                        <v-icon class="nav-item-icon" :icon="mdiCellphone"/>
-                        <span class="nav-item-title">{{ tt('Use on Mobile Device') }}</span>
-                    </a>
-                </li>
-                <li class="nav-link">
-                    <router-link to="/about">
-                        <v-icon class="nav-item-icon" :icon="mdiInformationOutline"/>
-                        <span class="nav-item-title">{{ tt('About') }}</span>
-                    </router-link>
-                </li>
             </perfect-scrollbar>
         </div>
 
@@ -206,8 +188,6 @@
                 </div>
             </div>
         </div>
-
-        <switch-to-mobile-dialog v-model:show="showMobileQrCode" />
 
         <div class="layout-overlay" :class="{ 'visible': showVerticalOverlayMenu }" @click="showVerticalOverlayMenu = false"></div>
 
@@ -255,11 +235,8 @@ import {
     mdiClipboardTextClockOutline,
     mdiTarget,
     mdiChartPieOutline,
-    mdiCompassOutline,
     mdiSwapHorizontal,
     mdiCogOutline,
-    mdiCellphone,
-    mdiInformationOutline,
     mdiThemeLightDark,
     mdiWeatherSunny,
     mdiWeatherNight,
@@ -292,7 +269,6 @@ const logouting = ref<boolean>(false);
 const isVerticalNavScrolled = ref<boolean>(false);
 const showVerticalOverlayMenu = ref<boolean>(false);
 const showLoading = ref<boolean>(false);
-const showMobileQrCode = ref<boolean>(false);
 
 const mdAndDown = computed<boolean>(() => display.mdAndDown.value);
 const currentRoutePath = computed<string>(() => route.path);

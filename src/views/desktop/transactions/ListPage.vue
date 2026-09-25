@@ -153,7 +153,7 @@
                                                               v-model="currentCalendarDate"></transaction-calendar>
                                     </v-card-text>
 
-                                    <transaction-trends v-if="pageType === TransactionListPageType.List.type"
+                                    <transaction-trends v-if="pageType === analysisPageType"
                                                         :filter="query" :refresh-key="loadGeneration" :default-currency="defaultCurrency"
                                                         :show-amounts="showTotalAmountInTransactionListPage" />
 

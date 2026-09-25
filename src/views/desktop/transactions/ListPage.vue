@@ -153,6 +153,10 @@
                                                               v-model="currentCalendarDate"></transaction-calendar>
                                     </v-card-text>
 
+                                    <transaction-trends v-if="pageType === TransactionListPageType.List.type"
+                                                        :filter="query" :refresh-key="loadGeneration" :default-currency="defaultCurrency"
+                                                        :show-amounts="showTotalAmountInTransactionListPage" />
+
                                     <v-table class="transaction-table" :hover="!loading">
                                         <thead>
                                         <tr>
@@ -684,6 +688,7 @@ import TransactionAnalysis from '@/components/desktop/TransactionAnalysis.vue';
 import { useCoalescedRefresh } from '@/components/base/CoalescedRefresh.ts';
 
 import { ref, computed, useTemplateRef, watch, nextTick } from 'vue';
+import TransactionTrends from '@/components/desktop/TransactionTrends.vue';
 import { useRouter, onBeforeRouteUpdate } from 'vue-router';
 import { useTheme } from 'vuetify';
 

@@ -1,0 +1,16 @@
+{
+  "project_id": "846d47e8-b84c-4a46-85d6-e51b86cc568b",
+  "project_title": "个人理财系统",
+  "resources": [
+    {
+      "id": "3ee4d32b-c80b-4bb6-be12-9de04ffd60de",
+      "resource_type": "local_directory",
+      "resource_ref": {
+        "label": "ezbookkeeping",
+        "daemon_id": "019f3a60-6f1d-772b-81d8-da87ca8314a1",
+        "local_path": "/Users/dave/projects/ezbookkeeping",
+        "execution_mode": "worktree"
+      }
+    }
+  ]
+}

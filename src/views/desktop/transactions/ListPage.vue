@@ -156,7 +156,15 @@
                                     <v-table class="transaction-table" :hover="!loading">
                                         <thead>
                                         <tr>
-                                            <th class="transaction-table-column-description text-no-wrap">{{ pageType !== TransactionListPageType.Calendar.type ? tt('Filters') : tt('Description') }}</th>
+                                            <th class="transaction-table-column-description text-no-wrap">
+                                                <div class="d-flex align-center ga-4">
+                                                    <span>{{ pageType !== TransactionListPageType.Calendar.type ? tt('Filters') : tt('Description') }}</span>
+                                                    <span v-if="pageType === analysisPageType" class="text-caption text-medium-emphasis text-truncate"
+                                                          :title="`${tt('Expense rankings use the current filters and default currency')} (${defaultCurrency})`">
+                                                        {{ tt('Expense rankings use the current filters and default currency') }} ({{ defaultCurrency }})
+                                                    </span>
+                                                </div>
+                                            </th>
                                             <th class="transaction-table-column-amount text-no-wrap">
                                                 <v-menu ref="amountFilterMenu" class="transaction-amount-menu"
                                                         eager location="bottom" max-height="500"

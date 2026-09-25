@@ -2,7 +2,6 @@
     <div class="pa-6" :aria-busy="loading">
         <v-skeleton-loader v-if="loading" type="article, article, article" />
         <template v-else>
-            <p class="text-caption text-medium-emphasis mb-4">{{ tt('Expense rankings use the current filters and default currency') }} ({{ defaultCurrency }})</p>
             <v-alert v-if="rankings.excluded" type="warning" variant="tonal" class="mb-4">
                 {{ tt('Expenses without exchange rates are excluded from rankings') }} ({{ rankings.excluded }})
             </v-alert>

@@ -566,6 +566,28 @@ html[dir="rtl"] .v-img.img-with-direction > img {
     }
 }
 
+.app-snackbar {
+    // Vuetify recalculates the inline stack order when another overlay is active.
+    z-index: 10000 !important;
+    margin-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+
+    .v-snackbar__wrapper {
+        min-width: min(280px, calc(100vw - 32px));
+        max-width: min(480px, calc(100vw - 32px));
+        border-radius: 12px;
+        background-color: rgb(var(--v-theme-notification-background)) !important;
+    }
+
+    .v-snackbar__content {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .v-snackbar__actions {
+        flex-shrink: 0;
+    }
+}
+
 .v-switch.v-switch--inset {
     .v-switch__track {
         min-width: 1.875rem !important;

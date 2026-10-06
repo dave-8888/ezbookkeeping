@@ -109,7 +109,7 @@ const options = computed(() => {
         dataZoom: points.value.length > 60 ? [{ type: 'slider', start: 0, end: 100, height: 20, bottom: 4 }] : [],
         series: [
             { name: tt('Income'), type: 'line', showSymbol: points.value.length <= 60, symbolSize: 6, data: points.value.map(day => amount(day.income)) },
-            { name: tt('Expense'), type: 'line', showSymbol: points.value.length <= 60, symbolSize: 6, lineStyle: { type: 'dashed' }, data: points.value.map(day => amount(day.expense)) }
+            { name: tt('Expense'), type: 'line', showSymbol: points.value.length <= 60, symbolSize: 6, lineStyle: { type: 'solid' }, data: points.value.map(day => amount(day.expense)) }
         ]
     };
 });

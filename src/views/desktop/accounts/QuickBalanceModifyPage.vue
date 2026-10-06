@@ -103,8 +103,6 @@
                     <!-- 账户列表 -->
                     <v-data-table
                         v-model="selectedAccounts"
-                        v-model:sort-by="sortBy"
-                        :custom-key-sort="accountSorters"
                         :headers="headers"
                         :items="filteredAccounts"
                         :loading="loading"
@@ -195,22 +193,10 @@
     </v-row>
 
     <!-- 单个账户余额修改对话框 -->
-    <v-dialog v-model="showModifyDialog" max-width="500px" :persistent="modifying"
-              @keydown="onAccountNavigationKeydown">
+    <v-dialog v-model="showModifyDialog" max-width="500px">
         <v-card>
             <template #title>
-                <div class="d-flex align-center ga-2">
-                    <span>{{ tt('Modify Account Balance') }}</span>
-                    <v-spacer />
-                    <v-btn :icon="mdiChevronLeft" variant="text" density="compact"
-                           :aria-label="tt('Previous')" :disabled="modifying || currentAccountIndex <= 0"
-                           @click="switchAccount(-1)" />
-                    <span class="text-body-2 text-no-wrap">{{ currentAccountIndex + 1 }} / {{ navigationAccounts.length }}</span>
-                    <v-btn :icon="mdiChevronRight" variant="text" density="compact"
-                           :aria-label="tt('Next')"
-                           :disabled="modifying || currentAccountIndex < 0 || currentAccountIndex >= navigationAccounts.length - 1"
-                           @click="switchAccount(1)" />
-                </div>
+                <span>{{ tt('Modify Account Balance') }}</span>
             </template>
 
             <v-card-text>
@@ -238,7 +224,6 @@
 
                 <v-text-field
                     v-model="newBalanceExpression"
-                    :disabled="modifying"
                     :label="tt('New Balance')"
                     type="text"
                     :placeholder="'1000+200-35.5'"
@@ -255,7 +240,7 @@
 
             <v-card-actions>
                 <v-spacer />
-                <v-btn :disabled="modifying" @click="showModifyDialog = false">
+                <v-btn @click="showModifyDialog = false">
                     {{ tt('Cancel') }}
                 </v-btn>
                 <v-btn
@@ -348,8 +333,6 @@ import AssetSummaryCard from '@/views/desktop/overview/cards/AssetSummaryCard.vu
 
 import {
     mdiArrowLeft,
-    mdiChevronLeft,
-    mdiChevronRight,
     mdiMagnify,
     mdiRefresh,
     mdiPlus,
@@ -395,19 +378,7 @@ const searchKeyword = ref<string>('');
 const selectedCategory = ref<number | null>(null);
 const showHidden = ref<boolean>(false);
 
-const sortBy = ref<{ key: string; order?: boolean | 'asc' | 'desc' }[]>([]);
-const accountSorters = {
-    name: (a: string, b: string) => a.localeCompare(b),
-    category: (a: number, b: number) => a - b,
-    currency: (a: string, b: string) => a.localeCompare(b),
-    balance: (a: number, b: number) => a - b
-};
-const navigationAccounts = ref<AccountItem[]>([]);
-const balanceDrafts = new Map<bigint, string>();
 const currentAccount = ref<AccountItem | null>(null);
-const currentAccountIndex = computed(() =>
-    navigationAccounts.value.findIndex(account => account.id === currentAccount.value?.id)
-);
 const newBalance = ref<number>(0);
 const newBalanceExpression = ref<string>('');
 const batchAmount = ref<number>(0);
@@ -594,46 +565,10 @@ function getAccountCategory(categoryType: number) {
 }
 
 function openModifyDialog(account: AccountItem): void {
-    balanceDrafts.clear();
-    // Freeze the filtered table order for this editing session, including other pages.
-    navigationAccounts.value = [...filteredAccounts.value].sort((a, b) => {
-        for (const sort of sortBy.value) {
-            if (sort.order === false) continue;
-            let comparison = 0;
-            switch (sort.key) {
-                case 'name': comparison = accountSorters.name(a.name, b.name); break;
-                case 'category': comparison = accountSorters.category(a.category, b.category); break;
-                case 'currency': comparison = accountSorters.currency(a.currency, b.currency); break;
-                case 'balance': comparison = accountSorters.balance(a.balance, b.balance); break;
-            }
-            if (comparison) return sort.order === 'desc' ? -comparison : comparison;
-        }
-        return 0;
-    });
-    selectAccount(account);
-    showModifyDialog.value = true;
-}
-
-function selectAccount(account: AccountItem): void {
     currentAccount.value = account;
-    newBalanceExpression.value = balanceDrafts.get(account.id) ?? (account.balance / 100).toString();
-    updateNewBalanceFromExpression(newBalanceExpression.value);
-}
-
-function switchAccount(direction: -1 | 1): void {
-    if (modifying.value || !currentAccount.value || currentAccountIndex.value < 0) return;
-    const nextAccount = navigationAccounts.value[currentAccountIndex.value + direction];
-    if (!nextAccount) return;
-    balanceDrafts.set(currentAccount.value.id, newBalanceExpression.value);
-    selectAccount(nextAccount);
-}
-
-function onAccountNavigationKeydown(event: KeyboardEvent): void {
-    if (!showModifyDialog.value || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (!event.repeat) switchAccount(event.key === 'ArrowLeft' ? -1 : 1);
+    newBalance.value = account.balance / 100; // 转换为小数形式显示
+    newBalanceExpression.value = newBalance.value.toString();
+    showModifyDialog.value = true;
 }
 
 function parseNewBalanceExpression(expression: string): number | undefined {
@@ -679,7 +614,7 @@ function clearSelection(): void {
 }
 
 async function modifySingleAccount(): Promise<void> {
-    if (modifying.value) return;
+    console.log('currentAccount',currentAccount)
     const calculatedBalance = parseNewBalanceExpression(newBalanceExpression.value);
 
     if (!currentAccount.value || calculatedBalance === undefined) {
@@ -690,16 +625,26 @@ async function modifySingleAccount(): Promise<void> {
     newBalance.value = calculatedBalance;
     modifying.value = true;
 
-    const accountId = currentAccount.value.id;
+    // 调试信息
+    console.log('Sending modify request:', {
+        id: currentAccount.value.id,
+        idString: currentAccount.value.id.toString(),
+        idNumber: Number(currentAccount.value.id),
+        balance: Math.round(newBalance.value * 100),
+        idType: typeof currentAccount.value.id,
+        balanceType: typeof Math.round(newBalance.value * 100),
+        isSafeInteger: Number.isSafeInteger(currentAccount.value.id),
+        maxSafeInteger: Number.MAX_SAFE_INTEGER
+    });
 
     try {
         const response = await services.modifyAccountBalance({
-            id: accountId,
+            id: currentAccount.value.id,
             balance: Math.round(newBalance.value * 100) // 转换为分存储
         });
 
         // 更新本地数据
-        const accountIndex = accounts.value.findIndex(a => a.id === accountId);
+        const accountIndex = accounts.value.findIndex(a => a.id === currentAccount.value!.id);
         if (accountIndex !== -1 && response.data && response.data.result) {
             const accountToUpdate = accounts.value[accountIndex];
             if (accountToUpdate) {

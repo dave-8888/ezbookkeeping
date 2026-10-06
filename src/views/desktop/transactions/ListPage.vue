@@ -576,8 +576,12 @@
                                                           @select="show" />
 
                                     <div v-if="pageType === TransactionListPageType.List.type && transactions.length"
-                                         :class="{ 'transaction-category-loading': loading }" :aria-busy="loading">
-                                        <section v-for="day in transactionCategoryDays" :key="day.date" :aria-label="getDisplayLongDate(day.firstTransaction)">
+                                         :class="{ 'transaction-category-loading': loading || movingTransaction }" :aria-busy="loading || movingTransaction">
+                                        <section v-for="day in transactionCategoryDays" :key="day.date" :aria-label="getDisplayLongDate(day.firstTransaction)"
+                                                 :class="{ 'transaction-date-drop-target': dragTargetDate === day.date }"
+                                                 @dragover="dragOverDate($event, day.date)"
+                                                 @dragleave="leaveDate($event)"
+                                                 @drop="dropOnDate($event, day.date)">
                                             <div class="transaction-category-date">
                                                 {{ getDisplayLongDate(day.firstTransaction) }}
                                                 <v-chip class="ms-1" color="default" size="x-small" v-if="day.firstTransaction.displayDayOfWeek">
@@ -604,7 +608,12 @@
                                                         <ul class="transaction-category-list">
                                                             <li v-for="transaction in column.items" :key="transaction.id">
                                                                 <button class="transaction-category-item" type="button"
-                                                                        :disabled="loading" @click="show(transaction)">
+                                                                        :disabled="loading || movingTransaction"
+                                                                        :draggable="canDragTransaction(transaction)"
+                                                                        :class="{ 'transaction-item-dragging': draggedTransaction?.id === transaction.id }"
+                                                                        @dragstart="startTransactionDrag($event, transaction)"
+                                                                        @dragend="endTransactionDrag"
+                                                                        @click="show(transaction)">
                                                                     <span class="transaction-category-description text-truncate" :title="transaction.comment">{{ transaction.comment || column.transaction.category?.name || getTransactionTypeName(transaction.type, 'Transaction') }}</span>
                                                                     <span class="transaction-category-details">
                                                                         <span :class="{ 'text-expense': transaction.type === TransactionType.Expense, 'text-income': transaction.type === TransactionType.Income }">{{ getDisplayAmount(transaction) }}</span>
@@ -754,6 +763,7 @@ import { isSpeechRecognitionSupported } from '@/lib/voice.ts';
 import { recognizeTransactionByVoice } from '@/lib/transaction_voice.ts';
 import { scrollToSelectedItem, startDownloadFile } from '@/lib/ui/common.ts';
 import logger from '@/lib/logger.ts';
+import { moveTransactionToDate } from '@/lib/transaction_date.ts';
 
 import {
     mdiMagnify,
@@ -966,6 +976,65 @@ const transactions = computed<Transaction[]>(() => {
 
 function getTransactionCategoryColumnKey(transaction: Transaction): string {
     return `${transaction.type}:${transaction.categoryId || '0'}`;
+}
+
+const draggedTransaction = ref<Transaction>();
+const dragTargetDate = ref('');
+const movingTransaction = ref(false);
+
+function canDragTransaction(transaction: Transaction): boolean {
+    return !loading.value && !refreshingList.value && !movingTransaction.value && transaction.editable &&
+        (transaction.type === TransactionType.Income || transaction.type === TransactionType.Expense);
+}
+
+function startTransactionDrag(event: DragEvent, transaction: Transaction): void {
+    if (!canDragTransaction(transaction) || !event.dataTransfer) {
+        event.preventDefault();
+        return;
+    }
+    draggedTransaction.value = transaction;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', transaction.id);
+}
+
+function endTransactionDrag(): void {
+    draggedTransaction.value = undefined;
+    dragTargetDate.value = '';
+}
+
+function dragOverDate(event: DragEvent, date: string): void {
+    if (!draggedTransaction.value || !canDragTransaction(draggedTransaction.value) ||
+        draggedTransaction.value.gregorianCalendarYearDashMonthDashDay === date) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    dragTargetDate.value = date;
+}
+
+function leaveDate(event: DragEvent): void {
+    if (event.relatedTarget instanceof Node && (event.currentTarget as HTMLElement).contains(event.relatedTarget)) return;
+    dragTargetDate.value = '';
+}
+
+async function dropOnDate(event: DragEvent, date: string): Promise<void> {
+    const source = draggedTransaction.value;
+    event.preventDefault();
+    endTransactionDrag();
+    if (!source || !canDragTransaction(source) || source.gregorianCalendarYearDashMonthDashDay === date) return;
+
+    movingTransaction.value = true;
+    try {
+        const transaction = await transactionsStore.getTransaction({ transactionId: source.id, withPictures: true });
+        if (!transaction.editable || (transaction.type !== TransactionType.Income && transaction.type !== TransactionType.Expense)) return;
+        transaction.time = moveTransactionToDate(transaction.time, transaction.utcOffset, date);
+        await transactionsStore.saveTransaction({ transaction, defaultCurrency: defaultCurrency.value, isEdit: true, clientSessionId: '' });
+        await reload(false, false, true);
+        snackbar.value?.showMessage('Data has been updated');
+    } catch (error) {
+        logger.error('failed to move transaction to another date', error);
+        snackbar.value?.showError('Unable to save transaction');
+    } finally {
+        movingTransaction.value = false;
+    }
 }
 
 const transactionCategoryDays = computed(() => {
@@ -2088,6 +2157,20 @@ init(props);
 
 .transaction-category-item:hover {
     background: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+.transaction-category-item[draggable="true"] {
+    cursor: grab;
+}
+
+.transaction-item-dragging {
+    opacity: 0.4;
+}
+
+.transaction-date-drop-target {
+    background: rgba(var(--v-theme-primary), 0.08);
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: -2px;
 }
 
 .transaction-category-item:focus-visible {

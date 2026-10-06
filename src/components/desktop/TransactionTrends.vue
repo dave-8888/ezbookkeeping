@@ -1,7 +1,11 @@
 <template>
-    <section class="px-6 pb-4" :aria-label="tt('Daily Income and Expense Trends')" :aria-busy="loading">
-        <div class="d-flex align-center justify-space-between mb-2">
-            <h2 class="text-subtitle-1">{{ tt('Daily Income and Expense Trends') }}</h2>
+    <section class="px-6 pb-4" :aria-label="tt(periodTitle)" :aria-busy="loading">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-2">
+            <h2 class="text-subtitle-1">{{ tt(periodTitle) }}</h2>
+            <v-btn-toggle v-model="period" mandatory density="compact" variant="outlined" divided
+                          :aria-label="tt('Trend interval')">
+                <v-btn v-for="option in periods" :key="option.value" :value="option.value" size="small">{{ tt(option.label) }}</v-btn>
+            </v-btn-toggle>
             <span class="text-caption text-medium-emphasis">{{ defaultCurrency }}</span>
         </div>
         <div v-if="!showAmounts" class="py-6 text-center text-medium-emphasis">{{ tt('Amounts are hidden') }}</div>
@@ -34,7 +38,7 @@ import { useUserStore } from '@/stores/user.ts';
 import type { TransactionListFilter } from '@/stores/transaction.ts';
 import type { Transaction } from '@/models/transaction.ts';
 import { ThemeType } from '@/core/theme.ts';
-import { buildDailyTransactionTrends, fillDailyTrendGaps, loadTrendTransactions } from '@/lib/transaction_trends.ts';
+import { type TransactionTrendPeriod, aggregateTransactionTrends, buildDailyTransactionTrends, fillDailyTrendGaps, loadTrendTransactions } from '@/lib/transaction_trends.ts';
 import { parseDateTimeFromUnixTime } from '@/lib/datetime.ts';
 import { getExpenseAndIncomeAmountColor } from '@/lib/ui/common.ts';
 import services from '@/lib/services.ts';
@@ -49,6 +53,14 @@ const transactions = ref<Transaction[]>([]);
 const loading = ref(true);
 const failed = ref(false);
 const retry = ref(0);
+const period = ref<TransactionTrendPeriod>('day');
+const periods = [
+    { value: 'day', label: 'Daily', title: 'Daily Income and Expense Trends' },
+    { value: 'week', label: 'Weekly', title: 'Weekly Income and Expense Trends' },
+    { value: 'month', label: 'Monthly', title: 'Monthly Income and Expense Trends' },
+    { value: 'year', label: 'Yearly', title: 'Yearly Income and Expense Trends' }
+];
+const periodTitle = computed(() => periods.find(option => option.value === period.value)!.title);
 
 watch(() => [JSON.stringify(props.filter), props.refreshKey, props.showAmounts, retry.value], async (_value, _oldValue, onCleanup) => {
     let active = true;
@@ -76,9 +88,10 @@ const trends = computed(() => buildDailyTransactionTrends(transactions.value, tr
     return currency === props.defaultCurrency ? transaction.sourceAmount :
         exchangeRatesStore.getExchangedAmount(transaction.sourceAmount, currency, props.defaultCurrency);
 }));
-const points = computed(() => fillDailyTrendGaps(trends.value.items,
+const dailyPoints = computed(() => fillDailyTrendGaps(trends.value.items,
     props.filter.minTime ? parseDateTimeFromUnixTime(props.filter.minTime).getGregorianCalendarYearDashMonthDashDay() : '',
     props.filter.maxTime ? parseDateTimeFromUnixTime(props.filter.maxTime).getGregorianCalendarYearDashMonthDashDay() : ''));
+const points = computed(() => aggregateTransactionTrends(dailyPoints.value, period.value, userStore.currentUserFirstDayOfWeek));
 const options = computed(() => {
     const colors = getExpenseAndIncomeAmountColor(userStore.currentUserExpenseAmountColor, userStore.currentUserIncomeAmountColor, theme.global.name.value === ThemeType.Dark);
     const textColor = theme.current.value.colors['on-surface'];

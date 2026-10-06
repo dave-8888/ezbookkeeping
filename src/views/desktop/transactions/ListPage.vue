@@ -644,6 +644,7 @@
     </v-row>
 
     <date-range-selection-dialog :title="tt('Custom Date Range')"
+                                 :recent-ranges="true"
                                  :min-time="customMinDatetime"
                                  :max-time="customMaxDatetime"
                                  v-model:show="showCustomDateRangeDialog"

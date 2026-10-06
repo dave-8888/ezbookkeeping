@@ -2,6 +2,31 @@ import { TransactionType } from '@/core/transaction.ts';
 import { Transaction, type TransactionListByMaxTimeRequest, type TransactionInfoPageWrapperResponse } from '@/models/transaction.ts';
 import type { TransactionListFilter } from '@/stores/transaction.ts';
 import { parseDateTimeFromUnixTimeWithTimezoneOffset } from '@/lib/datetime.ts';
+import type { WeekDayValue } from '@/core/datetime.ts';
+
+export type TransactionTrendPeriod = 'day' | 'week' | 'month' | 'year';
+
+export function aggregateTransactionTrends(items: DailyTransactionTrend[], period: TransactionTrendPeriod, firstDayOfWeek: WeekDayValue): DailyTransactionTrend[] {
+    const buckets = new Map<string, DailyTransactionTrend>();
+    for (const item of items) {
+        let date = item.date;
+        if (period === 'week') {
+            const start = new Date(`${date}T00:00:00Z`);
+            start.setUTCDate(start.getUTCDate() - (start.getUTCDay() - firstDayOfWeek + 7) % 7);
+            date = start.toISOString().slice(0, 10);
+        } else if (period === 'month') {
+            date = date.slice(0, 7);
+        } else if (period === 'year') {
+            date = date.slice(0, 4);
+        }
+        const bucket = buckets.get(date) || { date, income: 0, expense: 0 };
+        for (const field of ['income', 'expense'] as const) {
+            bucket[field] = bucket[field] === null || item[field] === null ? null : bucket[field] + item[field];
+        }
+        buckets.set(date, bucket);
+    }
+    return [...buckets.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
 
 export interface DailyTransactionTrend {
     date: string;

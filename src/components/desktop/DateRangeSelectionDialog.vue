@@ -15,6 +15,16 @@
                     <slot></slot>
                 </div>
             </template>
+            <v-card-text v-if="recentRanges" class="pb-0">
+                <div class="d-flex align-center flex-wrap gap-2">
+                    <v-btn variant="tonal" @click="applyRecentRange('week')">{{ tt('Last week through today') }}</v-btn>
+                    <v-text-field v-model="recentCount" type="number" min="1" step="1"
+                                  :label="tt('Number of months or years')" hide-details density="compact"
+                                  style="flex: 1 1 160px; max-width: 220px" />
+                    <v-btn variant="tonal" :disabled="!validRecentCount" @click="applyRecentRange('month')">{{ tt('Recent N months') }}</v-btn>
+                    <v-btn variant="tonal" :disabled="!validRecentCount" @click="applyRecentRange('year')">{{ tt('Recent N years') }}</v-btn>
+                </div>
+            </v-card-text>
             <v-card-text class="w-100 d-flex justify-center">
                 <date-time-picker :is-dark-mode="isDarkMode"
                                   :enable-time-picker="true"
@@ -35,16 +45,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useTheme } from 'vuetify';
 
 import { useI18n } from '@/locales/helpers.ts';
 import { type CommonDateRangeSelectionProps, useDateRangeSelectionBase } from '@/components/base/DateRangeSelectionBase.ts';
 
+import { getCurrentUnixTime } from '@/lib/datetime.ts';
+import { getRecentDateRange, type RecentDateRangeUnit } from '@/lib/recent_date_range.ts';
+
 import { ThemeType } from '@/core/theme.ts';
 
 interface DesktopDateRangeSelectionProps extends CommonDateRangeSelectionProps {
     persistent?: boolean;
+    recentRanges?: boolean;
 }
 
 const props = defineProps<DesktopDateRangeSelectionProps>();
@@ -65,6 +79,18 @@ const {
     getLocalDatetimeFromSameDateTimeOfUnixTime,
     getFinalDateRange
 } = useDateRangeSelectionBase(props);
+
+const recentCount = ref<number | string>(1);
+const validRecentCount = computed(() => Number.isSafeInteger(Number(recentCount.value)) && Number(recentCount.value) > 0);
+
+function applyRecentRange(unit: RecentDateRangeUnit): void {
+    try {
+        dateRange.value = getRecentDateRange(getLocalDatetimeFromSameDateTimeOfUnixTime(getCurrentUnixTime()), unit,
+            unit === 'week' ? 1 : Number(recentCount.value));
+    } catch (error) {
+        if (error instanceof Error) emit('error', error.message);
+    }
+}
 
 const isDarkMode = computed<boolean>(() => theme.global.name.value === ThemeType.Dark);
 const showState = computed<boolean>({

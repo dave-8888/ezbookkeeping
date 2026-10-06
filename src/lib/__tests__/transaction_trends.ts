@@ -2,7 +2,7 @@ import { describe, expect, test } from '@jest/globals';
 import { Transaction, type TransactionInfoResponse, type TransactionListByMaxTimeRequest } from '@/models/transaction.ts';
 import { TransactionType } from '@/core/transaction.ts';
 import type { TransactionListFilter } from '@/stores/transaction.ts';
-import { buildDailyTransactionTrends, fillDailyTrendGaps, loadTrendTransactions } from '@/lib/transaction_trends.ts';
+import { aggregateTransactionTrends, buildDailyTransactionTrends, fillDailyTrendGaps, loadTrendTransactions } from '@/lib/transaction_trends.ts';
 
 function transaction(id: string, type = TransactionType.Expense, utcOffset = 0): Transaction {
     return Transaction.of({ id, timeSequenceId: id, type, categoryId: '1',
@@ -62,5 +62,44 @@ describe('daily transaction trends', () => {
             if (request.page === 2) throw new Error('offline');
             return { items: Array.from({ length: 50 }, (_, i) => transaction(`${i}`) as TransactionInfoResponse) };
         }, () => true)).rejects.toThrow('offline');
+    });
+});
+
+
+describe('transaction trend intervals', () => {
+    const items = [
+        { date: '2023-12-31', income: 100, expense: 20 },
+        { date: '2024-01-01', income: 200, expense: 30 },
+        { date: '2024-01-07', income: 300, expense: null },
+        { date: '2024-02-01', income: 400, expense: 50 }
+    ];
+    test('keeps daily results and respects the configured week boundary across years', () => {
+        expect(aggregateTransactionTrends(items, 'day', 1)).toEqual(items);
+        expect(aggregateTransactionTrends(items, 'week', 1)).toEqual([
+            { date: '2023-12-25', income: 100, expense: 20 },
+            { date: '2024-01-01', income: 500, expense: null },
+            { date: '2024-01-29', income: 400, expense: 50 }
+        ]);
+        expect(aggregateTransactionTrends(items, 'week', 0)[0]).toEqual({ date: '2023-12-31', income: 300, expense: 50 });
+    });
+    test('groups calendar months and years while preserving unknown amounts', () => {
+        expect(aggregateTransactionTrends(items, 'month', 1)).toEqual([
+            { date: '2023-12', income: 100, expense: 20 },
+            { date: '2024-01', income: 500, expense: null },
+            { date: '2024-02', income: 400, expense: 50 }
+        ]);
+        expect(aggregateTransactionTrends(items, 'year', 1)).toEqual([
+            { date: '2023', income: 100, expense: 20 },
+            { date: '2024', income: 900, expense: null }
+        ]);
+        expect(aggregateTransactionTrends([], 'year', 1)).toEqual([]);
+    });
+    test('fills empty periods and only sums supplied transactions at partial period edges', () => {
+        const days = fillDailyTrendGaps([{ date: '2024-02-29', income: 100, expense: 50 }], '2024-01-20', '2024-03-04');
+        expect(aggregateTransactionTrends(days, 'month', 1)).toEqual([
+            { date: '2024-01', income: 0, expense: 0 },
+            { date: '2024-02', income: 100, expense: 50 },
+            { date: '2024-03', income: 0, expense: 0 }
+        ]);
     });
 });

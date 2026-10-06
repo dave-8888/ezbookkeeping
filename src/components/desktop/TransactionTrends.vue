@@ -101,7 +101,7 @@ const options = computed(() => {
         aria: { enabled: true },
         color: [colors.incomeAmountColor, colors.expenseAmountColor],
         textStyle: { color: textColor },
-        legend: { data: [tt('Income'), tt('Expense')], textStyle: { color: textColor } },
+        legend: { top: 0, bottom: 'auto', left: 'center', data: [tt('Income'), tt('Expense')], textStyle: { color: textColor } },
         grid: { top: 40, left: 12, right: 18, bottom: points.value.length > 60 ? 64 : 16, containLabel: true },
         tooltip: { trigger: 'axis', renderMode: 'richText', valueFormatter: (value: number | null) => value === null ? '—' : formatAmountToLocalizedNumeralsWithCurrency(Math.round(value * 100), props.defaultCurrency) },
         xAxis: { type: 'category', data: points.value.map(day => day.date), boundaryGap: false, axisLabel: { color: textColor } },

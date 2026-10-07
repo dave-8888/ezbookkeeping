@@ -20,7 +20,7 @@
                            :icon="true" :aria-label="tt('Theme')" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
                         <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="18" />
                     </v-btn>
-                    <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')">
+                    <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')" to="/user/settings">
                         <v-avatar size="26" variant="tonal" :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
                             <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
                                 <template #placeholder>
@@ -31,46 +31,6 @@
                             </v-img>
                             <v-icon :icon="mdiAccount" size="18" v-else-if="!currentUserAvatar"/>
                         </v-avatar>
-                        <v-menu activator="parent" width="230" location="bottom end" offset="14px">
-                            <v-list>
-                                <v-list-item>
-                                    <template #prepend>
-                                        <v-list-item-action>
-                                            <v-avatar variant="tonal"
-                                                      :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
-                                                <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
-                                                    <template #placeholder>
-                                                        <div class="d-flex align-center justify-center fill-height bg-light-primary">
-                                                            <v-icon color="primary" :icon="mdiAccount"/>
-                                                        </div>
-                                                    </template>
-                                                </v-img>
-                                                <v-icon :icon="mdiAccount" v-else-if="!currentUserAvatar"/>
-                                            </v-avatar>
-                                        </v-list-item-action>
-                                    </template>
-                                    <v-list-item-title class="ms-2">
-                                        {{ currentNickName }}
-                                    </v-list-item-title>
-                                </v-list-item>
-                                <v-divider class="my-2"/>
-                                <v-list-item :prepend-icon="mdiAccountCogOutline"
-                                             :title="tt('User Settings')"
-                                             to="/user/settings"></v-list-item>
-                                <v-list-item :prepend-icon="mdiCogOutline"
-                                             :title="tt('Application Settings')"
-                                             to="/app/settings"></v-list-item>
-                                <v-divider class="my-2"/>
-                                <v-list-item :prepend-icon="mdiLockOutline"
-                                             :title="tt('Lock Application')"
-                                             v-if="isEnableApplicationLock"
-                                             @click="lock"></v-list-item>
-                                <v-list-item :disabled="logouting"
-                                             :prepend-icon="mdiLogout"
-                                             :title="tt('Log Out')"
-                                             @click="logout"></v-list-item>
-                            </v-list>
-                        </v-menu>
                     </v-btn>
                 </div>
             </div>
@@ -171,6 +131,31 @@
                         <v-icon class="nav-item-icon" :icon="mdiSwapHorizontal"/>
                         <span class="nav-item-title">{{ tt('Exchange Rates Data') }}</span>
                     </router-link>
+                </li>
+                <li class="nav-link">
+                    <router-link to="/user/settings">
+                        <v-icon class="nav-item-icon" :icon="mdiAccountCogOutline"/>
+                        <span class="nav-item-title">{{ tt('User Settings') }}</span>
+                    </router-link>
+                </li>
+                <li class="nav-link">
+                    <router-link to="/app/settings">
+                        <v-icon class="nav-item-icon" :icon="mdiCogOutline"/>
+                        <span class="nav-item-title">{{ tt('Application Settings') }}</span>
+                    </router-link>
+                </li>
+                <li class="nav-link" v-if="isEnableApplicationLock">
+                    <a role="button" tabindex="0" @click="lock" @keydown.enter.prevent="lock" @keydown.space.prevent="lock">
+                        <v-icon class="nav-item-icon" :icon="mdiLockOutline"/>
+                        <span class="nav-item-title">{{ tt('Lock Application') }}</span>
+                    </a>
+                </li>
+                <li class="nav-link">
+                    <a role="button" :tabindex="logouting ? -1 : 0" :aria-disabled="logouting"
+                       @click="logout" @keydown.enter.prevent="logout" @keydown.space.prevent="logout">
+                        <v-icon class="nav-item-icon" :icon="mdiLogout"/>
+                        <span class="nav-item-title">{{ tt('Log Out') }}</span>
+                    </a>
                 </li>
             </perfect-scrollbar>
         </div>
@@ -273,7 +258,6 @@ const showLoading = ref<boolean>(false);
 const mdAndDown = computed<boolean>(() => display.mdAndDown.value);
 const currentRoutePath = computed<string>(() => route.path);
 
-const currentNickName = computed<string>(() => userStore.currentUserNickname || tt('User'));
 const currentUserAvatar = computed<string | null>(() => userStore.getUserAvatarUrl(userStore.currentUserBasicInfo, true));
 
 const currentTheme = computed<string>({
@@ -316,6 +300,10 @@ function lock(): void {
 }
 
 function logout(): void {
+    if (logouting.value) {
+        return;
+    }
+
     logouting.value = true;
     showLoading.value = true;
 

@@ -20,9 +20,10 @@
                            :icon="true" :aria-label="tt('Theme')" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
                         <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="18" />
                     </v-btn>
-                    <v-menu location="bottom end" min-width="180">
-                        <template #activator="{ props }">
-                            <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')" v-bind="props">
+                    <v-menu location="bottom end" :offset="8" min-width="180">
+                        <template #activator="{ props, isActive }">
+                            <v-btn class="user-menu-trigger" :icon="true" size="34" :variant="isActive ? 'tonal' : 'text'"
+                                   color="primary" :aria-label="tt('User Settings')" v-bind="props">
                                 <v-avatar size="26" variant="tonal" :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
                                     <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
                                         <template #placeholder>
@@ -38,7 +39,8 @@
                         <v-list>
                             <v-list-item to="/user/settings" :prepend-icon="mdiAccountCogOutline"
                                          :title="tt('User Settings')" />
-                            <v-list-item :disabled="logouting" :prepend-icon="mdiLogout"
+                            <v-divider class="my-1" />
+                            <v-list-item class="text-error" :disabled="logouting" :prepend-icon="mdiLogout"
                                          :title="tt('Log Out')" @click="logout" />
                         </v-list>
                     </v-menu>
@@ -140,12 +142,6 @@
                     <router-link to="/exchange_rates">
                         <v-icon class="nav-item-icon" :icon="mdiSwapHorizontal"/>
                         <span class="nav-item-title">{{ tt('Exchange Rates Data') }}</span>
-                    </router-link>
-                </li>
-                <li class="nav-link">
-                    <router-link to="/user/settings">
-                        <v-icon class="nav-item-icon" :icon="mdiAccountCogOutline"/>
-                        <span class="nav-item-title">{{ tt('User Settings') }}</span>
                     </router-link>
                 </li>
                 <li class="nav-link">
@@ -375,9 +371,18 @@ function refreshOverviewPage(): void {
 .nav-header-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
     flex-shrink: 0;
     margin-inline-start: auto;
+}
+
+.user-menu-trigger {
+    margin-inline-start: 2px;
+}
+
+.user-menu-trigger:focus-visible {
+    outline: 2px solid rgb(var(--v-theme-primary));
+    outline-offset: 2px;
 }
 
 .compact-nav-toggle {

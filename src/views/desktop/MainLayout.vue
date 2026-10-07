@@ -20,18 +20,28 @@
                            :icon="true" :aria-label="tt('Theme')" @click="(currentTheme === 'light' ? currentTheme = 'dark' : (currentTheme === 'dark' ? currentTheme = 'auto' : currentTheme = 'light'))">
                         <v-icon :icon="(currentTheme === 'light' ? mdiWeatherSunny : (currentTheme === 'dark' ? mdiWeatherNight : mdiThemeLightDark))" size="18" />
                     </v-btn>
-                    <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')" to="/user/settings">
-                        <v-avatar size="26" variant="tonal" :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
-                            <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
-                                <template #placeholder>
-                                    <div class="d-flex align-center justify-center fill-height bg-light-primary">
-                                        <v-icon color="primary" :icon="mdiAccount" size="18"/>
-                                    </div>
-                                </template>
-                            </v-img>
-                            <v-icon :icon="mdiAccount" size="18" v-else-if="!currentUserAvatar"/>
-                        </v-avatar>
-                    </v-btn>
+                    <v-menu location="bottom end" min-width="180">
+                        <template #activator="{ props }">
+                            <v-btn :icon="true" size="30" variant="text" color="primary" :aria-label="tt('User Settings')" v-bind="props">
+                                <v-avatar size="26" variant="tonal" :color="currentUserAvatar ? 'rgba(0,0,0,0)' : 'primary'">
+                                    <v-img :src="currentUserAvatar" v-if="currentUserAvatar">
+                                        <template #placeholder>
+                                            <div class="d-flex align-center justify-center fill-height bg-light-primary">
+                                                <v-icon color="primary" :icon="mdiAccount" size="18"/>
+                                            </div>
+                                        </template>
+                                    </v-img>
+                                    <v-icon :icon="mdiAccount" size="18" v-else-if="!currentUserAvatar"/>
+                                </v-avatar>
+                            </v-btn>
+                        </template>
+                        <v-list>
+                            <v-list-item to="/user/settings" :prepend-icon="mdiAccountCogOutline"
+                                         :title="tt('User Settings')" />
+                            <v-list-item :disabled="logouting" :prepend-icon="mdiLogout"
+                                         :title="tt('Log Out')" @click="logout" />
+                        </v-list>
+                    </v-menu>
                 </div>
             </div>
             <perfect-scrollbar
@@ -148,13 +158,6 @@
                     <a role="button" tabindex="0" @click="lock" @keydown.enter.prevent="lock" @keydown.space.prevent="lock">
                         <v-icon class="nav-item-icon" :icon="mdiLockOutline"/>
                         <span class="nav-item-title">{{ tt('Lock Application') }}</span>
-                    </a>
-                </li>
-                <li class="nav-link">
-                    <a role="button" :tabindex="logouting ? -1 : 0" :aria-disabled="logouting"
-                       @click="logout" @keydown.enter.prevent="logout" @keydown.space.prevent="logout">
-                        <v-icon class="nav-item-icon" :icon="mdiLogout"/>
-                        <span class="nav-item-title">{{ tt('Log Out') }}</span>
                     </a>
                 </li>
             </perfect-scrollbar>
